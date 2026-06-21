@@ -1261,7 +1261,10 @@ function renderExerciseList(){
               <button class="u18" onclick="moveEx(${ei}, -1)">▲ Up</button>
               <button class="u18" onclick="moveEx(${ei}, 1)">▼ Down</button>
             </div>
-            <button onclick="removeExercise(${ei})" style="background:rgba(255,39,65,0.1);border:1px solid rgba(255,39,65,0.3);border-radius:2px;color:#ff2741;font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;">Remove</button>
+            <div style="display:flex;gap:8px;">
+              <button onclick="editLoggedExerciseName(${ei})" style="background:rgba(0,243,255,0.1);border:1px solid rgba(0,243,255,0.3);border-radius:2px;color:var(--secondary);font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;">✎ Edit Name</button>
+              <button onclick="removeExercise(${ei})" style="background:rgba(255,39,65,0.1);border:1px solid rgba(255,39,65,0.3);border-radius:2px;color:#ff2741;font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;">Remove</button>
+            </div>
           </div>
         </div>
       </div>`;
@@ -1523,6 +1526,32 @@ function addSet(ei, defaultType = 'normal'){
 function removeExercise(ei){
   let w=state.workouts[getWorkoutKey()];
   w.exs.splice(ei,1);
+  renderExerciseList();
+  saveState();
+}
+
+function editLoggedExerciseName(ei){
+  let w=state.workouts[getWorkoutKey()];
+  let ex=w.exs[ei];
+  document.getElementById('modal-title').textContent='Edit Exercise Name';
+  document.getElementById('modal-body').innerHTML=`
+    <input id="edit-logged-ex-name" class="add-ex-input u2" type="text" value="${ex.name.replace(/"/g,'&quot;')}" autocomplete="off">
+    <div class="ac-list u9" id="edit-logged-ex-name-ac"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-confirm-p${state.profile}" onclick="confirmEditLoggedExerciseName(${ei})">Save</button>
+    </div>`;
+  openModal();
+  attachAutocomplete('edit-logged-ex-name', 'edit-logged-ex-name-ac', getExerciseSuggestions);
+}
+
+function confirmEditLoggedExerciseName(ei){
+  let newName=document.getElementById('edit-logged-ex-name').value.trim();
+  if(!newName) return;
+  let w=state.workouts[getWorkoutKey()];
+  w.exs[ei].name=newName;
+  recordExerciseName(newName);
+  closeModal();
   renderExerciseList();
   saveState();
 }
