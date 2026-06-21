@@ -1436,6 +1436,7 @@ function applyLoadedData(parsed) {
   if (state.settings.showNotes === undefined) state.settings.showNotes = true;
   if (state.settings.showPRCalc === undefined) state.settings.showPRCalc = true;
   if (state.settings.compactButtons === undefined) state.settings.compactButtons = false;
+  if (state.settings.keepAwake === undefined) state.settings.keepAwake = false;
   initTheme();
   if (!state.bw) state.bw = {1:{}};
   if (!state.bw[1]) state.bw[1] = {};
@@ -3087,6 +3088,17 @@ function openSettings() {
           <span class="set-toggle-thumb"></span>
         </label>
       </div>
+      <div class="set-row-setting">
+        <div>
+          <div class="set-row-label">Keep screen on</div>
+          <div class="set-row-sub">Prevents the screen from sleeping while the app is open</div>
+        </div>
+        <label class="set-toggle">
+          <input type="checkbox" id="set-keep-awake" ${s.keepAwake ? 'checked' : ''}>
+          <span class="set-toggle-track"></span>
+          <span class="set-toggle-thumb"></span>
+        </label>
+      </div>
     </div>
 
     <div class="set-section">
@@ -3167,10 +3179,12 @@ function saveSettings() {
   state.settings.showPlateMath = document.getElementById('set-show-platemath').checked;
   state.settings.showWarmupGen = document.getElementById('set-show-warmup').checked;
   state.settings.showNotes = document.getElementById('set-show-notes').checked;
+  state.settings.keepAwake = document.getElementById('set-keep-awake').checked;
   state.settings.barbellWeight = bar;
   state.settings.plates = selectedPlates;
 
   saveState();
+  applyWakeLock();
   closeModal();
   applyButtonSizing();
   updateProfileUI();
@@ -3257,7 +3271,7 @@ function renderProfilePage() {
 function openModal(){document.getElementById('modal-overlay').classList.add('open');}
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
 
-function goPage(name){
+function goPage(name, fromPopstate){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active','p1','p2'));
@@ -3269,7 +3283,20 @@ function goPage(name){
   if(name==='split')renderSplitPage();
   if(name==='pr')renderPRPage();
   if(name==='profile')renderProfilePage();
+  if(!fromPopstate){
+    if(history.state && history.state.page === name) return;
+    history.pushState({page:name}, '', '#'+name);
+  }
 }
+
+window.addEventListener('popstate', function(e){
+  if(document.getElementById('modal-overlay') && document.getElementById('modal-overlay').classList.contains('open')){
+    closeModal();
+    return;
+  }
+  let page = (e.state && e.state.page) || 'workout';
+  goPage(page, true);
+});
 
 const POWER_QUOTES=["DISCIPLINE OVER MOTIVATION","NO EXCUSES. NO SURRENDER.","FORGE STRENGTH IN SILENCE","PAIN IS TEMPORARY. QUITTING LASTS FOREVER.","ONE MORE REP. ONE MORE WIN.","THE GRIND NEVER STOPS.","BUILT IN THE DARK. SEEN IN THE LIGHT.","OUTWORK YESTERDAY.","SWEAT NOW. SHINE LATER.","WEAK MIND, WEAK BODY. STRONG MIND, STRONG BODY."];
 let _qIdx=0,_qLoop=0;
@@ -3295,9 +3322,37 @@ async function init(){
   updateProfileUI();
   applyButtonSizing();
   renderSplitSelector();
+  history.replaceState({page:'workout'}, '', '#workout');
   goPage('workout');
   renderPRPage();
+  applyWakeLock();
 }
+
+let _wakeLock = null;
+async function applyWakeLock(){
+  let want = !!(state.settings && state.settings.keepAwake);
+  if(want){
+    if('wakeLock' in navigator){
+      try{
+        if(_wakeLock) { try{ await _wakeLock.release(); }catch(e){} }
+        _wakeLock = await navigator.wakeLock.request('screen');
+        _wakeLock.addEventListener('release', ()=>{ _wakeLock = null; });
+      }catch(e){
+        console.log('Wake lock request failed:', e);
+      }
+    }
+  } else {
+    if(_wakeLock){
+      try{ await _wakeLock.release(); }catch(e){}
+      _wakeLock = null;
+    }
+  }
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && state.settings && state.settings.keepAwake){
+    applyWakeLock();
+  }
+});
 
 function applyButtonSizing(){
   document.body.classList.toggle('compact', !!(state.settings && state.settings.compactButtons));
