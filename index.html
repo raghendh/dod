@@ -525,6 +525,10 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import { getDatabase, ref, get, set as fbSet } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+  import {
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    signOut as fbAuthSignOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCRurgtuFf_VgOuwYNRsuiKIoM9Rs5Wvvo",
@@ -538,14 +542,58 @@
 
   const fbApp = initializeApp(firebaseConfig);
   const db = getDatabase(fbApp);
+  const auth = getAuth(fbApp);
 
-  window.fbGetUser = async function(username) {
-    const snap = await get(ref(db, 'users/' + username));
+  // Usernames map to a synthetic email so we can use real Firebase
+  // Authentication (verified server-side via uid) while keeping the
+  // existing "username + password" UX — nothing visibly changes for users.
+  function usernameToEmail(username) {
+    return username + '@dodworkout.local';
+  }
+
+  // Legacy (pre-migration) lookup: old records lived at users/{username}
+  // with a client-computed password hash and no real auth. This is read
+  // ONLY to verify a password during one-time migration of an old account;
+  // the database rules should restrict this path to passwordHash alone.
+  window.fbGetLegacyUser = async function(username) {
+    try {
+      const snap = await get(ref(db, 'users/' + username));
+      return snap.exists() ? snap.val() : null;
+    } catch (e) { return null; }
+  };
+
+  // New, auth-gated user data, keyed by verified uid (not a client-asserted
+  // username), so database rules can safely check auth.uid === $uid.
+  window.fbGetUserData = async function(uid) {
+    const snap = await get(ref(db, 'userdata/' + uid));
     return snap.exists() ? snap.val() : null;
   };
-  window.fbSetUser = async function(username, data) {
-    await fbSet(ref(db, 'users/' + username), data);
+  window.fbSetUserData = async function(uid, data) {
+    await fbSet(ref(db, 'userdata/' + uid), data);
   };
+
+  window.fbSignUp = async function(username, password) {
+    const cred = await createUserWithEmailAndPassword(auth, usernameToEmail(username), password);
+    return cred.user.uid;
+  };
+  window.fbSignIn = async function(username, password) {
+    const cred = await signInWithEmailAndPassword(auth, usernameToEmail(username), password);
+    return cred.user.uid;
+  };
+  window.fbSignOut = async function() {
+    await fbAuthSignOut(auth);
+  };
+  window.fbAuthErrorCode = function(e) { return (e && e.code) || ''; };
+
+  // Firebase Auth restores its own session on page load (independent of
+  // anything we store ourselves). We surface that here once it resolves so
+  // tryAutoLogin can pick it up without ever touching a password again.
+  window.fbCurrentAuthUser = undefined; // undefined = not resolved yet, null = signed out
+  onAuthStateChanged(auth, (user) => {
+    window.fbCurrentAuthUser = user || null;
+    window.dispatchEvent(new CustomEvent('firebase-auth-state', { detail: user || null }));
+  });
+
   window.firebaseReady = true;
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -1313,10 +1361,13 @@ function installPWA() {
 }
 
 // ====== ACCOUNT / SYNC SYSTEM ======
-let currentUser = null;
-let currentPasswordHash = null;
+let currentUser = null;   // lowercase username, used for display + local cache key only
+let currentUid = null;    // Firebase Auth uid — the only thing that gates cloud reads/writes
 let saveDebounceTimer = null;
 
+// Retained only to verify legacy (pre-migration) account passwords once,
+// so an existing user's account can be moved onto real Firebase Auth
+// without making them reset their password.
 async function sha256Hex(text) {
   let enc = new TextEncoder().encode(text);
   let buf = await crypto.subtle.digest('SHA-256', enc);
@@ -1335,11 +1386,13 @@ function saveState() {
 }
 
 async function pushStateToCloud() {
-  if (!currentUser || !window.firebaseReady || !currentPasswordHash) return;
+  if (!currentUser || !currentUid || !window.firebaseReady) return;
   try {
     let cachedData = JSON.parse(localStorage.getItem(localCacheKey(currentUser)) || '{}');
-    await window.fbSetUser(currentUser, {
-      passwordHash: currentPasswordHash,
+    // No password hash is stored here anymore — Firebase Auth verifies
+    // identity server-side via the signed-in session, so the database
+    // record only ever needs to hold workout data.
+    await window.fbSetUserData(currentUid, {
       data: cachedData,
       updatedAt: Date.now()
     });
@@ -1409,9 +1462,9 @@ async function loadState() {
     state.activeSplit = defaultSplitForUser(currentUser);
   }
 
-  if (window.firebaseReady) {
+  if (window.firebaseReady && currentUid) {
     try {
-      let record = await window.fbGetUser(currentUser);
+      let record = await window.fbGetUserData(currentUid);
       if (record && record.data) {
         if (record.data.splits && record.data.splits["CBum 8-day"]) hadOwnCBum = true;
         applyLoadedData(record.data);
@@ -3162,26 +3215,40 @@ async function handleAuthSubmit(){
 
   setAuthLoading(true);
   try {
-    let existing = await window.fbGetUser(username);
-    let pwHash = await sha256Hex(password);
-
     if (authMode === 'signup') {
-      if (existing) {
+      try {
+        let uid = await window.fbSignUp(username, password);
+        await window.fbSetUserData(uid, { data: {}, createdAt: Date.now() });
+        await completeLogin(username, uid, true);
+      } catch (e) {
         setAuthLoading(false);
-        return showAuthError('That username is taken. Try logging in instead.');
+        if (window.fbAuthErrorCode(e) === 'auth/email-already-in-use') {
+          return showAuthError('That username is taken. Try logging in instead.');
+        }
+        return showAuthError('Could not create account. Try again.');
       }
-      await window.fbSetUser(username, { passwordHash: pwHash, data: {}, createdAt: Date.now() });
-      await completeLogin(username, pwHash, true);
     } else {
-      if (!existing) {
+      try {
+        let uid = await window.fbSignIn(username, password);
+        await completeLogin(username, uid);
+      } catch (e) {
+        // If sign-in fails because this account predates the Auth migration,
+        // it won't exist in Firebase Auth yet — fall back to checking the
+        // old password-hash record once, and if it matches, create the
+        // real Auth account transparently and carry the data over.
+        let code = window.fbAuthErrorCode(e);
+        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+          let migrated = await tryMigrateLegacyAccount(username, password);
+          if (migrated) {
+            return completeLogin(username, migrated, false);
+          }
+        }
         setAuthLoading(false);
+        if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+          return showAuthError('Incorrect password.');
+        }
         return showAuthError('No account with that username. Sign up instead.');
       }
-      if (existing.passwordHash !== pwHash) {
-        setAuthLoading(false);
-        return showAuthError('Incorrect password.');
-      }
-      await completeLogin(username, pwHash);
     }
   } catch (e) {
     console.error(e);
@@ -3190,9 +3257,29 @@ async function handleAuthSubmit(){
   }
 }
 
-async function completeLogin(username, pwHash, isNewUser){
+// One-time migration for accounts created before the move to real Firebase
+// Auth. Old accounts only have a SHA-256 password hash sitting at
+// users/{username}. We verify the password against that legacy hash, and if
+// it matches, create a proper Firebase Auth account with the SAME password
+// and copy the old workout data across — so existing users don't have to
+// do anything differently or lose data.
+async function tryMigrateLegacyAccount(username, password){
+  let legacy = await window.fbGetLegacyUser(username);
+  if (!legacy || !legacy.passwordHash) return null;
+  let pwHash = await sha256Hex(password);
+  if (legacy.passwordHash !== pwHash) return null;
+
+  let uid = await window.fbSignUp(username, password);
+  await window.fbSetUserData(uid, {
+    data: legacy.data || {},
+    migratedAt: Date.now()
+  });
+  return uid;
+}
+
+async function completeLogin(username, uid, isNewUser){
   currentUser = username;
-  currentPasswordHash = pwHash;
+  currentUid = uid;
   localStorage.setItem('dod_last_user', username);
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app').classList.add('ready');
@@ -3205,8 +3292,9 @@ async function completeLogin(username, pwHash, isNewUser){
 
 function logout(){
   if (!confirm('Log out of ' + currentUser + '? Your data stays saved in the cloud.')) return;
+  window.fbSignOut().catch(()=>{});
   currentUser = null;
-  currentPasswordHash = null;
+  currentUid = null;
   localStorage.removeItem('dod_last_user');
   resetAppState();
   document.getElementById('app').classList.remove('ready');
@@ -3220,16 +3308,25 @@ function logout(){
   document.getElementById('auth-switch').innerHTML = "New here? <a onclick=\"toggleAuthMode()\">Create an account</a>";
 }
 
+// Firebase Auth keeps its own persisted session (independent of our
+// localStorage flag), so on reload we ask Auth who's signed in rather than
+// re-deriving identity from a remembered username.
+window.fbOnAuthReady = function(callback) {
+  window.addEventListener('firebase-auth-state', (e) => callback(e.detail));
+};
+
 async function tryAutoLogin(){
+  let user = await new Promise(resolve => {
+    if (window.fbCurrentAuthUser !== undefined) return resolve(window.fbCurrentAuthUser);
+    window.fbOnAuthReady(resolve);
+  });
+  if (!user) return;
+
   let lastUser = localStorage.getItem('dod_last_user');
-  if (!lastUser) return;
-  currentUser = lastUser;
+  currentUser = lastUser || (user.email || '').split('@')[0];
+  currentUid = user.uid;
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app').classList.add('ready');
-  try {
-    let record = await window.fbGetUser(lastUser);
-    if (record && record.passwordHash) currentPasswordHash = record.passwordHash;
-  } catch (e) {}
   await init();
 }
 
