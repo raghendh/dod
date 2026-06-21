@@ -1351,6 +1351,11 @@ async function pushStateToCloud() {
 function applyLoadedData(parsed) {
   if (!parsed) return;
   if (parsed.splits) {
+    // Replace SPLITS entirely with the saved set, rather than merging on top
+    // of the freshly reseeded defaults. A merge-only approach can never
+    // reflect a deleted split, since the reset step always re-adds the
+    // built-ins before this function runs.
+    for (let k in SPLITS) delete SPLITS[k];
     for (let k in parsed.splits) { SPLITS[k] = parsed.splits[k]; }
   }
   delete parsed.splits;
@@ -1410,7 +1415,9 @@ async function loadState() {
       if (record && record.data) {
         if (record.data.splits && record.data.splits["CBum 8-day"]) hadOwnCBum = true;
         applyLoadedData(record.data);
-        localStorage.setItem(localCacheKey(currentUser), JSON.stringify(state));
+        let toCache = JSON.parse(JSON.stringify(state));
+        toCache.splits = SPLITS;
+        localStorage.setItem(localCacheKey(currentUser), JSON.stringify(toCache));
       }
     } catch (e) {}
   }
@@ -2529,6 +2536,8 @@ function confirmRenameSplit(){
   renderSplitSelector();
   renderSplitPage();
   saveState();
+  clearTimeout(saveDebounceTimer);
+  pushStateToCloud();
 }
 
 function confirmDeleteSplit(){
@@ -2548,6 +2557,11 @@ function confirmDeleteSplit(){
   renderSplitSelector();
   renderSplitPage();
   saveState();
+  // Deletions are destructive, so skip the normal save debounce and push to
+  // the cloud right away — otherwise a quick refresh can race ahead of the
+  // debounced sync and pull back a stale (pre-deletion) copy from the cloud.
+  clearTimeout(saveDebounceTimer);
+  pushStateToCloud();
 }
 
 function showRules() {
