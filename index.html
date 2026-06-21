@@ -552,9 +552,18 @@
   }
 
   // Legacy (pre-migration) lookup: old records lived at users/{username}
-  // with a client-computed password hash and no real auth. This is read
-  // ONLY to verify a password during one-time migration of an old account;
-  // the database rules should restrict this path to passwordHash alone.
+  // with a client-computed password hash and no real auth. We read ONLY
+  // the passwordHash field — never the workout data — both because that's
+  // all we need to verify/migrate, and because database rules should only
+  // ever expose this one field publicly, nothing else under that path.
+  window.fbGetLegacyPasswordHash = async function(username) {
+    try {
+      const snap = await get(ref(db, 'users/' + username + '/passwordHash'));
+      return snap.exists() ? snap.val() : null;
+    } catch (e) { return null; }
+  };
+  // Full legacy record (passwordHash + data), used only during the actual
+  // migration step once the password has already been verified above.
   window.fbGetLegacyUser = async function(username) {
     try {
       const snap = await get(ref(db, 'users/' + username));
@@ -1374,13 +1383,13 @@ async function sha256Hex(text) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function localCacheKey(username) { return 'dod_tracker_data_' + username; }
+function localCacheKey(uid) { return 'dod_tracker_data_' + uid; }
 
 function saveState() {
-  if (!currentUser) return;
+  if (!currentUser || !currentUid) return;
   let toSave = JSON.parse(JSON.stringify(state));
   toSave.splits = SPLITS;
-  localStorage.setItem(localCacheKey(currentUser), JSON.stringify(toSave));
+  localStorage.setItem(localCacheKey(currentUid), JSON.stringify(toSave));
   clearTimeout(saveDebounceTimer);
   saveDebounceTimer = setTimeout(() => pushStateToCloud(), 900);
 }
@@ -1388,7 +1397,7 @@ function saveState() {
 async function pushStateToCloud() {
   if (!currentUser || !currentUid || !window.firebaseReady) return;
   try {
-    let cachedData = JSON.parse(localStorage.getItem(localCacheKey(currentUser)) || '{}');
+    let cachedData = JSON.parse(localStorage.getItem(localCacheKey(currentUid)) || '{}');
     // No password hash is stored here anymore — Firebase Auth verifies
     // identity server-side via the signed-in session, so the database
     // record only ever needs to hold workout data.
@@ -1450,7 +1459,7 @@ function defaultSplitForUser(username){
 async function loadState() {
   resetAppState();
 
-  let cached = localStorage.getItem(localCacheKey(currentUser));
+  let cached = currentUid ? localStorage.getItem(localCacheKey(currentUid)) : null;
   let hadOwnCBum = false;
   if (cached) {
     try {
@@ -1470,7 +1479,7 @@ async function loadState() {
         applyLoadedData(record.data);
         let toCache = JSON.parse(JSON.stringify(state));
         toCache.splits = SPLITS;
-        localStorage.setItem(localCacheKey(currentUser), JSON.stringify(toCache));
+        localStorage.setItem(localCacheKey(currentUid), JSON.stringify(toCache));
       }
     } catch (e) {}
   }
@@ -3209,7 +3218,12 @@ async function handleAuthSubmit(){
 
   if (!username || username.length < 3) return showAuthError('Username must be at least 3 characters.');
   if (!/^[a-z0-9_]+$/.test(username)) return showAuthError('Use only lowercase letters, numbers, and underscores.');
-  if (!password || password.length < 6) return showAuthError('Password must be at least 6 characters.');
+  if (!password) return showAuthError('Enter your password.');
+  // The 6-character minimum is a rule for NEW passwords only. Some existing
+  // accounts were created back when shorter passwords were allowed — login
+  // must accept whatever password the account was actually created with,
+  // and let Firebase / the legacy hash check decide if it's correct.
+  if (authMode === 'signup' && password.length < 6) return showAuthError('Password must be at least 6 characters.');
 
   if (!window.firebaseReady) return showAuthError('Still connecting, try again in a moment.');
 
@@ -3217,6 +3231,17 @@ async function handleAuthSubmit(){
   try {
     if (authMode === 'signup') {
       try {
+        // A username that already has a legacy (pre-migration) record is
+        // NOT available for signup, even if Firebase Auth has never heard
+        // of it yet — otherwise a forgotten old password leads someone to
+        // "just sign up again," silently orphaning their real account and
+        // its cloud data under a different password.
+        let legacyHash = await window.fbGetLegacyPasswordHash(username);
+        if (legacyHash) {
+          setAuthLoading(false);
+          return showAuthError('That username already has an account. If this is yours, use your original password to log in, or contact support to recover it.');
+        }
+
         let uid = await window.fbSignUp(username, password);
         await window.fbSetUserData(uid, { data: {}, createdAt: Date.now() });
         await completeLogin(username, uid, true);
@@ -3243,10 +3268,13 @@ async function handleAuthSubmit(){
         let uid = await window.fbSignIn(username, password);
         await completeLogin(username, uid);
       } catch (e) {
-        // If sign-in fails because this account predates the Auth migration,
-        // it won't exist in Firebase Auth yet — fall back to checking the
-        // old password-hash record once, and if it matches, create the
-        // real Auth account transparently and carry the data over.
+        // If sign-in fails because this account predates the Auth migration
+        // (or uses a legacy short password under Firebase's own minimum),
+        // it either won't exist in Firebase Auth yet under the raw password,
+        // or it exists under a padded version of it. Fall back to checking
+        // the old password-hash record once; tryMigrateLegacyAccount handles
+        // both the first-ever migration and an already-migrated short
+        // password transparently.
         let code = window.fbAuthErrorCode(e);
         if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
           let migrated = await tryMigrateLegacyAccount(username, password);
@@ -3274,13 +3302,43 @@ async function handleAuthSubmit(){
 // it matches, create a proper Firebase Auth account with the SAME password
 // and copy the old workout data across — so existing users don't have to
 // do anything differently or lose data.
+// Firebase Auth requires at least 6 characters for any password, but some
+// legacy accounts were created with shorter ones. We can't change what the
+// person remembers and types, so when migrating an account whose real
+// password is under 6 characters, we pad ONLY the value handed to Firebase
+// with a fixed, app-known suffix. The person keeps using their original
+// short password every time; this padding is purely an internal detail of
+// satisfying Firebase's own minimum.
+const LEGACY_SHORT_PW_PAD = '__dod_legacy_pad__';
+function passwordForFirebase(rawPassword) {
+  return rawPassword.length >= 6 ? rawPassword : (rawPassword + LEGACY_SHORT_PW_PAD);
+}
+
 async function tryMigrateLegacyAccount(username, password){
   let legacy = await window.fbGetLegacyUser(username);
   if (!legacy || !legacy.passwordHash) return null;
   let pwHash = await sha256Hex(password);
   if (legacy.passwordHash !== pwHash) return null;
 
-  let uid = await window.fbSignUp(username, password);
+  let fbPassword = passwordForFirebase(password);
+
+  // The legacy hash matching doesn't tell us whether this account was
+  // ALREADY migrated in an earlier session (we never delete the old hash
+  // record). If a short password was padded before, the real Firebase
+  // account already exists under that padded password — try signing into
+  // it first, and only create a brand-new Firebase account if that fails
+  // because there's truly nothing there yet.
+  try {
+    let uid = await window.fbSignIn(username, fbPassword);
+    return uid;
+  } catch (e) {
+    let code = window.fbAuthErrorCode(e);
+    if (code !== 'auth/user-not-found' && code !== 'auth/invalid-credential' && code !== 'auth/wrong-password') {
+      throw e; // genuine unexpected error — don't mask it
+    }
+  }
+
+  let uid = await window.fbSignUp(username, fbPassword);
   await window.fbSetUserData(uid, {
     data: legacy.data || {},
     migratedAt: Date.now()
