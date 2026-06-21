@@ -442,6 +442,14 @@ const SPLITS = {
   }
 };
 
+const DEFAULT_SPLITS_SNAPSHOT = JSON.parse(JSON.stringify(SPLITS));
+
+function resetSplitsToDefault(){
+  for(let k in SPLITS) delete SPLITS[k];
+  let fresh = JSON.parse(JSON.stringify(DEFAULT_SPLITS_SNAPSHOT));
+  for(let k in fresh) SPLITS[k] = fresh[k];
+}
+
 const RULES = [
   { rule: "Same weight across sets?", method: "YES — Hold same weight on ALL working sets until you hit the top of the rep range on every set with perfect form." },
   { rule: "When to increase weight?", method: "Only when you complete the top rep of the range on ALL sets with perfect form — not before." },
@@ -607,6 +615,60 @@ let restTimers = {
   1: { running: false, end: 0, interval: null, lastDuration: 90 }
 };
 
+function resetAppState(){
+  // Stop any running timers/intervals left over from the previous session
+  if (state.sw && state.sw[1] && state.sw[1].interval) clearInterval(state.sw[1].interval);
+  if (restTimers && restTimers[1] && restTimers[1].interval) clearInterval(restTimers[1].interval);
+
+  resetSplitsToDefault();
+
+  state = {
+    profile: 1,
+    date: new Date(),
+    sw: {1:{running:false,start:0,elapsed:0,interval:null}},
+    activeSplit: "Bro Split",
+    activeDayIdx: 0,
+    splitDayView: 0,
+    bw: {1:{}},
+    userMetrics: {1:{height:'',age:''}},
+    workouts: {},
+    prData: {},
+    knownExerciseNames: [],
+    knownWorkoutNames: [],
+    settings: {
+      useRestTimer: true,
+      timerMerged: false,
+      barbellWeight: 20,
+      plates: [25, 20, 15, 10, 5, 2.5, 1.25]
+    },
+    page: "workout"
+  };
+
+  restTimers = {
+    1: { running: false, end: 0, interval: null, lastDuration: 90 }
+  };
+
+  // Reset the stopwatch/rest-timer UI immediately so no stale display lingers
+  let swTimeEl = document.getElementById('sw1-time');
+  if (swTimeEl) swTimeEl.innerHTML = '00:00<span class="sw-ms">.00</span>';
+  let sw1El = document.getElementById('sw1');
+  if (sw1El) sw1El.classList.remove('running');
+  let stopwatchUi = document.getElementById('sw1-stopwatch-ui');
+  if (stopwatchUi) stopwatchUi.style.display = 'flex';
+  let restUi = document.getElementById('sw1-rest-ui');
+  if (restUi) restUi.style.display = 'none';
+  let floatingWidget = document.getElementById('rest-timer-widget-1');
+  if (floatingWidget) floatingWidget.style.display = 'none';
+
+  // Force the UI back to the Train tab so no one inherits the previous user's open page
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  let workoutPage = document.getElementById('page-workout');
+  if (workoutPage) workoutPage.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active','p1','p2'));
+  let navWorkout = document.getElementById('nav-workout');
+  if (navWorkout) navWorkout.classList.add('active','p1');
+}
+
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -694,9 +756,16 @@ function defaultSplitForUser(username){
 }
 
 async function loadState() {
+  resetAppState();
+
   let cached = localStorage.getItem(localCacheKey(currentUser));
+  let hadOwnCBum = false;
   if (cached) {
-    try { applyLoadedData(JSON.parse(cached)); } catch(e) {}
+    try {
+      let parsedCache = JSON.parse(cached);
+      hadOwnCBum = !!(parsedCache.splits && parsedCache.splits["CBum 8-day"]);
+      applyLoadedData(parsedCache);
+    } catch(e) {}
   } else {
     state.activeSplit = defaultSplitForUser(currentUser);
   }
@@ -705,10 +774,17 @@ async function loadState() {
     try {
       let record = await window.fbGetUser(currentUser);
       if (record && record.data) {
+        if (record.data.splits && record.data.splits["CBum 8-day"]) hadOwnCBum = true;
         applyLoadedData(record.data);
         localStorage.setItem(localCacheKey(currentUser), JSON.stringify(state));
       }
     } catch (e) {}
+  }
+
+  let allowedCBum = CBUM_DEFAULT_USERS.includes((currentUser || '').toLowerCase()) || hadOwnCBum;
+  if (!allowedCBum && SPLITS["CBum 8-day"]) {
+    delete SPLITS["CBum 8-day"];
+    if (state.activeSplit === "CBum 8-day") state.activeSplit = defaultSplitForUser(currentUser);
   }
 }
 
@@ -2258,10 +2334,11 @@ initQuoteTicker();
 
 async function init(){
   await loadState();
+  state.page = 'workout';
   updateDateLabel();
   updateProfileUI();
   renderSplitSelector();
-  renderExerciseList();
+  goPage('workout');
   renderPRPage();
 }
 
@@ -2351,6 +2428,7 @@ function logout(){
   currentUser = null;
   currentPasswordHash = null;
   localStorage.removeItem('dod_last_user');
+  resetAppState();
   document.getElementById('app').classList.remove('ready');
   document.getElementById('auth-screen').classList.remove('hidden');
   document.getElementById('auth-username').value = '';
