@@ -904,6 +904,13 @@
 [data-theme="valorant"] .theme-option .theme-swatch{border-radius:0;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);}
 [data-theme="valorant"] .theme-option.active{border-color:var(--g1);color:var(--g1);background:rgba(255,70,85,0.08);}
 
+/* ─ Hide global body scanline/CRT effects while login screen is visible ─ */
+body:has(#auth-screen:not(.hidden))::before,
+body:has(#auth-screen:not(.hidden))::after { display: none !important; }
+/* Valorant shader/scanline also hidden during login */
+body:has(#auth-screen:not(.hidden)) #valorant-shader-canvas,
+body:has(#auth-screen:not(.hidden)) #valorant-scanline-overlay { display: none !important; }
+
 /* ─ Valorant WebGL shader background + scanline (theme-gated, only painted/visible for valorant) ─ */
 #valorant-shader-canvas{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;}
 #valorant-scanline-overlay{display:none;position:fixed;inset:0;pointer-events:none;z-index:9020;opacity:0.035;
