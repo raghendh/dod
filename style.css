@@ -1249,11 +1249,22 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
   color: var(--txt-muted);
   cursor: pointer;
   font-family: inherit;
+  min-height: 44px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .plate-chip.checked {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
+}
+.setting-plate-cb {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 .ac-list {
   display: none;
@@ -1483,14 +1494,7 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
   100% { opacity: 0; }
 }
 
-/* Plate math checkbox (visually replaced by .plate-chip label/checked state) */
-.setting-plate-cb {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
+/* .setting-plate-cb defined above with .plate-chip */
 
 /* Per-exercise history rows (HIST panel) */
 .ex-history-row {
@@ -1687,53 +1691,6 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
   text-transform: uppercase;
   color: var(--accent);
   margin: 20px 0 10px;
-}
-
-/* ── Profile accordions ── */
-.profile-accordion {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-top: 12px;
-  overflow: hidden;
-  background: var(--card-bg);
-}
-.profile-accordion-header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: inherit;
-  gap: 8px;
-}
-.profile-accordion-header:hover {
-  background: var(--border);
-}
-.profile-acc-chevron {
-  flex-shrink: 0;
-  color: var(--txt3);
-  transition: transform 0.25s ease;
-  transform: rotate(180deg);
-}
-.profile-acc-chevron.open {
-  transform: rotate(0deg);
-}
-.profile-accordion-body {
-  display: none;
-  padding: 0 12px 12px;
-}
-.profile-accordion-body.open {
-  display: block;
-}
-.profile-accordion-body .settings-panel {
-  margin-top: 4px;
-}
-.profile-accordion-body #pr-list,
-.profile-accordion-body #history-list {
-  margin-top: 4px;
 }
 
 /* ── Body measurements 2-col grid ── */

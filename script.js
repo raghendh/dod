@@ -2300,8 +2300,8 @@ function openSettings() {
   let commonPlates = [25, 20, 15, 10, 7.5, 5, 2.5, 1.25, 0.5];
 
   let platesHtml = commonPlates.map(p => `
-    <label class="plate-chip ${s.plates.includes(p) ? 'checked' : ''}">
-      <input type="checkbox" value="${p}" class="setting-plate-cb" ${s.plates.includes(p) ? 'checked' : ''} onchange="this.parentElement.classList.toggle('checked',this.checked); saveSettingsAuto()">
+    <label class="plate-chip ${s.plates.includes(p) ? 'checked' : ''}" onclick="event.preventDefault();this.querySelector('input').checked=!this.querySelector('input').checked;this.classList.toggle('checked',this.querySelector('input').checked);saveSettingsAuto();">
+      <input type="checkbox" value="${p}" class="setting-plate-cb" tabindex="-1" ${s.plates.includes(p) ? 'checked' : ''}>
       ${p} kg
     </label>
   `).join('');
@@ -2747,12 +2747,7 @@ function renderProfilePage() {
       </div>
 
       <!-- Body Measurements -->
-      <div class="profile-accordion" id="acc-measurements">
-        <button type="button" class="profile-accordion-header" onclick="toggleProfileAccordion('measurements')">
-          <span class="profile-section-title" style="margin:0;">Body Measurements</span>
-          <svg class="profile-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-        </button>
-        <div class="profile-accordion-body">
+      <div class="profile-section-title">Body Measurements</div>
       <div class="settings-panel">
         <div class="profile-measure-grid">
           <div class="profile-measure-field">
@@ -2806,17 +2801,10 @@ function renderProfilePage() {
               onchange="saveMeasurement('rightThigh', this.value ? parseFloat(this.value) : '')">
           </div>
         </div>
-      </div><!-- /settings-panel -->
-        </div><!-- /profile-accordion-body -->
-      </div><!-- /acc-measurements -->
+      </div>
 
       <!-- Bodyweight Log -->
-      <div class="profile-accordion" id="acc-bodyweight">
-        <button type="button" class="profile-accordion-header" onclick="toggleProfileAccordion('bodyweight')">
-          <span class="profile-section-title" style="margin:0;">Bodyweight</span>
-          <svg class="profile-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-        </button>
-        <div class="profile-accordion-body">
+      <div class="profile-section-title">Bodyweight</div>
       <div class="settings-panel">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
           <input type="number" id="profile-bw-input" class="profile-measure-input" placeholder="Today's weight (kg)"
@@ -2825,35 +2813,19 @@ function renderProfilePage() {
         </div>
         <div id="bw-chart-container" style="margin-bottom:12px;">${chartHtml}</div>
         <div id="bw-history-list">${bwHistHtml}</div>
-      </div><!-- /settings-panel -->
-        </div><!-- /profile-accordion-body -->
-      </div><!-- /acc-bodyweight -->
+      </div>
 
       <!-- Personal Records -->
-      <div class="profile-accordion" id="acc-pr">
-        <button type="button" class="profile-accordion-header" onclick="toggleProfileAccordion('pr')">
-          <span class="profile-section-title" style="margin:0;">Personal Records</span>
-          <svg class="profile-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-        </button>
-        <div class="profile-accordion-body">
+      <div class="profile-section-title">Personal Records</div>
       <div id="pr-list" class="settings-panel" style="padding:0;">
         ${prHtml || '<div class="u13" style="padding:20px;">No PRs set yet.<br><span class="u5">Use the PR panel on any exercise to record your 1RM.</span></div>'}
       </div>
-        </div><!-- /profile-accordion-body -->
-      </div><!-- /acc-pr -->
 
       <!-- Workout History -->
-      <div class="profile-accordion" id="acc-history">
-        <button type="button" class="profile-accordion-header" onclick="toggleProfileAccordion('history')">
-          <span class="profile-section-title" style="margin:0;">Workout History</span>
-          <svg class="profile-acc-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-        </button>
-        <div class="profile-accordion-body">
+      <div class="profile-section-title">Workout History</div>
       <div id="history-list">
         ${histHtml}
       </div>
-        </div><!-- /profile-accordion-body -->
-      </div><!-- /acc-history -->
 
       <!-- Muscle Volume (last 30 days) -->
       <div class="profile-section-title">Muscle Volume — Last 30 Days</div>
@@ -2926,13 +2898,9 @@ function renderProfilePage() {
         <div class="profile-measure-label" style="margin-bottom:10px;">Available plates (kg)</div>
         <div class="plate-grid">
           ${[25, 20, 15, 10, 7.5, 5, 2.5, 1.25, 0.5].map(pl => `
-            <label class="plate-chip ${s.plates && s.plates.includes(pl) ? 'checked' : ''}">
-              <input type="checkbox" value="${pl}" class="setting-plate-cb"
-                ${s.plates && s.plates.includes(pl) ? 'checked' : ''}
-                onchange="this.parentElement.classList.toggle('checked',this.checked);
-                  let cbs=document.querySelectorAll('.setting-plate-cb');
-                  let sel=[]; cbs.forEach(c=>{if(c.checked)sel.push(parseFloat(c.value));});
-                  sel.sort((a,b)=>b-a); state.settings.plates=sel; saveState();">
+            <label class="plate-chip ${s.plates && s.plates.includes(pl) ? 'checked' : ''}" onclick="event.preventDefault();var inp=this.querySelector('input');inp.checked=!inp.checked;this.classList.toggle('checked',inp.checked);var cbs=document.querySelectorAll('.setting-plate-cb');var sel=[];cbs.forEach(function(c){if(c.checked)sel.push(parseFloat(c.value));});sel.sort(function(a,b){return b-a;});state.settings.plates=sel;saveState();">
+              <input type="checkbox" value="${pl}" class="setting-plate-cb" tabindex="-1"
+                ${s.plates && s.plates.includes(pl) ? 'checked' : ''}>
               ${pl} kg
             </label>`).join('')}
         </div>
@@ -3657,33 +3625,6 @@ function updateGlobalTimer(text) {
   } else {
     el.style.display = 'none';
   }
-}
-
-/* ── Profile accordion collapse/expand ── */
-let profileAccordionOpen = null;
-function toggleProfileAccordion(id) {
-  const ids = ['measurements', 'bodyweight', 'pr', 'history'];
-  ids.forEach(key => {
-    const el = document.getElementById('acc-' + key);
-    if (!el) return;
-    const body = el.querySelector('.profile-accordion-body');
-    const chevron = el.querySelector('.profile-acc-chevron');
-    if (key === id) {
-      const isOpen = body.classList.contains('open');
-      if (isOpen) {
-        body.classList.remove('open');
-        chevron.classList.remove('open');
-        profileAccordionOpen = null;
-      } else {
-        body.classList.add('open');
-        chevron.classList.add('open');
-        profileAccordionOpen = key;
-      }
-    } else {
-      body.classList.remove('open');
-      chevron.classList.remove('open');
-    }
-  });
 }
 
 /* ── Date section collapse/expand ── */
