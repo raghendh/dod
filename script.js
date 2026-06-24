@@ -375,7 +375,9 @@ let state = {
     showWarmupGen: true,
     showNotes: true,
     showPRCalc: true,
-    compactButtons: false
+    compactButtons: false,
+    lockUI: false,
+    singleExpand: true
   },
   page: "workout"
 };
@@ -414,7 +416,9 @@ function resetAppState(){
       showWarmupGen: true,
       showNotes: true,
       showPRCalc: true,
-      compactButtons: false
+      compactButtons: false,
+      lockUI: false,
+      singleExpand: true
     },
     page: "workout"
   };
@@ -506,6 +510,8 @@ function applyLoadedData(parsed) {
   if (state.settings.showPRCalc === undefined) state.settings.showPRCalc = true;
   if (state.settings.compactButtons === undefined) state.settings.compactButtons = false;
   if (state.settings.keepAwake === undefined) state.settings.keepAwake = false;
+  if (state.settings.lockUI === undefined) state.settings.lockUI = false;
+  if (state.settings.singleExpand === undefined) state.settings.singleExpand = true;
   initTheme();
   if (!state.bw) state.bw = {1:{}};
   if (!state.bw[1]) state.bw[1] = {};
@@ -717,16 +723,50 @@ function updateDateLabel(){
   let d = state.date;
   let days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   let months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let dayNames = ['S','M','T','W','T','F','S'];
   // new single-line label: "WEDNESDAY, JUNE 24, 2026"
   let label = days[d.getDay()].toUpperCase() + ', ' + months[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
   let lbl = document.getElementById('cur-date-lbl');
   if (lbl) lbl.textContent = label;
+  // global header date subtitle
+  let ghSub = document.getElementById('gh-date-sub');
+  if (ghSub) ghSub.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
   // legacy elements (no-ops if removed from HTML, safe)
   let monthEl = document.getElementById('cur-date-month');
   if (monthEl) monthEl.textContent = months[d.getMonth()].toUpperCase();
   let dstr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   let dp = document.getElementById('hidden-date-picker');
   if (dp) dp.value = dstr;
+  // render week strip
+  renderWeekStrip();
+}
+
+function renderWeekStrip() {
+  let strip = document.getElementById('week-strip');
+  if (!strip) return;
+  let d = state.date;
+  // build 7-day window: Sun of current week through Sat
+  let dow = d.getDay(); // 0=Sun
+  let weekStart = new Date(d);
+  weekStart.setDate(d.getDate() - dow);
+  let dayLetters = ['S','M','T','W','T','F','S'];
+  strip.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    let day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    let isActive = day.toDateString() === d.toDateString();
+    let col = document.createElement('div');
+    col.className = 'week-day-col' + (isActive ? ' active' : '');
+    col.innerHTML = `<span class="week-day-letter">${dayLetters[i]}</span><span class="week-day-num">${day.getDate()}</span>`;
+    col.addEventListener('click', () => {
+      state.date = day;
+      updateDateLabel();
+      renderExerciseList();
+      if(state.page === 'profile') renderProfilePage();
+      saveState();
+    });
+    strip.appendChild(col);
+  }
 }
 
 function updateDateStatusDot(){
@@ -797,8 +837,11 @@ function renderSplitSelector(){
 
   let mainTitle = document.getElementById('split-main-title');
   if (mainTitle) mainTitle.textContent = state.activeSplit || 'Split Library';
+  let locked = !!(state.settings && state.settings.lockUI);
   let editBtn = document.getElementById('edit-split-btn');
-  if (editBtn) editBtn.style.display = state.activeSplit ? 'flex' : 'none';
+  if (editBtn) editBtn.style.display = (state.activeSplit && !locked) ? 'flex' : 'none';
+  let addBtn = document.getElementById('add-split-btn');
+  if (addBtn) addBtn.style.display = locked ? 'none' : 'flex';
 }
 
 function selectSplit(s){
@@ -943,31 +986,51 @@ function toggleUni(ei, si) {
 }
 function toggleBWQuick(){
   let inp = document.getElementById('bw-quick-val');
-  let btn = document.getElementById('bw-quick-wrap');
+  let lbl = document.getElementById('bw-quick-lbl');
+  let icon = document.getElementById('bw-quick-icon');
+  let chip = document.getElementById('bw-quick-chip');
   if(!inp) return;
-  let todayBW = (state.bw[state.profile] || {})[dateKey(state.date)] || '';
   if(inp.style.display === 'none'){
-    inp.style.display = 'block';
+    let todayBW = (state.bw[state.profile] || {})[dateKey(state.date)] || '';
+    if(icon) icon.style.display = 'none';
+    if(lbl) lbl.style.display = 'none';
+    inp.style.display = 'inline-block';
     inp.value = todayBW || '';
+    if(chip) chip.classList.add('active');
     inp.focus();
-    let lbl = document.getElementById('bw-quick-lbl');
-    if(lbl) lbl.textContent = todayBW ? todayBW+'kg' : 'BW';
+    inp.select();
   } else {
     saveBWQuick();
   }
 }
 function saveBWQuick(){
   let inp = document.getElementById('bw-quick-val');
+  let lbl = document.getElementById('bw-quick-lbl');
+  let icon = document.getElementById('bw-quick-icon');
+  let chip = document.getElementById('bw-quick-chip');
   if(!inp) return;
   let v = parseFloat(inp.value);
   if(v && v > 0){
     if(!state.bw[state.profile]) state.bw[state.profile] = {};
     state.bw[state.profile][dateKey(state.date)] = v;
     saveState();
-    let lbl = document.getElementById('bw-quick-lbl');
     if(lbl) lbl.textContent = v+'kg';
+  } else if(lbl) {
+    let todayBW = (state.bw[state.profile] || {})[dateKey(state.date)] || '';
+    lbl.textContent = todayBW ? todayBW+'kg' : 'BW';
   }
   inp.style.display = 'none';
+  inp.value = '';
+  if(icon) icon.style.display = '';
+  if(lbl) lbl.style.display = '';
+  if(chip) chip.classList.remove('active');
+}
+function updateBWQuickLabel(){
+  let lbl = document.getElementById('bw-quick-lbl');
+  let inp = document.getElementById('bw-quick-val');
+  if(!lbl || (inp && inp.style.display !== 'none')) return;
+  let todayBW = (state.bw[state.profile] || {})[dateKey(state.date)] || '';
+  lbl.textContent = todayBW ? todayBW+'kg' : 'BW';
 }
 function autoSaveBW(v){
   let val = parseFloat(v);
@@ -982,6 +1045,7 @@ function autoSaveBW(v){
 
 function renderExerciseList(){
   updateDateStatusDot();
+  updateBWQuickLabel();
   let w=state.workouts[getWorkoutKey()];
   let p=state.profile;
   let html='';
@@ -1024,29 +1088,31 @@ function renderExerciseList(){
       let showNotes = state.settings.showNotes !== false;
       let infoBtnHtml = ex.splitInfo && (ex.splitInfo.method || ex.splitInfo.tempo || ex.splitInfo.notes) ? `<button class="ex-action-btn info" onclick="event.stopPropagation();toggleInfoPanel(${ei})">INFO</button>` : '';
       let exRestTime = parseRestTime(ex.splitInfo?.rest, 90);
-      let restBadgeHtml = state.settings.useRestTimer !== false ? `<button type="button" class="ex-badge-rest" onclick="event.stopPropagation();startRestTimer(${exRestTime})">&#9201; ${fmtRestBadge(exRestTime)}</button>` : '';
-      let prBadgeHtml = showPRCalc ? `<span class="ex-badge-pr">PR</span>` : '';
+      let timerBtnHtml = state.settings.useRestTimer !== false ? `<button type="button" class="ex-action-btn timer" onclick="event.stopPropagation();startRestTimer(${exRestTime})">&#9201; ${fmtRestBadge(exRestTime)}</button>` : '';
+      let prBtnHtml = showPRCalc ? `<button class="ex-action-btn pr" onclick="event.stopPropagation();togglePRPanel(${ei})">PR</button>` : '';
 
-      html+=`<div class="ex-item" id="ex-${ei}" data-idx="${ei}">
-        <div class="ex-header" onclick="toggleExExpand(${ei})">
-          <div class="day-ex-handle reorder-handle-workout" onclick="event.stopPropagation()" aria-label="Drag to reorder" style="display:none;">⠿</div>
+      html+=`<div class="ex-item" id="ex-${ei}" data-idx="${ei}" onclick="toggleExExpand(${ei})">
+        <div class="ex-header">
           <div class="ex-name-wrap">
             <div class="ex-title-row">
               <div class="ex-name" title="${ex.name}">${ex.name}</div>
-              <div class="ex-badges">${prBadgeHtml}${restBadgeHtml}</div>
             </div>
             <div class="ex-sub-row">
               ${tagHtml}
-              <div class="ex-meta">${ex.sets.length} set${ex.sets.length!==1?'s':''}${prPR ? '' : ''}</div>
+              <div class="ex-meta">${ex.sets.length} set${ex.sets.length!==1?'s':''}</div>
             </div>
           </div>
-          <div class="ex-actions-bottom" onclick="event.stopPropagation()">
-            ${infoBtnHtml}
-            <button class="ex-action-btn hist" onclick="toggleHistPanel(${ei})">HIST</button>
-            ${showNotes ? `<button class="ex-action-btn note" onclick="toggleNotePanel(${ei})">NOTE</button>` : ''}
+          <div class="ex-header-actions">
+            ${timerBtnHtml}
           </div>
         </div>
-      <div class="ex-expand" id="ex-expand-${ei}" style="display:${openPanels.expand[ei]?'block':'none'};">
+      <div class="ex-expand" id="ex-expand-${ei}" style="display:${openPanels.expand[ei]?'block':'none'};" onclick="event.stopPropagation()">
+        <div class="ex-panel-actions">
+          ${prBtnHtml}
+          <button class="ex-action-btn hist" onclick="event.stopPropagation();toggleHistPanel(${ei})">HIST</button>
+          ${showNotes ? `<button class="ex-action-btn note" onclick="event.stopPropagation();toggleNotePanel(${ei})">NOTE</button>` : ''}
+          ${infoBtnHtml}
+        </div>
         ${ex.splitInfo ? `
         <div id="info-panel-${ei}" style="display:${openPanels.info[ei]?'block':'none'}; margin-bottom:12px;">
           <div class="u10">Program Instructions</div>
@@ -1131,7 +1197,7 @@ function renderExerciseList(){
   initExListDragHandlers();
   // Restore reorder mode if active
   if(reorderMode && reorderMode.workout) {
-    document.querySelectorAll('.reorder-handle-workout').forEach(h => h.style.display = 'flex');
+    setReorderActiveState('workout', true);
     let btn = document.getElementById('reorder-toggle-workout');
     if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--secondary)';btn.style.color='var(--secondary)';}
   }
@@ -1140,10 +1206,11 @@ function renderExerciseList(){
 function initExListDragHandlers(){
   let container = document.getElementById('exercise-list');
   if(!container) return;
-  container.querySelectorAll('.ex-item > .ex-header > .reorder-handle-workout').forEach(handle=>{
-    handle.onpointerdown = function(e){
+  container.querySelectorAll('.ex-item').forEach(item=>{
+    item.onpointerdown = function(e){
+      if(!(reorderMode && reorderMode.workout)) return;
+      if(e.target.closest('button')) return;
       e.preventDefault();
-      let item = handle.closest('.ex-item');
       startGenericDrag(item, container, '.ex-item', e, function(orderedIdxs){
         let w = state.workouts[getWorkoutKey()];
         if (!w || !w.exs) return;
@@ -1231,11 +1298,27 @@ function importSplitToToday() {
   goPage('workout');
 }
 
+/* Close all sub-panels for a given exercise index */
+function closeAllSubPanels(ei){
+  ['hist-panel','pr-panel','note-panel','info-panel'].forEach(id=>{
+    let el=document.getElementById(id+'-'+ei);
+    if(el) el.style.display='none';
+  });
+}
+
+/* Open exactly one sub-panel, closing the rest first */
+function openSubPanel(ei, panelId){
+  let el=document.getElementById(panelId+'-'+ei);
+  if(!el) return;
+  let isOpen = el.style.display==='block';
+  closeAllSubPanels(ei);
+  if(!isOpen) el.style.display='block';
+}
+
 function toggleInfoPanel(ei){
-  let el=document.getElementById('info-panel-'+ei);
   let expand=document.getElementById('ex-expand-'+ei);
   expand.style.display='block';
-  el.style.display=el.style.display==='none'?'block':'none';
+  openSubPanel(ei,'info-panel');
 }
 
 function toggleMorePanel(ei){
@@ -1243,7 +1326,6 @@ function toggleMorePanel(ei){
   if(!el) return;
   let isOpen = el.style.display === 'flex';
   el.style.display = isOpen ? 'none' : 'flex';
-  // Also open expand panel so that info/hist/pr/note panels inside it are accessible
   if(!isOpen){
     let expand = document.getElementById('ex-expand-'+ei);
     if(expand) expand.style.display = 'block';
@@ -1251,40 +1333,47 @@ function toggleMorePanel(ei){
 }
 
 function toggleExExpand(ei){
+  if(reorderMode && reorderMode.workout) return;
   let el=document.getElementById('ex-expand-'+ei);
   let opening = el.style.display==='none';
-  el.style.display = opening ? 'block' : 'none';
-  // When closing expand, also hide the more-row
   if(!opening){
+    // Closing — collapse all sub-panels first
+    closeAllSubPanels(ei);
     let moreRow = document.getElementById('ex-more-'+ei);
     if(moreRow) moreRow.style.display = 'none';
+  } else if(state.settings.singleExpand !== false){
+    // Accordion mode — collapse any other expanded exercise card first
+    collapseAllExpandedCards('workout');
   }
+  el.style.display = opening ? 'block' : 'none';
   if(opening){
     requestAnimationFrame(()=>{
       el.scrollIntoView({behavior:'smooth', block:'nearest'});
     });
   }
 }
+
 function toggleHistPanel(ei){
-  let el=document.getElementById('hist-panel-'+ei);
   let expand=document.getElementById('ex-expand-'+ei);
   expand.style.display='block';
-  el.style.display=el.style.display==='none'?'block':'none';
+  openSubPanel(ei,'hist-panel');
 }
+
 function togglePRPanel(ei){
-  let el=document.getElementById('pr-panel-'+ei);
   let expand=document.getElementById('ex-expand-'+ei);
   expand.style.display='block';
-  el.style.display=el.style.display==='none'?'block':'none';
-  if(el.style.display==='block'){
-    document.getElementById('pr-calc-'+ei).innerHTML=getPRCalcHTML(ei);
+  let wasOpen = document.getElementById('pr-panel-'+ei)?.style.display==='block';
+  openSubPanel(ei,'pr-panel');
+  if(!wasOpen){
+    let calc=document.getElementById('pr-calc-'+ei);
+    if(calc) calc.innerHTML=getPRCalcHTML(ei);
   }
 }
+
 function toggleNotePanel(ei){
-  let el=document.getElementById('note-panel-'+ei);
   let expand=document.getElementById('ex-expand-'+ei);
   expand.style.display='block';
-  el.style.display=el.style.display==='none'?'block':'none';
+  openSubPanel(ei,'note-panel');
 }
 function saveNote(ei){
   let w=state.workouts[getWorkoutKey()];
@@ -1630,6 +1719,7 @@ function renderSplitPage(){
   document.getElementById('split-day-tabs').innerHTML=tabHtml;
 
   let day=split.days[state.splitDayView];
+  let locked = !!(state.settings && state.settings.lockUI);
   let html=`<div class="day-card">
     <div class="day-header">
       <div style="min-width:0;flex:1;">
@@ -1638,8 +1728,8 @@ function renderSplitPage(){
       </div>
       <div class="day-header-actions" style="flex-shrink:0;">
         <button onclick="showRules()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:6px 10px;color:var(--txt);font-size:11px;font-weight:800;cursor:pointer;margin-right:4px;">RULES</button>
-        <div class="icon-btn" onclick="renameDay(${state.splitDayView})" aria-label="Rename day">✎</div>
-        <div class="icon-btn" onclick="addExToSplit(${state.splitDayView})" aria-label="Add exercise">+</div>
+        ${locked ? '' : `<div class="icon-btn" onclick="renameDay(${state.splitDayView})" aria-label="Rename day">✎</div>
+        <div class="icon-btn" onclick="addExToSplit(${state.splitDayView})" aria-label="Add exercise">+</div>`}
       </div>
     </div>
     <div class="day-ex">`;
@@ -1653,13 +1743,12 @@ function renderSplitPage(){
 
     day.exs.forEach((ex,i)=>{
       let tagColor=TAG_COLORS[ex.tag]||'#888780';
-      html+=`<div class="day-ex-item" data-idx="${i}">
+      html+=`<div class="day-ex-item" data-idx="${i}" onclick="toggleSplitExDetail(${i})">
         <div class="day-ex-row">
-          <div class="day-ex-handle reorder-handle-split" aria-label="Drag to reorder" style="margin-top:4px;display:none;">⠿</div>
-          <div class="day-ex-num" onclick="toggleSplitExDetail(${i})">${i+1}</div>
-          <div class="day-ex-name" onclick="toggleSplitExDetail(${i})" title="${ex.name}">${ex.name}</div>
+          <div class="day-ex-num">${i+1}</div>
+          <div class="day-ex-name" title="${ex.name}">${ex.name}</div>
           ${ex.tag?`<span class="day-ex-tag" style="background:${tagColor}22;color:${tagColor};border:1px solid ${tagColor}44;margin-top:2px;">${ex.tag}</span>`:''}
-          <div class="icon-btn" onclick="event.stopPropagation();editSplitEx(${i})" aria-label="Edit exercise" style="margin-left:8px;">✎</div>
+          ${locked ? '' : `<div class="icon-btn" onclick="event.stopPropagation();editSplitEx(${i})" aria-label="Edit exercise" style="margin-left:8px;">✎</div>`}
         </div>
         <div class="day-ex-detail u7" id="split-ex-detail-${i}">
           <div class="day-ex-grid">
@@ -1679,7 +1768,7 @@ function renderSplitPage(){
   initSplitDragHandlers();
   // Restore reorder mode visual state if active
   if(reorderMode && reorderMode.split) {
-    document.querySelectorAll('.reorder-handle-split').forEach(h => h.style.display = 'flex');
+    setReorderActiveState('split', true);
     let btn = document.getElementById('reorder-toggle-split');
     if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--secondary)';btn.style.color='var(--secondary)';}
   }
@@ -1688,10 +1777,11 @@ function renderSplitPage(){
 function initSplitDragHandlers(){
   let container = document.querySelector('#split-day-content .day-ex');
   if(!container) return;
-  container.querySelectorAll('.reorder-handle-split').forEach(handle=>{
-    handle.onpointerdown = function(e){
+  container.querySelectorAll('.day-ex-item').forEach(item=>{
+    item.onpointerdown = function(e){
+      if(!(reorderMode && reorderMode.split)) return;
+      if(e.target.closest('button') || e.target.closest('.icon-btn')) return;
       e.preventDefault();
-      let item = handle.closest('.day-ex-item');
       startSplitDrag(item, container, e);
     };
   });
@@ -1749,8 +1839,13 @@ function commitSplitOrder(container){
 }
 
 function toggleSplitExDetail(i){
+  if(reorderMode && reorderMode.split) return;
   let el=document.getElementById('split-ex-detail-'+i);
   let opening = getComputedStyle(el).display==='none';
+  if(opening && state.settings.singleExpand !== false){
+    // Accordion mode — collapse any other expanded day-exercise card first
+    collapseAllExpandedCards('split');
+  }
   el.style.display = opening ? 'block' : 'none';
   if(opening){
     requestAnimationFrame(()=>{
@@ -2466,6 +2561,8 @@ function toggleStitchSetting(key, el) {
   else if (key === 'showPlateMath') state.settings.showPlateMath = on;
   else if (key === 'showWarmupGen') state.settings.showWarmupGen = on;
   else if (key === 'showNotes') state.settings.showNotes = on;
+  else if (key === 'lockUI') state.settings.lockUI = on;
+  else if (key === 'singleExpand') state.settings.singleExpand = on;
   else if (key === 'pitchBlack') {
     state.settings.pitchBlack = on;
     document.body.classList.toggle('pitch-black', on);
@@ -2475,6 +2572,7 @@ function toggleStitchSetting(key, el) {
   applyButtonSizing();
   syncTimerUI();
   if (state.page === 'workout') renderExerciseList();
+  if (state.page === 'split') { renderSplitSelector(); renderSplitPage(); }
 }
 
 function renderProfilePage() {
@@ -2494,6 +2592,14 @@ function renderProfilePage() {
         </button>
         <p class="settings-row-sub">${subline}</p>
         <p class="settings-workout-count">${workouts} Workout${workouts === 1 ? '' : 's'} Logged</p>
+      </div>
+    </div>
+
+    <h3 class="settings-section-title">Editing Lock</h3>
+    <div class="settings-panel">
+      <div class="settings-row">
+        <div><div class="settings-row-label">Lock UI</div><div class="settings-row-sub">Hides rename, add, and edit controls in the Splits tab to prevent accidental changes</div></div>
+        <label class="set-toggle"><input type="checkbox" ${s.lockUI ? 'checked' : ''} onchange="toggleStitchSetting('lockUI', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
       </div>
     </div>
 
@@ -2530,6 +2636,10 @@ function renderProfilePage() {
       <div class="settings-row">
         <div><div class="settings-row-label">Show Exercise Cues and Notes inline</div><div class="settings-row-sub">Displays database exercise descriptions inside tabs</div></div>
         <label class="set-toggle"><input type="checkbox" ${s.showNotes !== false ? 'checked' : ''} onchange="toggleStitchSetting('showNotes', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-row-label">Single Card Expand</div><div class="settings-row-sub">Only one exercise, split day, or cardio card can be expanded at a time</div></div>
+        <label class="set-toggle"><input type="checkbox" ${s.singleExpand !== false ? 'checked' : ''} onchange="toggleStitchSetting('singleExpand', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
       </div>
       <div class="settings-row">
         <div><div class="settings-row-label">Pitch Black Mode Theme</div><div class="settings-row-sub">OLED-optimized, uses absolute pure black backgrounds</div></div>
@@ -2642,7 +2752,54 @@ function closeModal(){document.getElementById('modal-overlay').classList.remove(
 // ── Reorder mode toggle ──────────────────────────────────────────────────
 let reorderMode = {workout: false, split: false, cardio: false};
 
+/* Collapse any expanded card(s) in the given tab. Called whenever the
+   reorder button is pressed, so dragging never starts on/under an
+   expanded card. */
+function collapseAllExpandedCards(tab) {
+  if (tab === 'workout') {
+    document.querySelectorAll('#exercise-list .ex-item').forEach(item => {
+      let ei = item.dataset.idx;
+      let expand = document.getElementById('ex-expand-' + ei);
+      if (expand && expand.style.display === 'block') {
+        closeAllSubPanels(ei);
+        let moreRow = document.getElementById('ex-more-' + ei);
+        if (moreRow) moreRow.style.display = 'none';
+        expand.style.display = 'none';
+      }
+    });
+  } else if (tab === 'split') {
+    document.querySelectorAll('#split-day-content .day-ex-detail').forEach(el => {
+      el.style.display = 'none';
+    });
+  } else if (tab === 'cardio') {
+    document.querySelectorAll('#cardio-entries .cardio-session-detail').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+}
+
+const REORDER_CARD_SELECTOR = {
+  workout: '#exercise-list .ex-item',
+  split: '#split-day-content .day-ex-item',
+  cardio: '#cardio-entries .cardio-session-card'
+};
+
+function setReorderActiveState(tab, on) {
+  let selector = REORDER_CARD_SELECTOR[tab];
+  if(!selector) return;
+  document.querySelectorAll(selector).forEach((card, i) => {
+    if(on) {
+      card.style.setProperty('--wiggle-offset', (i % 5) * 0.06);
+      card.classList.add('reorder-active');
+    } else {
+      card.classList.remove('reorder-active');
+      card.style.removeProperty('--wiggle-offset');
+    }
+  });
+}
+
 function toggleReorderMode(tab) {
+  collapseAllExpandedCards(tab);
   reorderMode[tab] = !reorderMode[tab];
   let on = reorderMode[tab];
   let btn = document.getElementById('reorder-toggle-' + tab);
@@ -2651,18 +2808,8 @@ function toggleReorderMode(tab) {
     btn.style.borderColor = on ? 'var(--secondary)' : 'var(--border2)';
     btn.style.color = on ? 'var(--secondary)' : 'var(--txt3)';
   }
-  // Show/hide drag handles
-  let handleClass = '.reorder-handle-' + tab;
-  document.querySelectorAll(handleClass).forEach(h => {
-    h.style.display = on ? 'flex' : 'none';
-  });
-  // For cardio
-  if(tab === 'cardio') {
-    document.querySelectorAll('.reorder-handle-cardio').forEach(h => {
-      h.style.display = on ? 'flex' : 'none';
-    });
-    initCardioDragHandlers();
-  }
+  setReorderActiveState(tab, on);
+  if(tab === 'cardio') initCardioDragHandlers();
   if(tab === 'workout') initExListDragHandlers();
   if(tab === 'split') initSplitDragHandlers();
 }
@@ -2679,23 +2826,22 @@ function renderCardioPage() {
   } else {
     entries.forEach(([key, sessions]) => {
       let d = new Date(key + 'T12:00:00');
-      entriesHtml += `<div style="margin-bottom:14px;">
+      entriesHtml += `<div class="cardio-day-group" data-date="${key}" style="margin-bottom:14px;">
         <div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
           <div class="hist-day-num">${d.getDate()}</div>
           <div class="hist-day-date">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]}, ${months[d.getMonth()]} ${d.getFullYear()}</div>
         </div>`;
       sessions.forEach((s, si) => {
-        entriesHtml += `<div class="section-card" style="margin-bottom:6px;">
+        entriesHtml += `<div class="section-card cardio-session-card" data-date="${key}" data-idx="${si}" style="margin-bottom:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:8px;">
             <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-              <div class="reorder-handle-cardio" data-date="${key}" data-idx="${si}" style="color:var(--txt3);font-size:18px;cursor:grab;touch-action:none;display:none;width:24px;text-align:center;">⠿</div>
               <div style="font-size:14px;font-weight:700;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.type || 'Cardio'}</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
               ${s.duration ? `<span style="background:rgba(0,243,255,0.12);color:var(--secondary);border:1px solid rgba(0,243,255,0.3);border-radius:var(--radius);font-size:11px;font-weight:800;padding:4px 8px;font-family:'JetBrains Mono',monospace;">${s.duration} min</span>` : ''}
               ${s.distance ? `<span style="background:rgba(204,255,0,0.12);color:var(--g1);border:1px solid rgba(204,255,0,0.3);border-radius:var(--radius);font-size:11px;font-weight:800;padding:4px 8px;font-family:'JetBrains Mono',monospace;">${s.distance} km</span>` : ''}
               ${s.calories ? `<span style="background:rgba(255,39,65,0.12);color:var(--o1);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);font-size:11px;font-weight:800;padding:4px 8px;font-family:'JetBrains Mono',monospace;">${s.calories} kcal</span>` : ''}
-              <button onclick="deleteCardioEntry('${key}',${si})" style="background:transparent;border:none;color:var(--txt3);font-size:16px;cursor:pointer;padding:2px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">✕</button>
+              <button onclick="event.stopPropagation();deleteCardioEntry('${key}',${si})" style="background:transparent;border:none;color:var(--txt3);font-size:16px;cursor:pointer;padding:2px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">✕</button>
             </div>
           </div>
           ${s.notes ? `<div style="padding:0 14px 10px;font-size:12px;color:var(--txt2);">${s.notes}</div>` : ''}
@@ -2758,8 +2904,9 @@ function renderCardioPage() {
   `;
 
   document.getElementById('cardio-content').innerHTML = html;
+  initCardioDragHandlers();
   if(reorderMode.cardio) {
-    document.querySelectorAll('.reorder-handle-cardio').forEach(h => h.style.display = 'flex');
+    setReorderActiveState('cardio', true);
     let btn = document.getElementById('reorder-toggle-cardio');
     if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--secondary)';btn.style.color='var(--secondary)';}
   }
@@ -2810,7 +2957,23 @@ function deleteCardioEntry(dateStr, idx) {
 }
 
 function initCardioDragHandlers() {
-  // No-op placeholder — cardio drag not yet needed since sessions are per-day
+  document.querySelectorAll('#cardio-entries .cardio-session-card').forEach(item => {
+    item.onpointerdown = function(e) {
+      if(!reorderMode.cardio) return;
+      if(e.target.closest('button')) return;
+      let container = item.closest('.cardio-day-group');
+      let date = item.dataset.date;
+      if (!container || !date) return;
+      e.preventDefault();
+      startGenericDrag(item, container, '.cardio-session-card', e, function(orderedIdxs) {
+        let sessions = state.cardioLog && state.cardioLog[date];
+        if (!sessions) return;
+        state.cardioLog[date] = orderedIdxs.map(idx => sessions[idx]);
+        saveState();
+        renderCardioPage();
+      });
+    };
+  });
 }
 
 function goPage(name, fromPopstate){
@@ -3433,13 +3596,10 @@ function updateGlobalTimer(text) {
 /* ── Date section collapse/expand ── */
 function toggleDateSection() {
   let btn = document.getElementById('date-chevron');
-  let row = document.querySelector('.session-date-row');
-  if (!btn || !row) return;
+  let body = document.getElementById('date-card-body');
+  if (!btn || !body) return;
   let collapsed = btn.classList.toggle('collapsed');
-  // hide everything in the date row except the chevron itself
-  row.querySelectorAll(':scope > *:not(.chevron-btn)').forEach(el => {
-    el.style.display = collapsed ? 'none' : '';
-  });
+  body.classList.toggle('collapsed', collapsed);
 }
 
 /* ── Timer section collapse/expand ── */
