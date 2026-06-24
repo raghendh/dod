@@ -7,6 +7,8 @@ const TAG_COLORS = {
 };
 const DAY_COLORS = ["#ff2741","#00b8c4","#1fcf8c","#5e6470","#ff9900","#a259ff","#0090e0","#5e6470"];
 
+let activeSWTab = 1;
+
 const SPLITS = {
   "Bro Split":{
     days:[
@@ -3305,6 +3307,23 @@ async function uninstallApp() {
 // ====== STITCH UI HELPERS ======
 let timerTab = 'rest';
 let restPresetSeconds = 90;
+let activeSWTab = 1;
+
+function setSWTab(n) {
+  activeSWTab = n;
+  document.querySelectorAll('.sw-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('sw-tab-' + n)?.classList.add('active');
+  let sw = state.sw[n];
+  let el = document.getElementById('sw' + n + '-time');
+  if (el) {
+    let s = Math.floor(sw.elapsed / 1000);
+    let m = Math.floor(s / 60);
+    s %= 60;
+    let ms = Math.floor((sw.elapsed % 1000) / 10);
+    el.innerHTML = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '<span class="sw-ms">.' + String(ms).padStart(2, '0') + '</span>';
+  }
+  document.getElementById('sw-label').textContent = 'STOPWATCH ' + n + ' - TIME ELAPSED';
+}
 
 function setTimerTab(mode) {
   timerTab = mode;
@@ -3410,6 +3429,103 @@ function editDisplayName() {
   state.profileName = displayName;
   saveState();
   renderProfilePage();
+}
+
+function toggleRestAutoClose() {
+  let check = document.getElementById('rest-auto-close-check');
+  state.settings = state.settings || {};
+  state.settings.restAutoClose = check.checked;
+  saveState();
+}
+
+function openCalculators() {
+  let calcHTML = `
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div>
+        <h3 style="margin-bottom:8px; font-size:14px;">1RM Calculator</h3>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="number" id="calc-weight" placeholder="Weight" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.5">
+          <input type="number" id="calc-reps" placeholder="Reps" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="1" value="5">
+        </div>
+        <button type="button" onclick="calculateOneRM()" style="width:100%; padding:8px; background:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer;">Calculate 1RM</button>
+        <div id="calc-1rm-result" style="margin-top:8px; padding:8px; background:rgba(217,119,87,0.1); border-radius:8px; color:var(--txt); text-align:center; font-weight:600; display:none;"></div>
+      </div>
+      
+      <div>
+        <h3 style="margin-bottom:8px; font-size:14px;">Plate Calculator</h3>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="number" id="calc-target-weight" placeholder="Target Weight" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.5">
+          <input type="number" id="calc-bar-weight" placeholder="Bar (kg)" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.5" value="20">
+        </div>
+        <button type="button" onclick="calculatePlates()" style="width:100%; padding:8px; background:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer;">Calculate Plates</button>
+        <div id="calc-plates-result" style="margin-top:8px; padding:8px; background:rgba(217,119,87,0.1); border-radius:8px; color:var(--txt); text-align:center; display:none; word-break:break-word;"></div>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:8px; font-size:14px;">Cardio Pace Calculator</h3>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="number" id="calc-distance" placeholder="Distance (km)" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.1">
+          <input type="number" id="calc-time-min" placeholder="Min" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="1">
+          <input type="number" id="calc-time-sec" placeholder="Sec" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="1">
+        </div>
+        <button type="button" onclick="calculatePace()" style="width:100%; padding:8px; background:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer;">Calculate Pace</button>
+        <div id="calc-pace-result" style="margin-top:8px; padding:8px; background:rgba(217,119,87,0.1); border-radius:8px; color:var(--txt); text-align:center; display:none;"></div>
+      </div>
+    </div>
+  `;
+  showFloatingPanel('Calculators', calcHTML);
+}
+
+function calculateOneRM() {
+  let weight = parseFloat(document.getElementById('calc-weight').value) || 0;
+  let reps = parseInt(document.getElementById('calc-reps').value) || 1;
+  if (weight <= 0) return alert('Enter weight');
+  let oneRM = weight * (36 / (37 - reps)); // Epley formula
+  let result = document.getElementById('calc-1rm-result');
+  result.style.display = 'block';
+  result.textContent = '1RM: ' + oneRM.toFixed(1) + ' kg';
+}
+
+function calculatePlates() {
+  let target = parseFloat(document.getElementById('calc-target-weight').value) || 0;
+  let bar = parseFloat(document.getElementById('calc-bar-weight').value) || 20;
+  if (target <= bar) return alert('Target must be more than bar weight');
+  
+  let perSide = (target - bar) / 2;
+  let plates = [25, 20, 15, 10, 5, 2.5, 2, 1.25, 1, 0.5];
+  let combo = [];
+  let remaining = perSide;
+  
+  for (let p of plates) {
+    while (remaining >= p) {
+      combo.push(p);
+      remaining -= p;
+    }
+  }
+  
+  let result = document.getElementById('calc-plates-result');
+  result.style.display = 'block';
+  if (combo.length === 0) {
+    result.textContent = 'Cannot make exact weight';
+  } else {
+    result.textContent = 'Per side: ' + combo.join('kg + ') + 'kg';
+  }
+}
+
+function calculatePace() {
+  let dist = parseFloat(document.getElementById('calc-distance').value) || 0;
+  let min = parseInt(document.getElementById('calc-time-min').value) || 0;
+  let sec = parseInt(document.getElementById('calc-time-sec').value) || 0;
+  if (dist <= 0) return alert('Enter distance');
+  
+  let totalSec = min * 60 + sec;
+  let paceMin = Math.floor(totalSec / dist);
+  let paceSec = Math.round((totalSec % dist) * 60 / dist);
+  let speed = (dist / (totalSec / 3600)).toFixed(1);
+  
+  let result = document.getElementById('calc-pace-result');
+  result.style.display = 'block';
+  result.textContent = 'Pace: ' + paceMin + ':' + String(paceSec).padStart(2, '0') + '/km | Speed: ' + speed + ' km/h';
 }
 
 async function bootstrapApp() {

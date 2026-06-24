@@ -65,6 +65,16 @@
           <button type="button" class="preset-chip" onclick="setRestPreset(120)">120s</button>
           <button type="button" class="preset-chip" onclick="setRestPreset(180)">180s</button>
         </div>
+        <div class="timer-auto-close-row">
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--txt-muted);">
+            <input type="checkbox" id="rest-auto-close-check" onchange="toggleRestAutoClose()">
+            Auto-close when done
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--txt-muted);">
+            Sound alert:
+            <input type="checkbox" id="rest-sound-check" checked onchange="state.settings.restSound = this.checked; saveState()">
+          </label>
+        </div>
         <div class="timer-manual-row">
           <input type="text" id="timer-manual-input" class="timer-manual-input" placeholder="e.g. 2m 90sec 2-3 min">
           <button type="button" class="timer-set-btn" onclick="applyManualRest()">Set</button>
@@ -72,14 +82,19 @@
       </div>
 
       <div id="timer-stopwatch-panel" class="hidden">
+        <div class="stopwatch-tabs">
+          <button type="button" class="sw-tab active" id="sw-tab-1" onclick="setSWTab(1)">Timer 1</button>
+          <button type="button" class="sw-tab" id="sw-tab-2" onclick="setSWTab(2)">Timer 2</button>
+          <button type="button" class="sw-tab" id="sw-tab-3" onclick="setSWTab(3)">Timer 3</button>
+        </div>
         <div class="timer-main-row">
           <div>
             <div class="timer-display timer-mono" id="sw1-time">00:00<span class="sw-ms">.00</span></div>
-            <div class="timer-sub">STOPWATCH - TIME ELAPSED</div>
+            <div class="timer-sub" id="sw-label">STOPWATCH 1 - TIME ELAPSED</div>
           </div>
           <div class="timer-controls">
-            <button type="button" class="timer-btn-play" onclick="toggleSW(1)">&#9654;</button>
-            <button type="button" class="timer-btn-icon" onclick="resetStopwatch(1)" title="Reset">&#8635;</button>
+            <button type="button" class="timer-btn-play" onclick="toggleSW(activeSWTab)">&#9654;</button>
+            <button type="button" class="timer-btn-icon" onclick="resetStopwatch(activeSWTab)" title="Reset">&#8635;</button>
           </div>
         </div>
       </div>
@@ -95,6 +110,10 @@
         <button type="button" class="chip-btn" onclick="toggleBWQuick()" title="Log bodyweight">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
           <span id="bw-quick-lbl">BW</span>
+        </button>
+        <button type="button" class="chip-btn" onclick="openCalculators()" title="Calculators">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4M8 18h8"/></svg>
+          CALC
         </button>
         <input class="bw-quick-input" id="bw-quick-val" type="number" placeholder="kg" step="0.1" min="30" max="300" style="display:none;" onblur="saveBWQuick()" onkeydown="if(event.key==='Enter')saveBWQuick()">
       </div>
