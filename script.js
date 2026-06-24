@@ -7,8 +7,6 @@ const TAG_COLORS = {
 };
 const DAY_COLORS = ["#ff2741","#00b8c4","#1fcf8c","#5e6470","#ff9900","#a259ff","#0090e0","#5e6470"];
 
-let activeSWTab = 1;
-
 const SPLITS = {
   "Bro Split":{
     days:[
@@ -651,13 +649,8 @@ function updateRestTimer(p) {
   if (moduleDisplay) moduleDisplay.textContent = displayStr;
   let moduleSub = document.getElementById('timer-rest-sub');
   if (moduleSub) moduleSub.textContent = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
-  
-  // Update floating timer in header
-  let floatDisplay = document.getElementById('timer-float-display');
-  if (floatDisplay && rt.running) {
-    floatDisplay.style.display = 'block';
-    document.getElementById('timer-float-text').textContent = displayStr;
-  }
+  // update global header floating timer
+  updateGlobalTimer(rt.running ? displayStr : null);
 }
 
 function adjustRestTimer(p, seconds) {
@@ -673,7 +666,7 @@ function closeRestTimer(p) {
   clearInterval(rt.interval);
   rt.interval = null;
   rt.running = false;
-  document.getElementById('timer-float-display').style.display = 'none';
+  updateGlobalTimer(null);
   syncTimerUI();
 }
 
@@ -722,12 +715,15 @@ function hasLoggedData(dateStr,profile){
 
 function updateDateLabel(){
   let d = state.date;
-  let days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
-  let months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-  let textEl = document.getElementById('cur-date-text');
-  if (textEl) {
-    textEl.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
-  }
+  let days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  // new single-line label: "WEDNESDAY, JUNE 24, 2026"
+  let label = days[d.getDay()].toUpperCase() + ', ' + months[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
+  let lbl = document.getElementById('cur-date-lbl');
+  if (lbl) lbl.textContent = label;
+  // legacy elements (no-ops if removed from HTML, safe)
+  let monthEl = document.getElementById('cur-date-month');
+  if (monthEl) monthEl.textContent = months[d.getMonth()].toUpperCase();
   let dstr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   let dp = document.getElementById('hidden-date-picker');
   if (dp) dp.value = dstr;
@@ -3315,45 +3311,6 @@ async function uninstallApp() {
 // ====== STITCH UI HELPERS ======
 let timerTab = 'rest';
 let restPresetSeconds = 90;
-let activeSWTab = 1;
-let timerModuleCollapsed = false;
-let datePickerCollapsed = false;
-
-function toggleDateCollapse() {
-  datePickerCollapsed = !datePickerCollapsed;
-  let btn = document.getElementById('collapse-date-btn');
-  let modal = document.getElementById('date-picker-modal');
-  btn.classList.toggle('collapsed');
-  modal.style.display = datePickerCollapsed ? 'none' : 'block';
-}
-
-function toggleTimerCollapse() {
-  timerModuleCollapsed = !timerModuleCollapsed;
-  let btn = document.getElementById('timer-collapse-btn');
-  let panels = document.getElementById('timer-module').querySelectorAll('[id*="panel"]');
-  btn.classList.toggle('collapsed');
-  panels.forEach(panel => {
-    if (!panel.classList.contains('timer-tabs')) {
-      panel.style.display = timerModuleCollapsed ? 'none' : 'block';
-    }
-  });
-}
-
-function setSWTab(n) {
-  activeSWTab = n;
-  document.querySelectorAll('.sw-tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('sw-tab-' + n)?.classList.add('active');
-  let sw = state.sw[n];
-  let el = document.getElementById('sw' + n + '-time');
-  if (el) {
-    let s = Math.floor(sw.elapsed / 1000);
-    let m = Math.floor(s / 60);
-    s %= 60;
-    let ms = Math.floor((sw.elapsed % 1000) / 10);
-    el.innerHTML = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '<span class="sw-ms">.' + String(ms).padStart(2, '0') + '</span>';
-  }
-  document.getElementById('sw-label').textContent = 'STOPWATCH ' + n + ' - TIME ELAPSED';
-}
 
 function setTimerTab(mode) {
   timerTab = mode;
@@ -3461,101 +3418,37 @@ function editDisplayName() {
   renderProfilePage();
 }
 
-function toggleRestAutoClose() {
-  let check = document.getElementById('rest-auto-close-check');
-  state.settings = state.settings || {};
-  state.settings.restAutoClose = check.checked;
-  saveState();
-}
-
-function openCalculators() {
-  let calcHTML = `
-    <div style="display:flex; flex-direction:column; gap:16px;">
-      <div>
-        <h3 style="margin-bottom:8px; font-size:14px;">1RM Calculator</h3>
-        <div style="display:flex; gap:8px; margin-bottom:8px;">
-          <input type="number" id="calc-weight" placeholder="Weight" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.5">
-          <input type="number" id="calc-reps" placeholder="Reps" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="1" value="5">
-        </div>
-        <button type="button" onclick="calculateOneRM()" style="width:100%; padding:8px; background:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer;">Calculate 1RM</button>
-        <div id="calc-1rm-result" style="margin-top:8px; padding:8px; background:rgba(217,119,87,0.1); border-radius:8px; color:var(--txt); text-align:center; font-weight:600; display:none;"></div>
-      </div>
-      
-      <div>
-        <h3 style="margin-bottom:8px; font-size:14px;">Plate Calculator</h3>
-        <div style="display:flex; gap:8px; margin-bottom:8px;">
-          <input type="number" id="calc-target-weight" placeholder="Target Weight" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.5">
-          <input type="number" id="calc-bar-weight" placeholder="Bar (kg)" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.5" value="20">
-        </div>
-        <button type="button" onclick="calculatePlates()" style="width:100%; padding:8px; background:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer;">Calculate Plates</button>
-        <div id="calc-plates-result" style="margin-top:8px; padding:8px; background:rgba(217,119,87,0.1); border-radius:8px; color:var(--txt); text-align:center; display:none; word-break:break-word;"></div>
-      </div>
-
-      <div>
-        <h3 style="margin-bottom:8px; font-size:14px;">Cardio Pace Calculator</h3>
-        <div style="display:flex; gap:8px; margin-bottom:8px;">
-          <input type="number" id="calc-distance" placeholder="Distance (km)" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="0.1">
-          <input type="number" id="calc-time-min" placeholder="Min" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="1">
-          <input type="number" id="calc-time-sec" placeholder="Sec" style="flex:1; padding:8px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--txt);" step="1">
-        </div>
-        <button type="button" onclick="calculatePace()" style="width:100%; padding:8px; background:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer;">Calculate Pace</button>
-        <div id="calc-pace-result" style="margin-top:8px; padding:8px; background:rgba(217,119,87,0.1); border-radius:8px; color:var(--txt); text-align:center; display:none;"></div>
-      </div>
-    </div>
-  `;
-  showFloatingPanel('Calculators', calcHTML);
-}
-
-function calculateOneRM() {
-  let weight = parseFloat(document.getElementById('calc-weight').value) || 0;
-  let reps = parseInt(document.getElementById('calc-reps').value) || 1;
-  if (weight <= 0) return alert('Enter weight');
-  let oneRM = weight * (36 / (37 - reps)); // Epley formula
-  let result = document.getElementById('calc-1rm-result');
-  result.style.display = 'block';
-  result.textContent = '1RM: ' + oneRM.toFixed(1) + ' kg';
-}
-
-function calculatePlates() {
-  let target = parseFloat(document.getElementById('calc-target-weight').value) || 0;
-  let bar = parseFloat(document.getElementById('calc-bar-weight').value) || 20;
-  if (target <= bar) return alert('Target must be more than bar weight');
-  
-  let perSide = (target - bar) / 2;
-  let plates = [25, 20, 15, 10, 5, 2.5, 2, 1.25, 1, 0.5];
-  let combo = [];
-  let remaining = perSide;
-  
-  for (let p of plates) {
-    while (remaining >= p) {
-      combo.push(p);
-      remaining -= p;
-    }
-  }
-  
-  let result = document.getElementById('calc-plates-result');
-  result.style.display = 'block';
-  if (combo.length === 0) {
-    result.textContent = 'Cannot make exact weight';
+/* ── Global header floating timer ── */
+function updateGlobalTimer(text) {
+  let el = document.getElementById('gh-timer');
+  if (!el) return;
+  if (text) {
+    el.textContent = text;
+    el.style.display = 'block';
   } else {
-    result.textContent = 'Per side: ' + combo.join('kg + ') + 'kg';
+    el.style.display = 'none';
   }
 }
 
-function calculatePace() {
-  let dist = parseFloat(document.getElementById('calc-distance').value) || 0;
-  let min = parseInt(document.getElementById('calc-time-min').value) || 0;
-  let sec = parseInt(document.getElementById('calc-time-sec').value) || 0;
-  if (dist <= 0) return alert('Enter distance');
-  
-  let totalSec = min * 60 + sec;
-  let paceMin = Math.floor(totalSec / dist);
-  let paceSec = Math.round((totalSec % dist) * 60 / dist);
-  let speed = (dist / (totalSec / 3600)).toFixed(1);
-  
-  let result = document.getElementById('calc-pace-result');
-  result.style.display = 'block';
-  result.textContent = 'Pace: ' + paceMin + ':' + String(paceSec).padStart(2, '0') + '/km | Speed: ' + speed + ' km/h';
+/* ── Date section collapse/expand ── */
+function toggleDateSection() {
+  let btn = document.getElementById('date-chevron');
+  let row = document.querySelector('.session-date-row');
+  if (!btn || !row) return;
+  let collapsed = btn.classList.toggle('collapsed');
+  // hide everything in the date row except the chevron itself
+  row.querySelectorAll(':scope > *:not(.chevron-btn)').forEach(el => {
+    el.style.display = collapsed ? 'none' : '';
+  });
+}
+
+/* ── Timer section collapse/expand ── */
+function toggleTimerSection() {
+  let btn = document.getElementById('timer-chevron');
+  let body = document.getElementById('timer-body');
+  if (!btn || !body) return;
+  let collapsed = btn.classList.toggle('collapsed');
+  body.style.display = collapsed ? 'none' : '';
 }
 
 async function bootstrapApp() {

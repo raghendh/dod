@@ -19,58 +19,45 @@
 
 <div id="app" class="ready">
 
-  <!-- UNIVERSAL HEADER FOR ALL PAGES -->
-  <header class="universal-header">
-    <div class="header-left">
-      <span class="header-logo">✕ DO OR DIE</span>
+  <!-- GLOBAL HEADER — visible on all pages -->
+  <div id="global-header">
+    <div id="global-header-left">
+      <img src="https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png" id="gh-icon" alt="">
+      <span id="gh-title">DO OR DIE</span>
     </div>
-    <div class="header-right">
-      <div class="timer-float-display" id="timer-float-display" style="display:none;">
-        <span id="timer-float-text">00:00</span>
-      </div>
-    </div>
-  </header>
+    <div id="gh-timer" style="display:none;">01:30</div>
+  </div>
 
   <!-- TRAIN PAGE -->
   <div class="page active" id="page-workout">
     <header class="session-header">
-      <div class="workout-date-section">
-        <span class="section-kicker">WORKOUT DATE</span>
-        <div class="date-display-row">
-          <button type="button" class="date-arrow" onclick="shiftDate(-1)" aria-label="Previous day">&#10094;</button>
-          <div class="workout-date-center" onclick="try{document.getElementById('hidden-date-picker').showPicker()}catch(e){}">
-            <input type="date" id="hidden-date-picker" onchange="applyDateDirect(this.value)">
-            <div id="cur-date-text" class="date-text"></div>
-          </div>
-          <button type="button" class="date-arrow" onclick="shiftDate(1)" aria-label="Next day">&#10095;</button>
-          <button type="button" class="collapse-btn" id="collapse-date-btn" onclick="toggleDateCollapse()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </button>
-        </div>
+      <div class="session-header-top">
+        <span class="session-kicker">WORKOUT DATE</span>
       </div>
-
-      <div class="date-picker-modal" id="date-picker-modal" style="display:none;">
-        <div style="padding:16px;">
-          <h3 style="margin-bottom:12px;">SELECT DATE</h3>
-          <div id="date-calendar-grid"></div>
+      <div class="session-date-row">
+        <button type="button" class="date-arrow" onclick="shiftDate(-1)" aria-label="Previous day">&#10094;</button>
+        <div class="session-date-center" onclick="try{document.getElementById('hidden-date-picker').showPicker()}catch(e){}">
+          <input type="date" id="hidden-date-picker" onchange="applyDateDirect(this.value)">
+          <div id="cur-date-lbl" class="date-full-label"></div>
         </div>
+        <button type="button" class="date-arrow" onclick="shiftDate(1)" aria-label="Next day">&#10095;</button>
+        <button type="button" class="chevron-btn" id="date-chevron" onclick="toggleDateSection()" aria-label="Collapse date">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
       </div>
     </header>
 
     <section class="timer-module" id="timer-module">
-      <div class="timer-header">
+      <div class="timer-tabs-row">
         <div class="timer-tabs">
           <button type="button" class="timer-tab active" id="timer-tab-rest" onclick="setTimerTab('rest')">REST TIMER</button>
           <button type="button" class="timer-tab" id="timer-tab-stopwatch" onclick="setTimerTab('stopwatch')">STOPWATCH</button>
         </div>
-        <button type="button" class="timer-collapse-btn" id="timer-collapse-btn" onclick="toggleTimerCollapse()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="18 15 12 9 6 15"></polyline>
-          </svg>
+        <button type="button" class="chevron-btn" id="timer-chevron" onclick="toggleTimerSection()" aria-label="Collapse timer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
         </button>
       </div>
+      <div id="timer-body">
 
       <div id="timer-rest-panel">
         <div class="timer-main-row">
@@ -91,16 +78,6 @@
           <button type="button" class="preset-chip" onclick="setRestPreset(120)">120s</button>
           <button type="button" class="preset-chip" onclick="setRestPreset(180)">180s</button>
         </div>
-        <div class="timer-auto-close-row">
-          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--txt-muted);">
-            <input type="checkbox" id="rest-auto-close-check" onchange="toggleRestAutoClose()">
-            Auto-close when done
-          </label>
-          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--txt-muted);">
-            Sound alert:
-            <input type="checkbox" id="rest-sound-check" checked onchange="state.settings.restSound = this.checked; saveState()">
-          </label>
-        </div>
         <div class="timer-manual-row">
           <input type="text" id="timer-manual-input" class="timer-manual-input" placeholder="e.g. 2m 90sec 2-3 min">
           <button type="button" class="timer-set-btn" onclick="applyManualRest()">Set</button>
@@ -108,22 +85,18 @@
       </div>
 
       <div id="timer-stopwatch-panel" class="hidden">
-        <div class="stopwatch-tabs">
-          <button type="button" class="sw-tab active" id="sw-tab-1" onclick="setSWTab(1)">Timer 1</button>
-          <button type="button" class="sw-tab" id="sw-tab-2" onclick="setSWTab(2)">Timer 2</button>
-          <button type="button" class="sw-tab" id="sw-tab-3" onclick="setSWTab(3)">Timer 3</button>
-        </div>
         <div class="timer-main-row">
           <div>
             <div class="timer-display timer-mono" id="sw1-time">00:00<span class="sw-ms">.00</span></div>
-            <div class="timer-sub" id="sw-label">STOPWATCH 1 - TIME ELAPSED</div>
+            <div class="timer-sub">STOPWATCH - TIME ELAPSED</div>
           </div>
           <div class="timer-controls">
-            <button type="button" class="timer-btn-play" onclick="toggleSW(activeSWTab)">&#9654;</button>
-            <button type="button" class="timer-btn-icon" onclick="resetStopwatch(activeSWTab)" title="Reset">&#8635;</button>
+            <button type="button" class="timer-btn-play" onclick="toggleSW(1)">&#9654;</button>
+            <button type="button" class="timer-btn-icon" onclick="resetStopwatch(1)" title="Reset">&#8635;</button>
           </div>
         </div>
       </div>
+      </div><!-- /timer-body -->
     </section>
 
     <div class="exercises-log-header">
@@ -137,10 +110,6 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
           <span id="bw-quick-lbl">BW</span>
         </button>
-        <button type="button" class="chip-btn" onclick="openCalculators()" title="Calculators">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4M8 18h8"/></svg>
-          CALC
-        </button>
         <input class="bw-quick-input" id="bw-quick-val" type="number" placeholder="kg" step="0.1" min="30" max="300" style="display:none;" onblur="saveBWQuick()" onkeydown="if(event.key==='Enter')saveBWQuick()">
       </div>
     </div>
@@ -150,16 +119,19 @@
 
   <!-- CARDIO PAGE -->
   <div class="page" id="page-cardio">
-    <header class="page-header">
-      <span class="section-kicker">CARDIO LOG</span>
+    <header class="page-simple-header">
+      <span class="session-kicker">CARDIO LOG</span>
+      <div class="offline-badge"><span class="offline-dot"></span><span>OFFLINE ACTIVE</span></div>
     </header>
     <div id="cardio-content" class="page-body"></div>
   </div>
 
   <!-- SPLITS PAGE -->
   <div class="page" id="page-split">
-    <header class="page-header">
-      <span class="section-kicker">SPLITS</span>
+    <header class="splits-header">
+      <p class="session-kicker">ROUTINES &amp; PLANS</p>
+      <h1 class="splits-title">Training Splits Library</h1>
+      <p class="splits-desc">Load prebuilt routines or craft your custom splits to import automatically to your session logs.</p>
     </header>
 
     <div class="split-toolbar">
