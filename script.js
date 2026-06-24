@@ -2295,6 +2295,109 @@ function exportData() {
   document.body.removeChild(link);
 }
 
+// ====== CSV IMPORT ======
+function triggerCSVImport() {
+  document.getElementById('csv-import-file')?.click();
+}
+
+function handleCSVFileSelected(input) {
+  let file = input.files && input.files[0];
+  if (!file) return;
+  let reader = new FileReader();
+  reader.onload = () => {
+    try {
+      let result = parseCSVImport(String(reader.result || ''));
+      if (result.rows === 0) {
+        alert('No valid rows found in the CSV.\n\nExpected columns: Date, Exercise, Set, Type, Weight, Reps, Unilateral');
+        return;
+      }
+      saveState();
+      alert(`CSV imported successfully!\n${result.rows} set(s) across ${result.days} day(s) merged into your logs.`);
+      if (state.page === 'workout') renderExerciseList();
+      renderProfilePage();
+    } catch (e) {
+      alert('Failed to import CSV: ' + e.message);
+    }
+    input.value = '';
+  };
+  reader.onerror = () => { alert('Could not read that file.'); input.value = ''; };
+  reader.readAsText(file);
+}
+
+function parseCSVImport(text) {
+  // Normalise line endings
+  let lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+  if (lines.length < 2) throw new Error('File appears empty.');
+
+  // Parse a single CSV line respecting quoted fields
+  function parseLine(line) {
+    let fields = [], cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      let ch = line[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    fields.push(cur.trim());
+    return fields;
+  }
+
+  let headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g,''));
+  let iDate = headers.indexOf('date');
+  let iEx   = headers.findIndex(h => h.startsWith('exercise'));
+  let iSet  = headers.findIndex(h => h.startsWith('set'));
+  let iType = headers.findIndex(h => h.startsWith('type'));
+  let iW    = headers.findIndex(h => h === 'weight' || h === 'weight(kg)');
+  let iR    = headers.findIndex(h => h === 'reps');
+  let iUni  = headers.findIndex(h => h.startsWith('uni') || h.startsWith('lateral'));
+
+  if (iDate === -1 || iEx === -1) throw new Error('CSV must have at least "Date" and "Exercise" columns.');
+
+  let rowCount = 0, daySet = new Set();
+
+  for (let li = 1; li < lines.length; li++) {
+    let f = parseLine(lines[li]);
+    if (f.every(c => !c)) continue; // blank row
+
+    let dateStr = f[iDate] || '';
+    let exName  = f[iEx]   || '';
+    if (!dateStr || !exName) continue;
+
+    // Accept YYYY-MM-DD or DD/MM/YYYY or MM/DD/YYYY
+    let iso = dateStr;
+    if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(dateStr)) {
+      let parts = dateStr.split(/[\/\-]/);
+      iso = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+    }
+
+    let wKey = iso; // e.g. "2025-06-01"
+    if (!state.workouts) state.workouts = {};
+    if (!state.workouts[wKey]) state.workouts[wKey] = { exs: [] };
+
+    let workout = state.workouts[wKey];
+    let ex = workout.exs.find(e => e.name.toLowerCase() === exName.toLowerCase());
+    if (!ex) {
+      ex = { name: exName, tag: '', sets: [], notes: '' };
+      workout.exs.push(ex);
+    }
+
+    // Set index from CSV (1-based) — we fill gaps with empty sets
+    let setIdx = iSet !== -1 ? (parseInt(f[iSet]) || 1) - 1 : ex.sets.length;
+    while (ex.sets.length <= setIdx) ex.sets.push({ w: '', r: '', type: 'normal', uni: false });
+
+    let setObj = ex.sets[setIdx];
+    if (iW  !== -1 && f[iW])  setObj.w    = f[iW];
+    if (iR  !== -1 && f[iR])  setObj.r    = f[iR];
+    if (iType !== -1 && f[iType]) setObj.type = f[iType] || 'normal';
+    if (iUni !== -1) setObj.uni = /yes|true|1/i.test(f[iUni] || '');
+
+    rowCount++;
+    daySet.add(iso);
+  }
+
+  return { rows: rowCount, days: daySet.size };
+}
+
 function openSettings() {
   let s = state.settings;
   let commonPlates = [25, 20, 15, 10, 7.5, 5, 2.5, 1.25, 0.5];
@@ -2913,10 +3016,19 @@ function renderProfilePage() {
           <button type="button" class="settings-btn settings-btn-primary" onclick="copyBackup()">Copy Backup</button>
           <button type="button" class="settings-btn settings-btn-secondary" onclick="shareBackup()">Share File</button>
         </div>
-        <button type="button" class="settings-btn settings-btn-secondary" onclick="exportData()" style="width:100%;margin-top:10px;">Export CSV</button>
+        <div class="settings-btn-row" style="margin-top:10px;">
+          <button type="button" class="settings-btn settings-btn-secondary" onclick="exportData()" style="flex:1;">Export CSV</button>
+          <button type="button" class="settings-btn settings-btn-secondary" onclick="triggerCSVImport()" style="flex:1;">Import CSV</button>
+        </div>
+        <p class="settings-row-sub" style="margin-top:6px;">CSV format: Date, Exercise, Set, Type, Weight, Reps, Unilateral — matches the export format exactly.</p>
+        <input type="file" id="csv-import-file" accept=".csv,text/csv" style="display:none;" onchange="handleCSVFileSelected(this)">
         <p class="settings-row-sub" style="margin-top:16px;">Paste a JSON backup below to restore or merge your data.</p>
         <textarea id="backup-import-json" class="settings-textarea" placeholder="Paste JSON backup here..."></textarea>
-        <button type="button" class="settings-btn settings-import-btn" onclick="importBackup()">Import &amp; Merge</button>
+        <div class="settings-btn-row">
+          <button type="button" class="settings-btn settings-import-btn" onclick="importBackup()">Import &amp; Merge</button>
+          <button type="button" class="settings-btn settings-btn-secondary" onclick="triggerBackupFilePick()">Import from File</button>
+        </div>
+        <input type="file" id="backup-import-file" accept="application/json,.json" style="display:none;" onchange="handleBackupFileSelected(this)">
       </div>
 
       <h3 class="settings-section-title">Danger Zone</h3>
@@ -3565,25 +3677,98 @@ function countWorkoutsLogged() {
   return keys.size;
 }
 
+function buildBackupPayload() {
+  return JSON.stringify({ data: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}'), splits: SPLITS, exportedAt: Date.now() }, null, 2);
+}
+
 function copyBackup() {
-  let payload = JSON.stringify({ data: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}'), splits: SPLITS, exportedAt: Date.now() }, null, 2);
+  let payload = buildBackupPayload();
   navigator.clipboard.writeText(payload).then(() => alert('Backup copied to clipboard')).catch(() => alert('Could not copy - select and copy manually from the textarea after Share.'));
 }
 
 function shareBackup() {
-  let payload = JSON.stringify({ data: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}'), splits: SPLITS, exportedAt: Date.now() }, null, 2);
-  if (navigator.share) {
+  let payload = buildBackupPayload();
+  // Share an actual .json FILE when the platform supports it, instead of
+  // sharing it as plain text. Plain-text shares get "smartened" by many
+  // apps (Notes/Mail/Messages convert straight quotes " to curly quotes,
+  // which breaks JSON.parse on import), so a real file avoids that entirely.
+  let fileName = `dod-backup-${new Date().toISOString().slice(0,10)}.json`;
+  let file = new File([payload], fileName, { type: 'application/json' });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: 'DOD Workout Backup', files: [file] }).catch(() => {});
+  } else if (navigator.share) {
+    // Fall back to text share only if file-sharing isn't supported here.
     navigator.share({ title: 'DOD Workout Backup', text: payload }).catch(() => {});
   } else {
-    copyBackup();
+    downloadBackupFile(payload, fileName);
   }
+}
+
+function downloadBackupFile(payload, fileName) {
+  let blob = new Blob([payload], { type: 'application/json' });
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = fileName || `dod-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function triggerBackupFilePick() {
+  document.getElementById('backup-import-file')?.click();
+}
+
+function handleBackupFileSelected(input) {
+  let file = input.files && input.files[0];
+  if (!file) return;
+  let reader = new FileReader();
+  reader.onload = () => {
+    runBackupImport(String(reader.result || ''));
+    input.value = '';
+  };
+  reader.onerror = () => {
+    alert('Could not read that file.');
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// Undoes the most common ways sharing/pasting mangles JSON text
+// (curly "smart" quotes from Notes/Mail/Messages, non-breaking spaces,
+// stray BOM characters) before we attempt to parse it.
+function sanitizeBackupText(raw) {
+  return raw
+    .replace(/^\uFEFF/, '')
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\u00A0/g, ' ')
+    .trim();
 }
 
 function importBackup() {
   let raw = (document.getElementById('backup-import-json')?.value || '').trim();
-  if (!raw) return alert('Paste a backup JSON string first.');
+  if (!raw) return alert('Paste a backup JSON string first, or use "Import from File".');
+  runBackupImport(raw);
+}
+
+function runBackupImport(raw) {
+  let cleaned = sanitizeBackupText(raw);
+  let parsed;
   try {
-    let parsed = JSON.parse(raw);
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    // Try the original, un-sanitized text too, in case sanitizing
+    // damaged otherwise-valid content.
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e2) {
+      alert('Invalid JSON backup: ' + e.message + '\n\nThis usually happens if the backup text was shared/pasted through an app that changed quote characters (e.g. Notes or Mail). Try "Copy Backup" + pasting directly, or "Import from File" with the saved .json file instead.');
+      return;
+    }
+  }
+  try {
     let data = parsed.data || parsed;
     applyLoadedData(data);
     if (parsed.splits) {
@@ -3596,9 +3781,10 @@ function importBackup() {
     if (state.page === 'workout') renderExerciseList();
     if (state.page === 'split') { renderSplitSelector(); renderSplitPage(); }
   } catch (e) {
-    alert('Invalid JSON backup.');
+    alert('That JSON parsed, but did not look like a valid DOD backup: ' + e.message);
   }
 }
+
 
 function hardResetApp() {
   if (!confirm('Permanently wipe all logs, splits, metrics, and settings?')) return;

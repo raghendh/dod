@@ -1266,6 +1266,14 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
   opacity: 0;
   pointer-events: none;
 }
+/* Prevent mobile browsers from focusing/scrolling to the hidden checkbox
+   when its parent .plate-chip label is tapped. Without this, iOS/Android
+   auto-scroll-into-view-on-focus causes the whole settings page to jump
+   on every plate tap. Desktop browsers don't trigger this, which is why
+   the bug was phone-only. */
+.plate-chip input[type="checkbox"] {
+  pointer-events: none;
+}
 .ac-list {
   display: none;
   background: var(--input-bg);
