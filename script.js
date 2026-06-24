@@ -651,6 +651,13 @@ function updateRestTimer(p) {
   if (moduleDisplay) moduleDisplay.textContent = displayStr;
   let moduleSub = document.getElementById('timer-rest-sub');
   if (moduleSub) moduleSub.textContent = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
+  
+  // Update floating timer in header
+  let floatDisplay = document.getElementById('timer-float-display');
+  if (floatDisplay && rt.running) {
+    floatDisplay.style.display = 'block';
+    document.getElementById('timer-float-text').textContent = displayStr;
+  }
 }
 
 function adjustRestTimer(p, seconds) {
@@ -666,6 +673,7 @@ function closeRestTimer(p) {
   clearInterval(rt.interval);
   rt.interval = null;
   rt.running = false;
+  document.getElementById('timer-float-display').style.display = 'none';
   syncTimerUI();
 }
 
@@ -714,12 +722,12 @@ function hasLoggedData(dateStr,profile){
 
 function updateDateLabel(){
   let d = state.date;
-  let days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
   let months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-  let monthEl = document.getElementById('cur-date-month');
-  let lbl = document.getElementById('cur-date-lbl');
-  if (monthEl) monthEl.textContent = months[d.getMonth()];
-  if (lbl) lbl.textContent = days[d.getDay()] + ' ' + d.getDate();
+  let textEl = document.getElementById('cur-date-text');
+  if (textEl) {
+    textEl.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
   let dstr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   let dp = document.getElementById('hidden-date-picker');
   if (dp) dp.value = dstr;
@@ -3308,6 +3316,28 @@ async function uninstallApp() {
 let timerTab = 'rest';
 let restPresetSeconds = 90;
 let activeSWTab = 1;
+let timerModuleCollapsed = false;
+let datePickerCollapsed = false;
+
+function toggleDateCollapse() {
+  datePickerCollapsed = !datePickerCollapsed;
+  let btn = document.getElementById('collapse-date-btn');
+  let modal = document.getElementById('date-picker-modal');
+  btn.classList.toggle('collapsed');
+  modal.style.display = datePickerCollapsed ? 'none' : 'block';
+}
+
+function toggleTimerCollapse() {
+  timerModuleCollapsed = !timerModuleCollapsed;
+  let btn = document.getElementById('timer-collapse-btn');
+  let panels = document.getElementById('timer-module').querySelectorAll('[id*="panel"]');
+  btn.classList.toggle('collapsed');
+  panels.forEach(panel => {
+    if (!panel.classList.contains('timer-tabs')) {
+      panel.style.display = timerModuleCollapsed ? 'none' : 'block';
+    }
+  });
+}
 
 function setSWTab(n) {
   activeSWTab = n;

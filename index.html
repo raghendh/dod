@@ -19,31 +19,57 @@
 
 <div id="app" class="ready">
 
+  <!-- UNIVERSAL HEADER FOR ALL PAGES -->
+  <header class="universal-header">
+    <div class="header-left">
+      <span class="header-logo">✕ DO OR DIE</span>
+    </div>
+    <div class="header-right">
+      <div class="timer-float-display" id="timer-float-display" style="display:none;">
+        <span id="timer-float-text">00:00</span>
+      </div>
+    </div>
+  </header>
+
   <!-- TRAIN PAGE -->
   <div class="page active" id="page-workout">
     <header class="session-header">
-      <div class="session-header-top">
-        <span class="session-kicker">SESSION LOG</span>
-        <div class="offline-badge">
-          <span class="offline-dot"></span>
-          <span>OFFLINE ACTIVE</span>
+      <div class="workout-date-section">
+        <span class="section-kicker">WORKOUT DATE</span>
+        <div class="date-display-row">
+          <button type="button" class="date-arrow" onclick="shiftDate(-1)" aria-label="Previous day">&#10094;</button>
+          <div class="workout-date-center" onclick="try{document.getElementById('hidden-date-picker').showPicker()}catch(e){}">
+            <input type="date" id="hidden-date-picker" onchange="applyDateDirect(this.value)">
+            <div id="cur-date-text" class="date-text"></div>
+          </div>
+          <button type="button" class="date-arrow" onclick="shiftDate(1)" aria-label="Next day">&#10095;</button>
+          <button type="button" class="collapse-btn" id="collapse-date-btn" onclick="toggleDateCollapse()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
         </div>
       </div>
-      <div class="session-date-row">
-        <button type="button" class="date-arrow" onclick="shiftDate(-1)" aria-label="Previous day">&#10094;</button>
-        <div class="session-date-center" onclick="try{document.getElementById('hidden-date-picker').showPicker()}catch(e){}">
-          <input type="date" id="hidden-date-picker" onchange="applyDateDirect(this.value)">
-          <div id="cur-date-month" class="date-month"></div>
-          <h1 id="cur-date-lbl" class="date-serif"></h1>
+
+      <div class="date-picker-modal" id="date-picker-modal" style="display:none;">
+        <div style="padding:16px;">
+          <h3 style="margin-bottom:12px;">SELECT DATE</h3>
+          <div id="date-calendar-grid"></div>
         </div>
-        <button type="button" class="date-arrow" onclick="shiftDate(1)" aria-label="Next day">&#10095;</button>
       </div>
     </header>
 
     <section class="timer-module" id="timer-module">
-      <div class="timer-tabs">
-        <button type="button" class="timer-tab active" id="timer-tab-rest" onclick="setTimerTab('rest')">REST TIMER</button>
-        <button type="button" class="timer-tab" id="timer-tab-stopwatch" onclick="setTimerTab('stopwatch')">STOPWATCH</button>
+      <div class="timer-header">
+        <div class="timer-tabs">
+          <button type="button" class="timer-tab active" id="timer-tab-rest" onclick="setTimerTab('rest')">REST TIMER</button>
+          <button type="button" class="timer-tab" id="timer-tab-stopwatch" onclick="setTimerTab('stopwatch')">STOPWATCH</button>
+        </div>
+        <button type="button" class="timer-collapse-btn" id="timer-collapse-btn" onclick="toggleTimerCollapse()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </button>
       </div>
 
       <div id="timer-rest-panel">
@@ -124,19 +150,16 @@
 
   <!-- CARDIO PAGE -->
   <div class="page" id="page-cardio">
-    <header class="page-simple-header">
-      <span class="session-kicker">CARDIO LOG</span>
-      <div class="offline-badge"><span class="offline-dot"></span><span>OFFLINE ACTIVE</span></div>
+    <header class="page-header">
+      <span class="section-kicker">CARDIO LOG</span>
     </header>
     <div id="cardio-content" class="page-body"></div>
   </div>
 
   <!-- SPLITS PAGE -->
   <div class="page" id="page-split">
-    <header class="splits-header">
-      <p class="session-kicker">ROUTINES &amp; PLANS</p>
-      <h1 class="splits-title">Training Splits Library</h1>
-      <p class="splits-desc">Load prebuilt routines or craft your custom splits to import automatically to your session logs.</p>
+    <header class="page-header">
+      <span class="section-kicker">SPLITS</span>
     </header>
 
     <div class="split-toolbar">
