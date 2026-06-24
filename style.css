@@ -1445,65 +1445,6 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
 }
 .muscle-sub-bar-fill { height: 100%; border-radius: 999px; }
 
-/* Theme picker grid (Settings) */
-.theme-picker {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-.theme-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 4px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--input-bg);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--txt-muted);
-  text-align: center;
-  cursor: pointer;
-}
-.theme-option.active { border-color: var(--accent); color: var(--txt); }
-.theme-option.coming-soon { cursor: not-allowed; opacity: 0.6; }
-.theme-swatch {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.theme-cs-lbl {
-  font-size: 8px;
-  font-weight: 800;
-  color: var(--txt-muted);
-  letter-spacing: 0.04em;
-}
-.ob-theme-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 6px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--input-bg);
-  cursor: pointer;
-}
-.ob-theme-card.selected { border-color: var(--accent); }
-.ob-theme-swatch {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-}
-.ob-theme-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--txt);
-  text-align: center;
-}
-
 /* PR celebration burst overlay */
 .pr-burst-wrap {
   position: fixed;
@@ -1706,6 +1647,133 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
   flex: 1;
   overflow-y: auto;
 }
+
+/* ── Profile page tabs ── */
+.profile-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+.profile-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 8px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--txt-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.profile-tab-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Profile section headings (Stats tab) ── */
+.profile-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 20px 0 10px;
+}
+
+/* ── Profile accordions ── */
+.profile-accordion {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 12px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+.profile-accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  gap: 8px;
+}
+.profile-accordion-header:hover {
+  background: var(--border);
+}
+.profile-acc-chevron {
+  flex-shrink: 0;
+  color: var(--txt3);
+  transition: transform 0.25s ease;
+  transform: rotate(180deg);
+}
+.profile-acc-chevron.open {
+  transform: rotate(0deg);
+}
+.profile-accordion-body {
+  display: none;
+  padding: 0 12px 12px;
+}
+.profile-accordion-body.open {
+  display: block;
+}
+.profile-accordion-body .settings-panel {
+  margin-top: 4px;
+}
+.profile-accordion-body #pr-list,
+.profile-accordion-body #history-list {
+  margin-top: 4px;
+}
+
+/* ── Body measurements 2-col grid ── */
+.profile-measure-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.profile-measure-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.profile-measure-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--txt-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.profile-measure-input {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--txt);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.profile-measure-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Settings page no longer needs its own title padding since it's inside the tab */
+#profile-tab-settings .settings-section-title:first-child { margin-top: 4px; }
 
 @media (min-width: 421px) {
   body { background: #181816; }
