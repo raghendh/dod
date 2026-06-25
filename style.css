@@ -1649,6 +1649,30 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
   text-align: center;
 }
 
+/* "Install" button in the global header — only shown when the browser
+   fires beforeinstallprompt (i.e. the app isn't installed yet) */
+#install-pwa-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 6px 12px;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.15s;
+}
+#install-pwa-btn:active {
+  transform: scale(0.96);
+}
+
 /* ─────────────────────────────────────────
    DATE LABEL  (new single-line style)
 ───────────────────────────────────────── */
