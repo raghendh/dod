@@ -1601,6 +1601,36 @@ body.pitch-black #onboarding-screen { background: #000; }
   100% { opacity: 0; }
 }
 
+/* Water reminder toast — lighter touch than the full-screen PR burst,
+   since this one repeats on a schedule rather than marking a one-off win. */
+.water-toast-wrap {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-xl);
+  padding: 12px 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  animation: water-toast-in 0.35s cubic-bezier(0.34,1.56,0.64,1), water-toast-fade 6s ease forwards;
+  max-width: 88vw;
+}
+.water-toast-icon { flex-shrink: 0; color: var(--accent); display: flex; }
+.water-toast-text { font-size: 13px; font-weight: 700; color: var(--txt); line-height: 1.4; }
+@keyframes water-toast-in {
+  from { opacity: 0; transform: translate(-50%, -14px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes water-toast-fade {
+  0%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* .setting-plate-cb defined above with .plate-chip */
 
 /* Per-exercise history rows (HIST panel) */
@@ -1728,57 +1758,47 @@ body.pitch-black #onboarding-screen { background: #000; }
 
 /* ─────────────────────────────────────────
    POWER QUOTE DISPLAY  (sits right under the DO OR DIE bar)
-   Shows ONE quote at a time, centered, held in view, then
-   swapped out with a punchy fade/scale transition.
+   Shows ONE quote at a time. It scrolls right-to-left across
+   the bar like the old marquee, glowing/pulsing the whole time.
+   It repeats its scroll pass QUOTE_REPEAT_COUNT times, then the
+   next quote in the list takes over.
 ───────────────────────────────────────── */
 #quote-marquee {
   overflow: hidden;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
-  padding: 10px 14px;
+  padding: 10px 0;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
 }
 .quote-power-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   width: 100%;
-  min-height: 18px;
+  height: 18px;
+  overflow: hidden;
 }
 .quote-power-item {
+  position: absolute;
+  top: 0;
+  left: 100%;
   font-size: 12.5px;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--accent);
   white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  max-width: 100%;
-  text-align: center;
   text-shadow: 0 0 14px var(--accent-soft);
-  animation: quote-power-pulse 2.6s ease-in-out infinite;
+  animation:
+    quote-power-scroll 5.5s linear infinite,
+    quote-power-pulse 2.6s ease-in-out infinite;
 }
-.quote-power-item.swap-out {
-  animation: quote-power-out 0.28s ease forwards;
-}
-.quote-power-item.swap-in {
-  animation: quote-power-in 0.32s cubic-bezier(.2,.8,.2,1) forwards;
+@keyframes quote-power-scroll {
+  from { left: 100%; transform: translateX(0); }
+  to   { left: 0%;   transform: translateX(-100%); }
 }
 @keyframes quote-power-pulse {
   0%, 100% { text-shadow: 0 0 10px var(--accent-soft); }
   50%      { text-shadow: 0 0 20px var(--accent-soft), 0 0 4px var(--accent); }
-}
-@keyframes quote-power-out {
-  from { opacity: 1; transform: scale(1) translateY(0); }
-  to   { opacity: 0; transform: scale(0.92) translateY(-6px); }
-}
-@keyframes quote-power-in {
-  from { opacity: 0; transform: scale(1.06) translateY(6px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 /* ─────────────────────────────────────────

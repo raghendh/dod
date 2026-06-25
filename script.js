@@ -377,6 +377,7 @@ let state = {
     showPRCalc: true,
     compactButtons: false,
     lockUI: true,
+    waterReminder: { enabled: false, intervalMinutes: 60 },
   }
 };
 
@@ -416,6 +417,7 @@ function resetAppState(){
       showPRCalc: true,
       compactButtons: false,
       lockUI: true,
+      waterReminder: { enabled: false, intervalMinutes: 60 },
     }
   };
 
@@ -492,6 +494,7 @@ function applyLoadedData(parsed) {
   if (!state.settings) state.settings = { useRestTimer: true, timerMerged: false, barbellWeight: 20, plates: [25, 20, 15, 10, 5, 2.5, 1.25] };
   if (state.settings.useRestTimer === undefined) state.settings.useRestTimer = true;
   if (state.settings.timerMerged === undefined) state.settings.timerMerged = false;
+  if (!state.settings.waterReminder) state.settings.waterReminder = { enabled: false, intervalMinutes: 60 };
   // Existing accounts keep their current (full-detail) experience by default;
   // only brand-new accounts (handled in the default `state` object above) start in Simple Mode.
   if (state.settings.simpleMode === undefined) state.settings.simpleMode = false;
@@ -1553,34 +1556,151 @@ const POWER_QUOTES = [
   "ONE MORE REP. ALWAYS ONE MORE.",
   "YOUR LIMITS ARE A LIE YOU TELL YOURSELF"
 ];
-const QUOTE_REPEAT_COUNT = 5;   // how many times a quote "shows" before moving to the next
-const QUOTE_VIEW_MS = 3200;     // duration of one "view" (one pulse cycle) in ms
+const QUOTE_REPEAT_COUNT = 5;   // how many scroll passes a quote gets before moving to the next
+const QUOTE_SCROLL_SECONDS = 5.5; // must match the quote-power-scroll animation duration in CSS
 let _quoteIdx = 0;
-let _quoteRepeatsLeft = QUOTE_REPEAT_COUNT;
+let _quotePassesLeft = QUOTE_REPEAT_COUNT;
 function initPowerQuotes(){
   let el = document.getElementById('quote-power-text');
   if(!el) return;
   el.textContent = POWER_QUOTES[_quoteIdx];
-  setInterval(() => advancePowerQuote(el), QUOTE_VIEW_MS);
+  // each full right-to-left scroll pass = one "view" of the quote
+  el.addEventListener('animationiteration', (e) => {
+    if(e.animationName !== 'quote-power-scroll') return;
+    advancePowerQuote(el);
+  });
 }
 function advancePowerQuote(el){
-  _quoteRepeatsLeft--;
-  if(_quoteRepeatsLeft > 0){
-    // same quote, just re-trigger the pulse so it still "shows" again
-    el.classList.remove('swap-in');
-    void el.offsetWidth; // restart animation
-    el.classList.add('swap-in');
+  _quotePassesLeft--;
+  if(_quotePassesLeft > 0) return; // let it keep scrolling with the same text
+  // move to the next quote in the list — swap text between passes so it's never visible mid-edit
+  _quoteIdx = (_quoteIdx + 1) % POWER_QUOTES.length;
+  _quotePassesLeft = QUOTE_REPEAT_COUNT;
+  el.textContent = POWER_QUOTES[_quoteIdx];
+}
+
+/* ── WATER REMINDER ENGINE ───────────────────────────────────────
+   Two layers, since there's no backend to push from:
+   1) Periodic Background Sync — lets the service worker fire a
+      reminder even when the app is closed, but ONLY on Chromium-based
+      Android browsers with the PWA actually installed, and only on the
+      browser's own schedule (often clamped to a several-hour minimum
+      no matter what interval is requested). Not available on iOS
+      Safari, desktop Firefox, or in a plain browser tab.
+   2) An in-tab setInterval — fires reliably at the exact interval, but
+      only while this tab/app is open. Runs everywhere, always, as the
+      dependable fallback under the best-effort layer above. */
+let _waterReminderTimer = null;
+const WATER_REMINDER_MESSAGES = [
+  "Time to hydrate. Grab some water.",
+  "Quick water break — your body needs it.",
+  "Drink up. Stay sharp, stay strong.",
+  "Hydration check: top up your water.",
+  "Don't skip this one — drink some water."
+];
+
+function waterReminderCapability(){
+  let hasPeriodicSync = 'serviceWorker' in navigator && 'PeriodicSyncManager' in window;
+  return hasPeriodicSync ? 'periodic' : 'in-app';
+}
+
+function startWaterReminderTimer(){
+  stopWaterReminderTimer();
+  let cfg = state.settings.waterReminder;
+  if(!cfg || !cfg.enabled) return;
+  let ms = (cfg.intervalMinutes || 60) * 60 * 1000;
+  _waterReminderTimer = setInterval(fireWaterReminder, ms);
+}
+function stopWaterReminderTimer(){
+  if(_waterReminderTimer){ clearInterval(_waterReminderTimer); _waterReminderTimer = null; }
+}
+function fireWaterReminder(){
+  let msg = WATER_REMINDER_MESSAGES[Math.floor(Math.random()*WATER_REMINDER_MESSAGES.length)];
+  if('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible'){
+    try {
+      new Notification('DO OR DIE', { body: msg, icon: 'https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png' });
+      pushWaterConfigToSW(true);
+      return;
+    } catch(e) { /* fall through to in-app toast */ }
+  }
+  showWaterToast(msg);
+  pushWaterConfigToSW(true);
+}
+function showWaterToast(msg){
+  let old = document.getElementById('water-toast');
+  if(old) old.remove();
+  let wrap = document.createElement('div');
+  wrap.id = 'water-toast';
+  wrap.className = 'water-toast-wrap';
+  wrap.innerHTML = `<span class="water-toast-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.5s6 7 6 11.5a6 6 0 0 1-12 0c0-4.5 6-11.5 6-11.5z"/></svg></span><span class="water-toast-text">${msg}</span>`;
+  document.body.appendChild(wrap);
+  setTimeout(() => { if(wrap.parentNode) wrap.remove(); }, 6000);
+}
+
+// Sends the current water-reminder settings to the service worker, which
+// caches them (via the Cache API — the only storage a SW can reliably read
+// from inside a periodicsync event) so it knows whether/how often to fire
+// on its own. markFired=true also stamps "last fired now" to keep the SW's
+// own due-time check in sync with whatever just fired from the page side.
+function pushWaterConfigToSW(markFired){
+  if(!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
+  let cfg = state.settings.waterReminder || { enabled: false, intervalMinutes: 60 };
+  navigator.serviceWorker.controller.postMessage({
+    type: 'WATER_CONFIG',
+    enabled: cfg.enabled,
+    intervalMinutes: cfg.intervalMinutes,
+    lastFired: markFired ? Date.now() : 0
+  });
+}
+
+async function registerWaterPeriodicSync(){
+  if(!('serviceWorker' in navigator) || !('PeriodicSyncManager' in window)) return false;
+  try {
+    let reg = await navigator.serviceWorker.ready;
+    let status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+    if(status.state !== 'granted') return false;
+    let cfg = state.settings.waterReminder || { intervalMinutes: 60 };
+    await reg.periodicSync.register('water-reminder', {
+      minInterval: (cfg.intervalMinutes || 60) * 60 * 1000
+    });
+    return true;
+  } catch(e) {
+    return false; // unsupported, permission not grantable here, or registration failed — silently fall back
+  }
+}
+async function unregisterWaterPeriodicSync(){
+  if(!('serviceWorker' in navigator) || !('PeriodicSyncManager' in window)) return;
+  try {
+    let reg = await navigator.serviceWorker.ready;
+    await reg.periodicSync.unregister('water-reminder');
+  } catch(e) { /* nothing to clean up */ }
+}
+
+function toggleWaterReminder(on){
+  if(!state.settings.waterReminder) state.settings.waterReminder = { enabled: false, intervalMinutes: 60 };
+  if(on && 'Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission().then(() => finishWaterReminderToggle(on));
     return;
   }
-  // move to the next quote in the list
-  el.classList.add('swap-out');
-  setTimeout(() => {
-    _quoteIdx = (_quoteIdx + 1) % POWER_QUOTES.length;
-    _quoteRepeatsLeft = QUOTE_REPEAT_COUNT;
-    el.textContent = POWER_QUOTES[_quoteIdx];
-    el.classList.remove('swap-out');
-    el.classList.add('swap-in');
-  }, 280);
+  finishWaterReminderToggle(on);
+}
+function finishWaterReminderToggle(on){
+  state.settings.waterReminder.enabled = on;
+  saveState();
+  startWaterReminderTimer();
+  pushWaterConfigToSW(false);
+  if(on) registerWaterPeriodicSync().then(() => { if(state.page === 'profile') renderProfilePage(); });
+  else unregisterWaterPeriodicSync();
+  if(state.page === 'profile') renderProfilePage();
+}
+function setWaterReminderInterval(minutes){
+  if(!state.settings.waterReminder) state.settings.waterReminder = { enabled: false, intervalMinutes: 60 };
+  state.settings.waterReminder.intervalMinutes = parseInt(minutes, 10) || 60;
+  saveState();
+  startWaterReminderTimer();
+  pushWaterConfigToSW(false);
+  if(state.settings.waterReminder.enabled) registerWaterPeriodicSync();
+  if(state.page === 'profile') renderProfilePage();
 }
 
 function savePRAuto(name, weight, dateKeyStr, profile) {
@@ -2921,6 +3041,7 @@ function renderProfilePage() {
   let bws = state.bw[state.profile] || {};
   let todayBW = bws[dateKey(state.date)] || Object.values(bws).slice(-1)[0] || '';
   let fitness = calcFitnessLevel(metrics, todayBW);
+  let waterCfg = state.settings.waterReminder || { enabled: false, intervalMinutes: 60 };
 
   /* ── Build PRs HTML ── */
   let prHtml = '';
@@ -3134,6 +3255,43 @@ function renderProfilePage() {
             <div class="profile-measure-label">R Thigh (cm)</div>
             <input type="number" class="profile-measure-input" placeholder="e.g. 58" value="${m.rightThigh || ''}"
               onchange="saveMeasurement('rightThigh', this.value ? parseFloat(this.value) : '')">
+          </div>
+        </div>
+      </div>
+
+      <!-- Water Reminder -->
+      <div class="collapse-card" id="collapse-water">
+        <div class="collapse-card-header" onclick="toggleProfileCollapse('water')">
+          <span class="profile-section-title" style="margin:0;">Water Reminder</span>
+          <button type="button" class="chevron-btn ${profileExpandedCard === 'water' ? '' : 'collapsed'}" id="chevron-water" aria-label="Toggle water reminder">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+        </div>
+        <div class="collapse-card-body ${profileExpandedCard === 'water' ? '' : 'collapsed'}" id="collapse-body-water">
+          <div class="settings-panel" style="margin-top:10px;">
+            <div class="settings-row">
+              <div><div class="settings-row-label">Remind me to drink water</div><div class="settings-row-sub">Notifies you at your chosen interval</div></div>
+              <label class="set-toggle"><input type="checkbox" id="water-reminder-toggle" ${waterCfg.enabled ? 'checked' : ''} onchange="toggleWaterReminder(this.checked)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+            </div>
+            <div class="set-row-setting" style="padding-top:14px;border-top:1px solid var(--border);margin-top:14px;">
+              <div><div class="settings-row-label">Remind every</div></div>
+              <select id="water-interval-select" onchange="setWaterReminderInterval(this.value)"
+                style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">
+                <option value="30" ${waterCfg.intervalMinutes==30?'selected':''}>30 min</option>
+                <option value="45" ${waterCfg.intervalMinutes==45?'selected':''}>45 min</option>
+                <option value="60" ${waterCfg.intervalMinutes==60?'selected':''}>1 hour</option>
+                <option value="90" ${waterCfg.intervalMinutes==90?'selected':''}>1.5 hours</option>
+                <option value="120" ${waterCfg.intervalMinutes==120?'selected':''}>2 hours</option>
+                <option value="180" ${waterCfg.intervalMinutes==180?'selected':''}>3 hours</option>
+              </select>
+            </div>
+            <div id="water-reminder-status" style="font-size:11px;color:var(--txt3);margin-top:12px;line-height:1.5;">
+              ${waterCfg.enabled
+                ? (waterReminderCapability() === 'periodic'
+                    ? `Fires every ${waterCfg.intervalMinutes} min while the app is open, and can also fire in the background on this browser — though Android may space background reminders out further apart than that.`
+                    : `Fires every ${waterCfg.intervalMinutes} min while the app is open. This browser doesn't support background delivery, so it won't fire while the app is fully closed.`)
+                : 'Turn this on to get reminded to drink water. Works reliably while the app is open; background delivery when closed is best-effort and depends on your browser.'}
+            </div>
           </div>
         </div>
       </div>
@@ -4059,13 +4217,13 @@ function toggleTimerSection() {
   body.style.display = collapsed ? 'none' : '';
 }
 
-/* ── Profile stats cards: Bodyweight / Personal Records / Workout History ──
-   Only one of these three may be expanded at a time. Expanding one auto-collapses the others. */
+/* ── Profile stats cards: Bodyweight / Water Reminder / Personal Records / Workout History ──
+   Only one of these may be expanded at a time. Expanding one auto-collapses the others. */
 function toggleProfileCollapse(key) {
   let isCurrentlyOpen = profileExpandedCard === key;
   profileExpandedCard = isCurrentlyOpen ? null : key;
 
-  ['bw', 'pr', 'hist'].forEach(k => {
+  ['bw', 'water', 'pr', 'hist'].forEach(k => {
     let chevron = document.getElementById('chevron-' + k);
     let body = document.getElementById('collapse-body-' + k);
     if (!chevron || !body) return;
@@ -4080,6 +4238,7 @@ async function bootstrapApp() {
   setTimerTab('rest');
   setRestPreset(90);
   initPowerQuotes();
+  startWaterReminderTimer();
   if (!state.settings?.onboardingDone) showOnboarding();
 }
 
@@ -4110,6 +4269,16 @@ if ('serviceWorker' in navigator) {
             reg.waiting.postMessage('SKIP_WAITING');
           }
         });
+      });
+
+      // Give the SW our current water-reminder settings (it has no other way
+      // to read them) and, if the reminder was left on from a previous
+      // session, try to (re-)register periodic background sync — this is a
+      // no-op cleanly swallowed by registerWaterPeriodicSync() on any
+      // browser that doesn't support it.
+      navigator.serviceWorker.ready.then(() => {
+        pushWaterConfigToSW(false);
+        if (state.settings?.waterReminder?.enabled) registerWaterPeriodicSync();
       });
     }).catch(err => console.error('SW registration failed:', err));
 
