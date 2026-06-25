@@ -46,12 +46,12 @@
       <div class="date-card" id="date-card">
         <div class="date-card-header" onclick="toggleDateSection()">
           <span class="session-kicker">WORKOUT DATE</span>
-          <button type="button" class="chevron-btn" id="date-chevron" aria-label="Toggle date">
+          <button type="button" class="chevron-btn collapsed" id="date-chevron" aria-label="Toggle date">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
           </button>
         </div>
         <div id="cur-date-lbl" class="date-full-label"></div>
-        <div class="date-card-body" id="date-card-body">
+        <div class="date-card-body collapsed" id="date-card-body">
           <input type="date" id="hidden-date-picker" onchange="applyDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
           <div class="week-strip" id="week-strip"></div>
         </div>
@@ -61,7 +61,9 @@
     <section class="timer-module" id="timer-module">
       <div class="timer-card-header" onclick="toggleTimerSection()">
         <div class="timer-card-header-left">
-          <span class="timer-card-icon">⏱</span>
+          <span class="timer-card-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+          </span>
           <span class="timer-card-label">STOPWATCH &amp; REST TIMER</span>
         </div>
         <button type="button" class="chevron-btn" id="timer-chevron" aria-label="Toggle timer">
@@ -73,10 +75,14 @@
       <div class="timer-tabs-row">
         <div class="timer-tabs" style="margin-top:16px;">
           <button type="button" class="timer-tab active" id="timer-tab-rest" onclick="setTimerTab('rest')">
-            <span class="timer-tab-icon">⌛</span> REST TIMER
+            <span class="timer-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="13" r="7"/><polyline points="12 10 12 13 14 15"/><path d="M5 3l-2 2M19 3l2 2"/></svg>
+            </span> REST TIMER
           </button>
           <button type="button" class="timer-tab" id="timer-tab-stopwatch" onclick="setTimerTab('stopwatch')">
-            <span class="timer-tab-icon">⏱</span> STOPWATCH
+            <span class="timer-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            </span> STOPWATCH
           </button>
         </div>
       </div>
@@ -89,8 +95,7 @@
           </div>
           <div class="timer-controls">
             <button type="button" class="timer-btn-sm" onclick="adjustRestTimer(1, 30)">+30s</button>
-            <button type="button" class="timer-btn-play" id="timer-rest-play" onclick="toggleRestFromModule()">&#9654;</button>
-            <button type="button" class="timer-btn-icon" onclick="closeRestTimer(1)" title="Reset">&#8635;</button>
+            <button type="button" class="timer-btn-play" id="timer-rest-play" onclick="toggleRestFromModule()" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
           </div>
         </div>
         <div class="timer-presets">
@@ -109,12 +114,12 @@
       <div id="timer-stopwatch-panel" class="hidden">
         <div class="timer-main-row">
           <div>
-            <div class="timer-display timer-mono" id="sw1-time">00:00<span class="sw-ms">.00</span></div>
+            <div class="timer-display" id="sw1-time">00:00<span class="sw-ms">.00</span></div>
             <div class="timer-sub">STOPWATCH - TIME ELAPSED</div>
           </div>
           <div class="timer-controls">
             <button type="button" class="timer-btn-sm" onclick="lapStopwatch(1)" title="Lap">LAP</button>
-            <button type="button" class="timer-btn-play" onclick="toggleSW(1)">&#9654;</button>
+            <button type="button" class="timer-btn-play" id="sw1-play" onclick="toggleSW(1)" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
             <button type="button" class="timer-btn-icon" onclick="resetStopwatch(1)" title="Reset">&#8635;</button>
           </div>
         </div>
@@ -143,23 +148,17 @@
 
   <!-- CARDIO PAGE -->
   <div class="page" id="page-cardio">
-    <header class="page-simple-header">
-      <span class="session-kicker">CARDIO LOG</span>
-      <div class="offline-badge"><span class="offline-dot"></span><span>OFFLINE ACTIVE</span></div>
-    </header>
-    <div id="cardio-content" class="page-body"></div>
+    <div id="cardio-content" class="page-body" style="padding-top:16px;"></div>
   </div>
 
   <!-- SPLITS PAGE -->
   <div class="page" id="page-split">
     <header class="splits-header">
-      <p class="session-kicker">ROUTINES &amp; PLANS</p>
-      <h1 class="splits-title">Training Splits Library</h1>
-      <p class="splits-desc">Load prebuilt routines or craft your custom splits to import automatically to your session logs.</p>
+      <div id="splits-selected-name" class="splits-active-display"></div>
+      <p class="splits-unlock-hint">To add or edit splits, go to Settings and disable Lock UI</p>
     </header>
 
     <div class="split-toolbar">
-      <h2 class="split-active-name" id="split-main-title">Split Library</h2>
       <div class="split-toolbar-actions">
         <button type="button" id="reorder-toggle-split" class="chip-btn" onclick="toggleReorderMode('split')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
@@ -211,6 +210,155 @@
   <div id="modal-box" onclick="event.stopPropagation()">
     <div class="modal-title" id="modal-title"></div>
     <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ONBOARDING SCREEN -->
+<div id="onboarding-screen">
+  <div class="ob-container">
+
+    <!-- Progress dots -->
+    <div class="ob-dots">
+      <span class="ob-dot done" id="ob-dot-0"></span>
+      <span class="ob-dot" id="ob-dot-name"></span>
+      <span class="ob-dot" id="ob-dot-gender"></span>
+      <span class="ob-dot" id="ob-dot-1"></span>
+      <span class="ob-dot" id="ob-dot-fat"></span>
+      <span class="ob-dot" id="ob-dot-2"></span>
+      <span class="ob-dot" id="ob-dot-3"></span>
+    </div>
+
+    <!-- Step 0: Welcome -->
+    <div class="ob-step active" id="ob-step-0">
+      <div class="ob-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+      </div>
+      <h1 class="ob-title">DO OR DIE</h1>
+      <p class="ob-desc">Your offline-first workout tracker. No cloud, no nonsense — just you and the iron.</p>
+      <button type="button" class="ob-btn-primary" onclick="obNext()">Get Started</button>
+    </div>
+
+    <!-- Step 1: Name -->
+    <div class="ob-step" id="ob-step-name">
+      <h2 class="ob-title ob-title-sm">What's your name?</h2>
+      <p class="ob-desc">Shown on your profile. Stays on this device.</p>
+      <div class="ob-field">
+        <label class="ob-label">Your name</label>
+        <input type="text" id="ob-name-input" class="ob-input" placeholder="e.g. Alex" autocomplete="given-name" maxlength="40">
+      </div>
+      <div class="ob-btn-row">
+        <button type="button" class="ob-btn-ghost" onclick="obBack()">Back</button>
+        <button type="button" class="ob-btn-primary" onclick="obSaveName()">Continue</button>
+      </div>
+    </div>
+    <div class="ob-step" id="ob-step-gender">
+      <h2 class="ob-title ob-title-sm">Tell us about you</h2>
+      <p class="ob-desc">Used for fitness level calculations — stays on your device.</p>
+      <div class="ob-gender-row">
+        <button type="button" class="ob-gender-btn" id="ob-gender-male" onclick="obSelectGender('male')">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="14" r="5"/><path d="M19 5l-5.46 5.46M19 5h-4m4 0v4"/></svg>
+          Male
+        </button>
+        <button type="button" class="ob-gender-btn" id="ob-gender-female" onclick="obSelectGender('female')">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="5"/><line x1="12" y1="14" x2="12" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+          Female
+        </button>
+      </div>
+      <div class="ob-field">
+        <label class="ob-label">Age (optional)</label>
+        <input type="number" id="ob-age-input" class="ob-input" placeholder="e.g. 26" min="13" max="99">
+      </div>
+      <div class="ob-btn-row">
+        <button type="button" class="ob-btn-ghost" onclick="obBack()">Back</button>
+        <button type="button" class="ob-btn-primary" onclick="obSaveGender()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Stats (height / weight) -->
+    <div class="ob-step" id="ob-step-1">
+      <h2 class="ob-title ob-title-sm">Your measurements</h2>
+      <p class="ob-desc">Helps calculate your fitness level score.</p>
+      <div class="ob-field">
+        <label class="ob-label">Height</label>
+        <div class="ob-input-row">
+          <input type="number" id="ob-height" class="ob-input" placeholder="e.g. 178">
+          <select id="ob-height-unit" class="ob-select"><option value="cm">cm</option><option value="ft">ft</option></select>
+        </div>
+      </div>
+      <div class="ob-field">
+        <label class="ob-label">Current weight</label>
+        <div class="ob-input-row">
+          <input type="number" id="ob-weight" class="ob-input" placeholder="e.g. 80">
+          <select id="ob-weight-unit" class="ob-select"><option value="kg">kg</option><option value="lbs">lbs</option></select>
+        </div>
+      </div>
+      <div class="ob-btn-row">
+        <button type="button" class="ob-btn-ghost" onclick="obBack()">Back</button>
+        <button type="button" class="ob-btn-primary" onclick="obSaveStats()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Body fat -->
+    <div class="ob-step" id="ob-step-fat">
+      <h2 class="ob-title ob-title-sm">Estimate body fat %</h2>
+      <p class="ob-desc">Pick the image that looks most like you.</p>
+      <img id="ob-fat-image" src="" alt="Body fat reference" class="ob-fat-img">
+      <div class="ob-fat-options">
+        <button type="button" class="ob-fat-option" onclick="obSelectFat(1,12.5)">~12%</button>
+        <button type="button" class="ob-fat-option" onclick="obSelectFat(2,16.5)">~17%</button>
+        <button type="button" class="ob-fat-option" onclick="obSelectFat(3,20.5)">~21%</button>
+        <button type="button" class="ob-fat-option" onclick="obSelectFat(4,26.5)">~27%</button>
+        <button type="button" class="ob-fat-option" onclick="obSelectFat(5,35)">~35%</button>
+      </div>
+      <input type="hidden" id="ob-fat-pct" value="">
+      <div class="ob-btn-row">
+        <button type="button" class="ob-btn-ghost" onclick="obBack()">Back</button>
+        <button type="button" class="ob-btn-primary" onclick="obSaveFat()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Starting PRs -->
+    <div class="ob-step" id="ob-step-2">
+      <h2 class="ob-title ob-title-sm">Your big lifts</h2>
+      <p class="ob-desc">Optional. Unlocks the 1RM calculator and warm-up generator immediately.</p>
+      <div class="ob-field">
+        <label class="ob-label">Bench Press 1RM (kg)</label>
+        <input type="number" id="ob-pr-bench" class="ob-input" placeholder="e.g. 100">
+      </div>
+      <div class="ob-field">
+        <label class="ob-label">Squat 1RM (kg)</label>
+        <input type="number" id="ob-pr-squat" class="ob-input" placeholder="e.g. 140">
+      </div>
+      <div class="ob-field">
+        <label class="ob-label">Deadlift 1RM (kg)</label>
+        <input type="number" id="ob-pr-deadlift" class="ob-input" placeholder="e.g. 180">
+      </div>
+      <div class="ob-btn-row">
+        <button type="button" class="ob-btn-ghost" onclick="obBack()">Back</button>
+        <button type="button" class="ob-btn-primary" onclick="obSavePRs()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Theme / finish -->
+    <div class="ob-step" id="ob-step-3">
+      <div class="ob-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 class="ob-title">You're ready.</h2>
+      <p class="ob-desc">Your data never leaves this device. Train hard.</p>
+      <div class="ob-theme-row">
+        <button type="button" class="ob-theme-btn" id="ob-theme-default" onclick="document.body.classList.remove('pitch-black');document.getElementById('ob-theme-default').classList.add('selected');document.getElementById('ob-theme-black').classList.remove('selected');">
+          <span class="ob-theme-swatch" style="background:#1F1F1E;border:2px solid var(--accent);"></span>
+          Dark
+        </button>
+        <button type="button" class="ob-theme-btn" id="ob-theme-black" onclick="document.body.classList.add('pitch-black');document.getElementById('ob-theme-black').classList.add('selected');document.getElementById('ob-theme-default').classList.remove('selected');">
+          <span class="ob-theme-swatch" style="background:#000;border:2px solid var(--border);"></span>
+          Pitch Black
+        </button>
+      </div>
+      <button type="button" class="ob-btn-primary ob-btn-finish" onclick="obSaveTheme()">Start Training</button>
+    </div>
+
   </div>
 </div>
 

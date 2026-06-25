@@ -376,10 +376,8 @@ let state = {
     showNotes: true,
     showPRCalc: true,
     compactButtons: false,
-    lockUI: false,
-    singleExpand: true
-  },
-  page: "workout"
+    lockUI: true,
+  }
 };
 
 let restTimers = {
@@ -417,14 +415,8 @@ function resetAppState(){
       showNotes: true,
       showPRCalc: true,
       compactButtons: false,
-      lockUI: false,
-      singleExpand: true
-    },
-    page: "workout"
-  };
-
-  restTimers = {
-    1: { running: false, end: 0, interval: null, lastDuration: 90 }
+      lockUI: true,
+    }
   };
 
   // Reset the stopwatch/rest-timer UI immediately so no stale display lingers
@@ -509,7 +501,7 @@ function applyLoadedData(parsed) {
   if (state.settings.showPRCalc === undefined) state.settings.showPRCalc = true;
   if (state.settings.compactButtons === undefined) state.settings.compactButtons = false;
   if (state.settings.keepAwake === undefined) state.settings.keepAwake = false;
-  if (state.settings.lockUI === undefined) state.settings.lockUI = false;
+  if (state.settings.lockUI === undefined) state.settings.lockUI = true;
   if (state.settings.singleExpand === undefined) state.settings.singleExpand = true;
   if (!state.bw) state.bw = {1:{}};
   if (!state.bw[1]) state.bw[1] = {};
@@ -582,6 +574,10 @@ function fmtRestBadge(s) {
   return m > 0 ? m + 'M ' + r + 'S' : r + 'S';
 }
 
+const SW_PLAY_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const SW_PAUSE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+const RT_RESET_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35A8 8 0 1 0 19.9 14h-2.16a6 6 0 1 1-1.46-6.14L13 11h7V4l-2.35 2.35z"/></svg>';
+
 function toggleSW(n){
   let sw = state.sw[n];
   if (!sw.laps) sw.laps = [];
@@ -590,8 +586,8 @@ function toggleSW(n){
     clearInterval(sw.interval);
     sw.elapsed += Date.now() - sw.start;
     sw.running = false;
-    let btn = document.querySelector('#timer-stopwatch-panel .timer-btn-play');
-    if (btn) btn.innerHTML = '&#9654;';
+    let btn = document.getElementById('sw' + n + '-play');
+    if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
   } else {
     // PLAY / RESUME
     sw.start = Date.now();
@@ -601,8 +597,8 @@ function toggleSW(n){
       let el = document.getElementById('sw' + n + '-time');
       if (el) el.innerHTML = fmt(total);
     }, 10);
-    let btn = document.querySelector('#timer-stopwatch-panel .timer-btn-play');
-    if (btn) btn.innerHTML = '&#9646;&#9646;';
+    let btn = document.getElementById('sw' + n + '-play');
+    if (btn) { btn.innerHTML = SW_PAUSE_ICON; btn.title = 'Pause'; }
   }
 }
 
@@ -657,6 +653,16 @@ function syncTimerUI() {
   let floatingWidget = document.getElementById('rest-timer-widget-' + p);
   if (floatingWidget) floatingWidget.style.display = showFloating ? 'flex' : 'none';
   if (isRunning && state.settings.timerMerged) setTimerTab('rest');
+
+  // The rest timer's main button does double duty: play when idle, reset when running
+  // (pressing it mid-run used to trigger the exact same action as the separate reset
+  // button, so the two have been merged into one). Icons match the stopwatch button's
+  // size/style exactly so nothing visually shifts when switching tabs.
+  let playBtn = document.getElementById('timer-rest-play');
+  if (playBtn) {
+    playBtn.innerHTML = isRunning ? RT_RESET_ICON : SW_PLAY_ICON;
+    playBtn.title = isRunning ? 'Reset' : 'Start';
+  }
 }
 
 function startRestTimer(seconds = 90) {
@@ -886,6 +892,8 @@ function renderSplitSelector(){
 
   let mainTitle = document.getElementById('split-main-title');
   if (mainTitle) mainTitle.textContent = state.activeSplit || 'Split Library';
+  let splitsDisplay = document.getElementById('splits-selected-name');
+  if (splitsDisplay) splitsDisplay.textContent = state.activeSplit || '';
   let locked = !!(state.settings && state.settings.lockUI);
   let editBtn = document.getElementById('edit-split-btn');
   if (editBtn) editBtn.style.display = (state.activeSplit && !locked) ? 'flex' : 'none';
@@ -919,8 +927,8 @@ function getPRCalcHTML(ei, pct = 80) {
       </div>
       <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
         <button onclick="setNewPR(${ei})" style="flex:1 1 45%; background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:${getProfileColor(state.profile)};cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.03em;">Set new 1RM PR</button>
-        ${state.settings.showPlateMath !== false ? `<button onclick="openPlateCalc(${ei})" style="flex:1 1 45%; background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--txt);cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.03em;">🍽️ Plate Math</button>` : ''}
-        ${state.settings.showWarmupGen !== false ? `<button onclick="generateWarmups(${ei})" style="flex:1 1 100%; background:rgba(255,39,65,0.15);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--o1);cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;">🔥 Generate Warm-up Sets</button>` : ''}
+        ${state.settings.showPlateMath !== false ? `<button onclick="openPlateCalc(${ei})" style="flex:1 1 45%; background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--txt);cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.03em;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg> Plate Math</button>` : ''}
+        ${state.settings.showWarmupGen !== false ? `<button onclick="generateWarmups(${ei})" style="flex:1 1 100%; background:rgba(255,39,65,0.15);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--o1);cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Generate Warm-up Sets</button>` : ''}
       </div>
     </div>`;
 }
@@ -3181,18 +3189,35 @@ function renderProfilePage() {
       <h3 class="settings-section-title">Data &amp; Backups</h3>
       <div class="settings-panel">
         <p class="settings-policy">This app runs strictly offline. All data is stored locally on your device — nothing is sent to the cloud.</p>
+        <div class="data-backup-label">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </div>
+        <div class="settings-btn-row" style="margin-bottom:14px;">
+          <button type="button" class="settings-btn data-btn-export" onclick="exportJSON()" style="flex:1;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Export JSON
+          </button>
+          <button type="button" class="settings-btn data-btn-export" onclick="exportData()" style="flex:1;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+            Export CSV
+          </button>
+        </div>
+        <div class="data-backup-label">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import
+        </div>
         <div class="settings-btn-row">
-          <button type="button" class="settings-btn settings-btn-primary" onclick="exportJSON()">Export JSON</button>
-          <button type="button" class="settings-btn settings-btn-secondary" onclick="shareBackup()">Share Backup</button>
+          <button type="button" class="settings-btn data-btn-import" onclick="triggerJSONImport()" style="flex:1;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Import JSON
+          </button>
+          <button type="button" class="settings-btn data-btn-import" onclick="triggerCSVImport()" style="flex:1;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+            Import CSV
+          </button>
         </div>
-        <div class="settings-btn-row" style="margin-top:10px;">
-          <button type="button" class="settings-btn settings-btn-secondary" onclick="exportData()" style="flex:1;">Export CSV</button>
-          <button type="button" class="settings-btn settings-btn-secondary" onclick="triggerJSONImport()" style="flex:1;">Import JSON</button>
-        </div>
-        <div class="settings-btn-row" style="margin-top:10px;">
-          <button type="button" class="settings-btn settings-btn-secondary" onclick="triggerCSVImport()" style="flex:1;">Import CSV</button>
-        </div>
-        <p class="settings-row-sub" style="margin-top:6px;">CSV format: Date, Exercise, Set, Type, Weight, Reps, Unilateral — matches the export format exactly.</p>
+        <p class="settings-row-sub" style="margin-top:10px;">CSV format: Date, Exercise, Set, Type, Weight, Reps, Unilateral — matches the export format exactly.</p>
         <input type="file" id="json-import-file" accept=".json,application/json" style="display:none;" onchange="handleJSONFileSelected(this)">
         <input type="file" id="csv-import-file" accept=".csv,text/csv" style="display:none;" onchange="handleCSVFileSelected(this)">
       </div>
@@ -3587,23 +3612,25 @@ function applyButtonSizing(){
 
 /* ── ONBOARDING ── */
 let obCurrentStep = 0;
-const OB_STEPS = 6;
+const OB_STEPS = 7;
 const OB_STEP_MAP = {
   0: 'ob-step-0',
-  1: 'ob-step-gender', 
-  2: 'ob-step-1',
-  3: 'ob-step-fat',
-  4: 'ob-step-2',
-  5: 'ob-step-3'
+  1: 'ob-step-name',
+  2: 'ob-step-gender',
+  3: 'ob-step-1',
+  4: 'ob-step-fat',
+  5: 'ob-step-2',
+  6: 'ob-step-3'
 };
 
 const OB_DOT_MAP = {
   0: 'ob-dot-0',
-  1: 'ob-dot-gender',
-  2: 'ob-dot-1', 
-  3: 'ob-dot-fat',
-  4: 'ob-dot-2',
-  5: 'ob-dot-3'
+  1: 'ob-dot-name',
+  2: 'ob-dot-gender',
+  3: 'ob-dot-1',
+  4: 'ob-dot-fat',
+  5: 'ob-dot-2',
+  6: 'ob-dot-3'
 };
 
 
@@ -3634,6 +3661,31 @@ function obNext() {
 function obBack() { 
   const prevStep = obCurrentStep - 1;
   showObStep(prevStep); 
+}
+
+function obSaveName() {
+  const name = (document.getElementById('ob-name-input')?.value || '').trim();
+  if (name) {
+    state.profileName = name;
+    displayName = name;
+  }
+  obNext();
+}
+
+function editDisplayName() {
+  document.getElementById('modal-title').textContent = 'Edit Name';
+  document.getElementById('modal-body').innerHTML = `
+    <input id="edit-name-input" class="add-ex-input u2" placeholder="Your name" value="${displayName !== 'Not Set' ? displayName : ''}" maxlength="40" autocomplete="given-name">
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-confirm-p1" onclick="
+        let v=document.getElementById('edit-name-input').value.trim();
+        if(v){state.profileName=v;displayName=v;saveState();renderProfilePage();}
+        closeModal();
+      ">Save</button>
+    </div>`;
+  openModal();
+  setTimeout(() => document.getElementById('edit-name-input')?.focus(), 50);
 }
 
 function obSaveStats() {
@@ -3705,8 +3757,8 @@ function obShowFatStep(){
     const imageKey = (gender === 'female') ? 'women' : 'men';
     imgElement.src = bodyFatImages[imageKey];
   }
-  // Show fat step (index 3 in OB_STEP_MAP)
-  showObStep(3);
+  // Show fat step (index 4 in OB_STEP_MAP)
+  showObStep(4);
 }
 
 // obSelectFat is defined above (unified, uses .ob-fat-option class)
@@ -3721,8 +3773,8 @@ function obSaveFat(){
     if(!state.userMetrics[2].measurements) state.userMetrics[2].measurements = {};
     state.userMetrics[1].fatPct = v;
   }
-  // Proceed to PRs step — fat is step index 3 in OB_STEP_MAP, next is step 4 (ob-step-2)
-  showObStep(4);
+  // Proceed to PRs step — fat is step index 4 in OB_STEP_MAP, next is step 5 (ob-step-2)
+  showObStep(5);
 }
 
 function obSavePRs() {
@@ -3746,6 +3798,8 @@ function obSavePRs() {
 }
 
 function obSaveTheme() {
+  state.settings = state.settings || {};
+  state.settings.pitchBlack = document.body.classList.contains('pitch-black');
   obFinish();
 }
 
@@ -3800,8 +3854,15 @@ function setRestPreset(sec) {
   document.querySelectorAll('.preset-chip').forEach(btn => {
     btn.classList.toggle('active', btn.textContent.trim() === sec + 's');
   });
+  let rt = restTimers[1];
+  if (rt && rt.running) {
+    // Timer is mid-run: treat the preset tap as a quick "add time" action,
+    // same as the +30s button, instead of silently doing nothing.
+    adjustRestTimer(1, sec);
+    return;
+  }
   let el = document.getElementById('timer-rest-display');
-  if (el && !restTimers[1]?.running) {
+  if (el) {
     let m = Math.floor(sec / 60), s = sec % 60;
     el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
   }
@@ -3835,8 +3896,8 @@ function resetStopwatch(n) {
   sw.laps = [];
   let el = document.getElementById('sw' + n + '-time');
   if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
-  let btn = document.querySelector('#timer-stopwatch-panel .timer-btn-play');
-  if (btn) btn.innerHTML = '&#9654;';
+  let btn = document.getElementById('sw' + n + '-play');
+  if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
   renderLaps(n);
 }
 
@@ -3846,7 +3907,7 @@ function hardResetApp() {
     <div style="text-align:center;padding:8px 0 16px;">
       <p style="margin:0 0 8px;font-size:14px;color:var(--txt);">This will wipe <strong>all workout logs, splits, bodyweight records, settings, and PRs</strong> — exactly like a fresh install.</p>
       <p style="margin:0 0 20px;font-size:12px;color:var(--txt-muted);">This cannot be undone. Export your data first if you want a backup.</p>
-      <button type="button" class="settings-btn settings-danger-btn" style="width:100%;margin-bottom:10px;" onclick="confirmHardReset()">🗑️ YES, WIPE EVERYTHING</button>
+      <button type="button" class="settings-btn settings-danger-btn" style="width:100%;margin-bottom:10px;" onclick="confirmHardReset()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg> YES, WIPE EVERYTHING</button>
       <button type="button" class="settings-btn" style="width:100%;" onclick="closeModal()">Cancel</button>
     </div>
   `;
@@ -3862,12 +3923,7 @@ function confirmHardReset() {
   localStorage.removeItem(LOCAL_STORAGE_KEY);
   // Full re-init (same flow as a first-time app open)
   init().then(() => {
-    // Brief visual confirmation
-    let toast = document.createElement('div');
-    toast.textContent = '✓ App reset to factory defaults';
-    toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:9999;pointer-events:none;';
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2500);
+    showOnboarding();
   });
 }
 
