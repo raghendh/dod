@@ -3,7 +3,7 @@
 // so updates pushed to GitHub are always picked up instead of silently reusing old
 // cached copies of index.html / script.js / style.css.
 
-const CACHE_NAME = 'dod-shell-v3';
+const CACHE_NAME = 'dod-shell-v4';
 const WATER_CACHE = 'dod-water-reminder-v1'; // tiny key/value store for the SW's own use (Cache API persists across SW restarts; localStorage is not available here)
 const WATER_CFG_URL = 'https://dod.local/water-config'; // synthetic same-origin-style key, never actually fetched over the network
 
@@ -18,6 +18,23 @@ self.addEventListener('message', (event) => {
   // backgrounded (common on Android) rather than fully closed.
   if (event.data === 'SKIP_WAITING') {
     self.skipWaiting();
+    return;
+  }
+  // Page asks the SW to fire a real system notification immediately.
+  // This is the correct path on Android — new Notification() from the page
+  // is silently blocked; registration.showNotification() is the only way
+  // to produce a real Android system notification.
+  if (event.data && event.data.type === 'WATER_FIRE') {
+    let body = event.data.body || 'Time to hydrate. Grab some water.';
+    event.waitUntil(
+      self.registration.showNotification('DO OR DIE', {
+        body: body,
+        icon: 'https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png',
+        badge: 'https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png',
+        tag: 'water-reminder',
+        renotify: true
+      })
+    );
     return;
   }
   // The page pushes its current water-reminder settings here whenever they

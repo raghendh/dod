@@ -160,10 +160,13 @@ body::before, body::after { display: none !important; }
 }
 .date-card-body {
   margin-top: 16px;
-  overflow: hidden;
-  max-height: 120px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 300px;
   transition: max-height 0.25s ease, margin-top 0.25s ease, opacity 0.2s ease;
   opacity: 1;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
 }
 .date-card-body.collapsed {
   max-height: 0;
@@ -171,12 +174,21 @@ body::before, body::after { display: none !important; }
   opacity: 0;
 }
 
-/* Week strip calendar */
+/* Week strip calendar — scrollable across multiple weeks */
 .week-strip {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
   padding-top: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.week-strip::-webkit-scrollbar { display: none; }
+.week-strip .week-day-col {
+  flex: 0 0 calc((100% - 12px) / 7);
+  min-width: 36px;
 }
 .week-day-col {
   display: flex;
@@ -783,6 +795,10 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 .set-num-btn.type-warmup { color: var(--accent); background: var(--accent-soft); }
 .set-num-btn.type-drop { color: var(--purple); background: rgba(198,120,221,0.15); }
+.set-num-btn.type-failure { color: #a78bfa; background: rgba(167,139,250,0.15); }
+.set-num-btn.type-pyramid { color: #ccff00; background: rgba(204,255,0,0.15); }
+.set-num-btn.type-timed { color: #38bdf8; background: rgba(56,189,248,0.15); }
+.set-num-btn.type-superset { color: #ff7a3d; background: rgba(255,122,61,0.15); }
 .set-input {
   background: var(--input-bg);
   border: 1px solid transparent;
@@ -1757,17 +1773,16 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 
 /* ─────────────────────────────────────────
-   POWER QUOTE DISPLAY  (sits right under the DO OR DIE bar)
-   Shows ONE quote at a time. It scrolls right-to-left across
-   the bar like the old marquee, glowing/pulsing the whole time.
-   It repeats its scroll pass QUOTE_REPEAT_COUNT times, then the
-   next quote in the list takes over.
+   POWER QUOTE MARQUEE
+   Shows multiple quotes in a continuous loop with separators.
+   Quotes scroll from right to left infinitely, displaying each
+   quote multiple times with dividers between them.
 ───────────────────────────────────────── */
 #quote-marquee {
   overflow: hidden;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
-  padding: 10px 0;
+  padding: 6px 0;
   flex-shrink: 0;
   position: relative;
 }
@@ -1776,11 +1791,12 @@ body.pitch-black #onboarding-screen { background: #000; }
   width: 100%;
   height: 18px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 .quote-power-item {
-  position: absolute;
-  top: 0;
-  left: 100%;
+  position: relative;
+  left: 0;
   font-size: 12.5px;
   font-weight: 800;
   letter-spacing: 0.09em;
@@ -1788,17 +1804,26 @@ body.pitch-black #onboarding-screen { background: #000; }
   color: var(--accent);
   white-space: nowrap;
   text-shadow: 0 0 14px var(--accent-soft);
-  animation:
-    quote-power-scroll 5.5s linear infinite,
-    quote-power-pulse 2.6s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-right: 16px;
+  animation: quote-power-scroll linear infinite;
+}
+.quote-power-item span {
+  flex-shrink: 0;
+}
+.quote-power-divider {
+  flex-shrink: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.6;
 }
 @keyframes quote-power-scroll {
-  from { left: 100%; transform: translateX(0); }
-  to   { left: 0%;   transform: translateX(-100%); }
-}
-@keyframes quote-power-pulse {
-  0%, 100% { text-shadow: 0 0 10px var(--accent-soft); }
-  50%      { text-shadow: 0 0 20px var(--accent-soft), 0 0 4px var(--accent); }
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
 }
 
 /* ─────────────────────────────────────────

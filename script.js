@@ -803,27 +803,40 @@ function renderWeekStrip() {
   let strip = document.getElementById('week-strip');
   if (!strip) return;
   let d = state.date;
-  // build 7-day window: Sun of current week through Sat
-  let dow = d.getDay(); // 0=Sun
-  let weekStart = new Date(d);
-  weekStart.setDate(d.getDate() - dow);
   let dayLetters = ['S','M','T','W','T','F','S'];
+  // Render 5 weeks: 2 before current week, current week, 2 after
+  let dow = d.getDay();
+  let weekStart = new Date(d);
+  weekStart.setDate(d.getDate() - dow); // start of current week (Sun)
+  let rangeStart = new Date(weekStart);
+  rangeStart.setDate(weekStart.getDate() - 14); // 2 weeks back
   strip.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    let day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + i);
+  let activeCol = null;
+  for (let i = 0; i < 35; i++) {
+    let day = new Date(rangeStart);
+    day.setDate(rangeStart.getDate() + i);
     let isActive = day.toDateString() === d.toDateString();
     let col = document.createElement('div');
     col.className = 'week-day-col' + (isActive ? ' active' : '');
-    col.innerHTML = `<span class="week-day-letter">${dayLetters[i]}</span><span class="week-day-num">${day.getDate()}</span>`;
+    col.innerHTML = `<span class="week-day-letter">${dayLetters[day.getDay()]}</span><span class="week-day-num">${day.getDate()}</span>`;
     col.addEventListener('click', () => {
-      state.date = day;
+      state.date = new Date(day);
       updateDateLabel();
       renderExerciseList();
       if(state.page === 'profile') renderProfilePage();
       saveState();
     });
     strip.appendChild(col);
+    if (isActive) activeCol = col;
+  }
+  // Scroll so the active day is centred
+  if (activeCol) {
+    setTimeout(() => {
+      let stripRect = strip.getBoundingClientRect();
+      let colRect = activeCol.getBoundingClientRect();
+      let offset = colRect.left - stripRect.left - (stripRect.width / 2) + (colRect.width / 2);
+      strip.scrollLeft += offset;
+    }, 0);
   }
 }
 
@@ -1556,27 +1569,56 @@ const POWER_QUOTES = [
   "ONE MORE REP. ALWAYS ONE MORE.",
   "YOUR LIMITS ARE A LIE YOU TELL YOURSELF"
 ];
-const QUOTE_REPEAT_COUNT = 5;   // how many scroll passes a quote gets before moving to the next
-const QUOTE_SCROLL_SECONDS = 5.5; // must match the quote-power-scroll animation duration in CSS
 let _quoteIdx = 0;
-let _quotePassesLeft = QUOTE_REPEAT_COUNT;
+let _quotePasses = 0;
+
 function initPowerQuotes(){
+  let wrap = document.querySelector('.quote-power-wrap');
   let el = document.getElementById('quote-power-text');
-  if(!el) return;
-  el.textContent = POWER_QUOTES[_quoteIdx];
-  // each full right-to-left scroll pass = one "view" of the quote
-  el.addEventListener('animationiteration', (e) => {
-    if(e.animationName !== 'quote-power-scroll') return;
-    advancePowerQuote(el);
+  if(!wrap || !el) return;
+
+  // Build a continuous sequence of quotes
+  // Each quote appears 2 times before the separator
+  let quoteSequence = [];
+  let totalDuration = 0;
+  
+  POWER_QUOTES.forEach((quote, idx) => {
+    // Add quote twice
+    for (let i = 0; i < 2; i++) {
+      quoteSequence.push({ text: quote, isQuote: true });
+      totalDuration++;
+    }
+    // Add separator (except after the last quote's second occurrence)
+    if (idx < POWER_QUOTES.length - 1 || true) { // Always add after each pair
+      quoteSequence.push({ text: '|', isQuote: false });
+      totalDuration += 0.3; // Separators are shorter
+    }
   });
-}
-function advancePowerQuote(el){
-  _quotePassesLeft--;
-  if(_quotePassesLeft > 0) return; // let it keep scrolling with the same text
-  // move to the next quote in the list — swap text between passes so it's never visible mid-edit
-  _quoteIdx = (_quoteIdx + 1) % POWER_QUOTES.length;
-  _quotePassesLeft = QUOTE_REPEAT_COUNT;
-  el.textContent = POWER_QUOTES[_quoteIdx];
+
+  // Calculate animation duration (each unit = ~1 second of scroll)
+  // Adjust the multiplier to control scroll speed
+  const baseSpeed = 0.6; // seconds per unit
+  const totalAnimationDuration = (quoteSequence.length * baseSpeed) + 5; // Add buffer
+
+  // Build HTML content
+  let html = '';
+  quoteSequence.forEach((item, idx) => {
+    if (item.isQuote) {
+      html += `<span>${item.text}</span>`;
+      // Add separator after each quote (except the last one overall)
+      if (idx < quoteSequence.length - 1 && quoteSequence[idx + 1].isQuote) {
+        html += `<div class="quote-power-divider"></div>`;
+      }
+    }
+  });
+  
+  el.innerHTML = html;
+  
+  // Duplicate content to create seamless loop
+  el.innerHTML = el.innerHTML + el.innerHTML;
+  
+  // Set animation duration
+  el.style.animationDuration = totalAnimationDuration + 's';
 }
 
 /* ── WATER REMINDER ENGINE ───────────────────────────────────────
@@ -1616,15 +1658,20 @@ function stopWaterReminderTimer(){
 }
 function fireWaterReminder(){
   let msg = WATER_REMINDER_MESSAGES[Math.floor(Math.random()*WATER_REMINDER_MESSAGES.length)];
-  if('Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible'){
-    try {
-      new Notification('DO OR DIE', { body: msg, icon: 'https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png' });
-      pushWaterConfigToSW(true);
-      return;
-    } catch(e) { /* fall through to in-app toast */ }
+  pushWaterConfigToSW(true);
+  // Always route through the SW on Android — new Notification() from the page
+  // is silently blocked; only registration.showNotification() (inside the SW)
+  // produces a real Android system notification.
+  if('serviceWorker' in navigator && navigator.serviceWorker.controller && Notification.permission === 'granted'){
+    navigator.serviceWorker.controller.postMessage({ type: 'WATER_FIRE', body: msg });
+    showWaterToast(msg);
+    return;
+  }
+  // Fallback for desktop / browsers where SW messaging isn't available.
+  if('Notification' in window && Notification.permission === 'granted'){
+    try { new Notification('DO OR DIE', { body: msg, icon: 'https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png' }); } catch(e) {}
   }
   showWaterToast(msg);
-  pushWaterConfigToSW(true);
 }
 function showWaterToast(msg){
   let old = document.getElementById('water-toast');
@@ -1678,9 +1725,15 @@ async function unregisterWaterPeriodicSync(){
 
 function toggleWaterReminder(on){
   if(!state.settings.waterReminder) state.settings.waterReminder = { enabled: false, intervalMinutes: 60 };
-  if(on && 'Notification' in window && Notification.permission === 'default'){
-    Notification.requestPermission().then(() => finishWaterReminderToggle(on));
-    return;
+  if(on && 'Notification' in window){
+    if(Notification.permission === 'default'){
+      Notification.requestPermission().then(() => finishWaterReminderToggle(on));
+      return;
+    }
+    if(Notification.permission === 'denied'){
+      alert('Notifications are blocked for this app.\n\nTo fix: open Android Settings → Apps → your browser → Notifications → enable them, then come back and turn this on.');
+      // Still enable the in-app toast fallback even without permission.
+    }
   }
   finishWaterReminderToggle(on);
 }
