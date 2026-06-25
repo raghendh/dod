@@ -1495,6 +1495,94 @@ function showPRBurst(exName, weight){
   setTimeout(()=>{ if(wrap.parentNode) wrap.remove(); }, 3000);
 }
 
+/* ── POWER QUOTE ENGINE ──────────────────────────────────────────
+   Shows ONE quote at a time under the header. Each quote stays on
+   screen for QUOTE_REPEAT_COUNT "views" (it re-pulses each cycle)
+   before swapping to the next quote in the list. Big arsenal of
+   quotes below — built to hit hard every single time it's read. */
+const POWER_QUOTES = [
+  "DISCIPLINE OVER MOTIVATION",
+  "THE IRON NEVER LIES",
+  "EARN IT EVERY DAY",
+  "PAIN IS TEMPORARY, PRIDE IS FOREVER",
+  "NO EXCUSES, ONLY RESULTS",
+  "OUTWORK YESTERDAY",
+  "STRONGER THAN YOUR EXCUSES",
+  "SHOW UP. LIFT. REPEAT.",
+  "GROWTH LIVES OUTSIDE COMFORT",
+  "CONSISTENCY BEATS INTENSITY",
+  "BUILT NOT BORN",
+  "DO OR DIE",
+  "BE THE STORM, NOT THE VICTIM OF IT",
+  "WEAK MINDS QUIT. YOU DON'T.",
+  "DEMAND MORE FROM YOURSELF",
+  "EVERY REP IS A PROMISE KEPT",
+  "FEAR THE MIRROR, NOT THE WEIGHT",
+  "SUFFER NOW, DOMINATE LATER",
+  "YOU WERE BORN TO CONQUER",
+  "THE GRIND DOESN'T CARE HOW YOU FEEL",
+  "GREATNESS IS EARNED IN SILENCE",
+  "BECOME UNSTOPPABLE",
+  "NO ONE IS COMING TO SAVE YOU. RISE.",
+  "PRESSURE MAKES DIAMONDS",
+  "TRAIN LIKE YOUR FUTURE DEPENDS ON IT",
+  "COMFORT IS THE ENEMY OF PROGRESS",
+  "RELENTLESS BEATS TALENTED",
+  "YOUR ONLY COMPETITION IS YESTERDAY'S YOU",
+  "MAKE FEAR YOUR FUEL",
+  "CHAMPIONS TRAIN, LOSERS COMPLAIN",
+  "OWN THE GRIND",
+  "WHAT YOU AVOID, OWNS YOU",
+  "GO UNTIL THERE'S NOTHING LEFT",
+  "THE BODY ACHIEVES WHAT THE MIND BELIEVES",
+  "HARD CHOICES, EASY LIFE",
+  "ZERO DAYS OFF FROM YOUR STANDARDS",
+  "PROVE IT WHEN NO ONE IS WATCHING",
+  "RESPECT THE PROCESS, FEAR NOTHING",
+  "RUTHLESS WITH YOUR EXCUSES",
+  "RISE LIKE IT'S WAR",
+  "RECLAIM YOUR POWER, REP BY REP",
+  "RESULTS DON'T LIE, EFFORT DOESN'T HIDE",
+  "EAT YOUR DOUBTS FOR BREAKFAST",
+  "BE DANGEROUS IN PURSUIT OF YOUR GOALS",
+  "STRENGTH IS BUILT IN THE DARK",
+  "NEVER NEGOTIATE WITH WEAKNESS",
+  "ATTACK THE DAY BEFORE IT ATTACKS YOU",
+  "SACRIFICE NOW, DOMINATE FOREVER",
+  "FORGE YOURSELF IN FIRE",
+  "ONE MORE REP. ALWAYS ONE MORE.",
+  "YOUR LIMITS ARE A LIE YOU TELL YOURSELF"
+];
+const QUOTE_REPEAT_COUNT = 5;   // how many times a quote "shows" before moving to the next
+const QUOTE_VIEW_MS = 3200;     // duration of one "view" (one pulse cycle) in ms
+let _quoteIdx = 0;
+let _quoteRepeatsLeft = QUOTE_REPEAT_COUNT;
+function initPowerQuotes(){
+  let el = document.getElementById('quote-power-text');
+  if(!el) return;
+  el.textContent = POWER_QUOTES[_quoteIdx];
+  setInterval(() => advancePowerQuote(el), QUOTE_VIEW_MS);
+}
+function advancePowerQuote(el){
+  _quoteRepeatsLeft--;
+  if(_quoteRepeatsLeft > 0){
+    // same quote, just re-trigger the pulse so it still "shows" again
+    el.classList.remove('swap-in');
+    void el.offsetWidth; // restart animation
+    el.classList.add('swap-in');
+    return;
+  }
+  // move to the next quote in the list
+  el.classList.add('swap-out');
+  setTimeout(() => {
+    _quoteIdx = (_quoteIdx + 1) % POWER_QUOTES.length;
+    _quoteRepeatsLeft = QUOTE_REPEAT_COUNT;
+    el.textContent = POWER_QUOTES[_quoteIdx];
+    el.classList.remove('swap-out');
+    el.classList.add('swap-in');
+  }, 280);
+}
+
 function savePRAuto(name, weight, dateKeyStr, profile) {
   let canonicalName = name;
   for(let key in state.prData) {
@@ -3991,6 +4079,7 @@ async function bootstrapApp() {
   await init();
   setTimerTab('rest');
   setRestPreset(90);
+  initPowerQuotes();
   if (!state.settings?.onboardingDone) showOnboarding();
 }
 

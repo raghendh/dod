@@ -1727,6 +1727,61 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 
 /* ─────────────────────────────────────────
+   POWER QUOTE DISPLAY  (sits right under the DO OR DIE bar)
+   Shows ONE quote at a time, centered, held in view, then
+   swapped out with a punchy fade/scale transition.
+───────────────────────────────────────── */
+#quote-marquee {
+  overflow: hidden;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.quote-power-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 18px;
+}
+.quote-power-item {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+  text-align: center;
+  text-shadow: 0 0 14px var(--accent-soft);
+  animation: quote-power-pulse 2.6s ease-in-out infinite;
+}
+.quote-power-item.swap-out {
+  animation: quote-power-out 0.28s ease forwards;
+}
+.quote-power-item.swap-in {
+  animation: quote-power-in 0.32s cubic-bezier(.2,.8,.2,1) forwards;
+}
+@keyframes quote-power-pulse {
+  0%, 100% { text-shadow: 0 0 10px var(--accent-soft); }
+  50%      { text-shadow: 0 0 20px var(--accent-soft), 0 0 4px var(--accent); }
+}
+@keyframes quote-power-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.92) translateY(-6px); }
+}
+@keyframes quote-power-in {
+  from { opacity: 0; transform: scale(1.06) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ─────────────────────────────────────────
    DATE LABEL  (new single-line style)
 ───────────────────────────────────────── */
 .date-full-label {
