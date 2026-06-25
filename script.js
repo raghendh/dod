@@ -3935,7 +3935,21 @@ document.addEventListener('DOMContentLoaded', () => bootstrapApp());
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW registered:', reg))
+      .then(reg => {
+        console.log('SW registered:', reg);
+        // Explicitly ask the browser to re-check sw.js for changes every time the app
+        // is opened, instead of waiting on the platform's own throttled update timer.
+        reg.update().catch(() => {});
+      })
       .catch(err => console.error('SW registration failed:', err));
+
+    // When a new service worker takes control (after an update), the old cached
+    // page is still showing — reload once so the user actually sees the new version.
+    let hasReloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hasReloaded) return;
+      hasReloaded = true;
+      window.location.reload();
+    });
   });
 }
