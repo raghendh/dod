@@ -3172,6 +3172,12 @@ function renderProfilePage() {
         </div>
       </div>
 
+      <h3 class="settings-section-title">App Updates</h3>
+      <div class="settings-panel">
+        <p class="settings-row-sub" style="margin-bottom:10px;">If a feature you expect isn't showing up after a GitHub update, tap this to force-check for a newer version.</p>
+        <button type="button" class="settings-btn settings-btn-secondary" style="width:100%;" onclick="checkForAppUpdate()">Check for Updates</button>
+      </div>
+
       <h3 class="settings-section-title">Data &amp; Backups</h3>
       <div class="settings-panel">
         <p class="settings-policy">This app runs strictly offline. All data is stored locally on your device — nothing is sent to the cloud.</p>
@@ -3935,22 +3941,72 @@ async function bootstrapApp() {
 document.addEventListener('DOMContentLoaded', () => bootstrapApp());
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => {
-        console.log('SW registered:', reg);
-        // Explicitly ask the browser to re-check sw.js for changes every time the app
-        // is opened, instead of waiting on the platform's own throttled update timer.
-        reg.update().catch(() => {});
-      })
-      .catch(err => console.error('SW registration failed:', err));
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('SW registered:', reg);
 
-    // When a new service worker takes control (after an update), the old cached
-    // page is still showing — reload once so the user actually sees the new version.
+      // Always ask the browser to re-check sw.js against the network copy.
+      reg.update().catch(() => {});
+
+      // If a new worker is already sitting in "waiting" (installed but not yet
+      // active — this is the state Android gets stuck in when the PWA is only
+      // ever backgrounded, never fully closed), tell it to take over right now
+      // instead of waiting for zero clients, which may never happen on mobile.
+      if (reg.waiting) {
+        reg.waiting.postMessage('SKIP_WAITING');
+      }
+
+      // Catch the case where a worker finishes installing *while* this page
+      // is open (e.g. update() above just found one).
+      reg.addEventListener('updatefound', () => {
+        let newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && reg.waiting) {
+            reg.waiting.postMessage('SKIP_WAITING');
+          }
+        });
+      });
+    }).catch(err => console.error('SW registration failed:', err));
+
+    // When a new service worker takes control, the page is still showing the
+    // old cached content in memory — reload once so the user sees the update.
     let hasReloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (hasReloaded) return;
       hasReloaded = true;
       window.location.reload();
+    });
+  });
+}
+
+/* ── Manual "Check for Updates" button (Settings → App Updates) ──
+   Forces the same update-check + skip-waiting sequence on demand, with
+   visible feedback, instead of passively hoping the background check runs. */
+function checkForAppUpdate() {
+  if (!('serviceWorker' in navigator)) {
+    alert('Service workers aren\'t supported in this browser.');
+    return;
+  }
+
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (!reg) {
+      alert('No service worker registered yet — try reloading the app first.');
+      return;
+    }
+
+    reg.update().then(() => {
+      // Give the browser a brief moment to finish installing if it found something new.
+      setTimeout(() => {
+        if (reg.waiting) {
+          reg.waiting.postMessage('SKIP_WAITING');
+          alert('Update found — applying it now.');
+          // controllerchange listener (registered above) will reload the page.
+        } else {
+          alert('You\'re already on the latest version.');
+        }
+      }, 800);
+    }).catch(() => {
+      alert('Couldn\'t check for updates — check your internet connection.');
     });
   });
 }
