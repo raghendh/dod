@@ -104,10 +104,12 @@
             <div class="timer-sub">STOPWATCH - TIME ELAPSED</div>
           </div>
           <div class="timer-controls">
+            <button type="button" class="timer-btn-sm" onclick="lapStopwatch(1)" title="Lap">LAP</button>
             <button type="button" class="timer-btn-play" onclick="toggleSW(1)">&#9654;</button>
             <button type="button" class="timer-btn-icon" onclick="resetStopwatch(1)" title="Reset">&#8635;</button>
           </div>
         </div>
+        <div id="sw-laps-list" class="sw-laps-list"></div>
       </div>
       </div><!-- /timer-body -->
     </section>

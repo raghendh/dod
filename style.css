@@ -409,6 +409,52 @@ body::before, body::after { display: none !important; }
   font-family: inherit;
 }
 
+/* ── Stopwatch Laps ── */
+.sw-laps-list {
+  margin-top: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lap-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--input-bg);
+  font-size: 12px;
+}
+.lap-num {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--txt-muted);
+  min-width: 46px;
+}
+.lap-split {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt);
+}
+.lap-total {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--txt-muted);
+}
+.lap-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.lap-fast { background: rgba(31,207,140,0.2); color: #1fcf8c; }
+.lap-slow { background: rgba(255,39,65,0.15); color: #ff2741; }
+
 /* ── Exercises log header ── */
 .exercises-log-header {
   display: flex;
@@ -1699,6 +1745,28 @@ body.pitch-black { --bg: #111110; --card-bg: #171715; background: #111110; }
   text-transform: uppercase;
   color: var(--accent);
   margin: 20px 0 10px;
+}
+
+/* ── Collapsible profile cards: Bodyweight / Personal Records / Workout History ── */
+.collapse-card {
+  margin: 20px 0 10px;
+}
+.collapse-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.collapse-card-body {
+  overflow: hidden;
+  max-height: 4000px;
+  opacity: 1;
+  transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.25s ease;
+}
+.collapse-card-body.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
 }
 
 /* ── Body measurements 2-col grid ── */

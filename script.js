@@ -354,7 +354,7 @@ function attachAutocomplete(inputId, listId, suggestFn){
 let state = {
   profile: 1,
   date: new Date(),
-  sw: {1:{running:false,start:0,elapsed:0,interval:null}},
+  sw: {1:{running:false,start:0,elapsed:0,interval:null,laps:[]}},
   activeSplit: "Bro Split",
   activeDayIdx: 0,
   splitDayView: 0,
@@ -396,7 +396,7 @@ function resetAppState(){
   state = {
     profile: 1,
     date: new Date(),
-    sw: {1:{running:false,start:0,elapsed:0,interval:null}},
+    sw: {1:{running:false,start:0,elapsed:0,interval:null,laps:[]}},
     activeSplit: "Bro Split",
     activeDayIdx: 0,
     splitDayView: 0,
@@ -517,7 +517,7 @@ function applyLoadedData(parsed) {
   if (!state.knownWorkoutNames) state.knownWorkoutNames = [];
   if (!state.userMetrics) state.userMetrics = {1:{height:'',age:''}};
   state.profile = 1;
-  state.sw = {1:{running:false,start:0,elapsed:0,interval:null}};
+  state.sw = {1:{running:false,start:0,elapsed:0,interval:null,laps:[]}};
   if (!state.activeSplit || !SPLITS[state.activeSplit]) {
     state.activeSplit = defaultSplitForUser(null);
   }
@@ -583,20 +583,69 @@ function fmtRestBadge(s) {
 }
 
 function toggleSW(n){
-  let sw=state.sw[n];
-if(sw.running){
+  let sw = state.sw[n];
+  if (!sw.laps) sw.laps = [];
+  if (sw.running) {
+    // PAUSE
     clearInterval(sw.interval);
-    sw.running=false;
-    sw.elapsed=0;
-    document.getElementById('sw'+n+'-time').innerHTML='00:00<span class="sw-ms">.00</span>';
-} else {
-    sw.elapsed=0;
-    sw.start=Date.now();
-    sw.running=true;
-    sw.interval=setInterval(()=>{
-      document.getElementById('sw'+n+'-time').innerHTML=fmt(Date.now()-sw.start);
-    },10);
+    sw.elapsed += Date.now() - sw.start;
+    sw.running = false;
+    let btn = document.querySelector('#timer-stopwatch-panel .timer-btn-play');
+    if (btn) btn.innerHTML = '&#9654;';
+  } else {
+    // PLAY / RESUME
+    sw.start = Date.now();
+    sw.running = true;
+    sw.interval = setInterval(() => {
+      let total = sw.elapsed + (Date.now() - sw.start);
+      let el = document.getElementById('sw' + n + '-time');
+      if (el) el.innerHTML = fmt(total);
+    }, 10);
+    let btn = document.querySelector('#timer-stopwatch-panel .timer-btn-play');
+    if (btn) btn.innerHTML = '&#9646;&#9646;';
+  }
 }
+
+function lapStopwatch(n) {
+  let sw = state.sw[n];
+  if (!sw.laps) sw.laps = [];
+  if (!sw.running && sw.elapsed === 0) return; // nothing recorded yet
+  let total = sw.elapsed + (sw.running ? (Date.now() - sw.start) : 0);
+  // Split time = total - previous lap total
+  let prevTotal = sw.laps.length > 0 ? sw.laps[sw.laps.length - 1].total : 0;
+  sw.laps.push({ total, split: total - prevTotal, num: sw.laps.length + 1 });
+  renderLaps(n);
+}
+
+function renderLaps(n) {
+  let sw = state.sw[n];
+  let container = document.getElementById('sw-laps-list');
+  if (!container) return;
+  if (!sw.laps || sw.laps.length === 0) { container.innerHTML = ''; return; }
+  // Fastest and slowest split
+  let splits = sw.laps.map(l => l.split);
+  let fastest = Math.min(...splits);
+  let slowest = Math.max(...splits);
+  container.innerHTML = sw.laps.slice().reverse().map(l => {
+    let tag = '';
+    if (sw.laps.length > 1) {
+      if (l.split === fastest) tag = '<span class="lap-tag lap-fast">BEST</span>';
+      else if (l.split === slowest) tag = '<span class="lap-tag lap-slow">SLOW</span>';
+    }
+    return `<div class="lap-row">
+      <span class="lap-num">LAP ${l.num}</span>
+      ${tag}
+      <span class="lap-split">${fmtLap(l.split)}</span>
+      <span class="lap-total">${fmtLap(l.total)}</span>
+    </div>`;
+  }).join('');
+}
+
+function fmtLap(ms) {
+  let cs = Math.floor((ms % 1000) / 10);
+  let s = Math.floor(ms / 1000) % 60;
+  let m = Math.floor(ms / 60000);
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s + '.' + (cs < 10 ? '0' : '') + cs;
 }
 
 // Timer Sync System
@@ -2425,13 +2474,28 @@ function shareBackup() {
   let payload = buildBackupPayload();
   let fileName = `dod-backup-${new Date().toISOString().slice(0,10)}.json`;
   let file = new File([payload], fileName, { type: 'application/json' });
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ title: 'DOD Workout Backup', files: [file] }).catch(() => {});
-  } else if (navigator.share) {
-    navigator.share({ title: 'DOD Workout Backup', text: payload }).catch(() => {});
-  } else {
-    downloadBackupFile(payload, fileName);
+
+  let canShareFile = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+
+  if (canShareFile) {
+    navigator.share({ title: 'DOD Workout Backup', files: [file] }).catch((err) => {
+      if (err && err.name === 'AbortError') return; // user cancelled share sheet — not an error
+      // File share failed (common on some browsers/OSes) — fall back to a normal download
+      downloadBackupFile(payload, fileName);
+    });
+    return;
   }
+
+  if (navigator.share) {
+    navigator.share({ title: 'DOD Workout Backup', text: payload }).catch((err) => {
+      if (err && err.name === 'AbortError') return;
+      downloadBackupFile(payload, fileName);
+    });
+    return;
+  }
+
+  // No Web Share API support at all (most desktop browsers) — just download
+  downloadBackupFile(payload, fileName);
 }
 
 function triggerJSONImport() {
@@ -2742,6 +2806,7 @@ function toggleStitchSetting(key, el) {
 
 /* ── Profile page tab state ── */
 let profileTab = 'stats';
+let profileExpandedCard = null; // 'bw' | 'pr' | 'hist' | null — tracks which Stats card is open across re-renders
 
 function switchProfileTab(tab) {
   profileTab = tab;
@@ -2979,27 +3044,54 @@ function renderProfilePage() {
       </div>
 
       <!-- Bodyweight Log -->
-      <div class="profile-section-title">Bodyweight</div>
-      <div class="settings-panel">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-          <input type="number" id="profile-bw-input" class="profile-measure-input" placeholder="Today's weight (kg)"
-            value="${todayBW}" step="0.1" min="30" max="300" style="flex:1;">
-          <button onclick="let v=parseFloat(document.getElementById('profile-bw-input').value);if(v&&v>0){autoSaveBW(v);renderChart();renderBWHistory();}" class="timer-set-btn" style="height:44px;padding:0 18px;">Log</button>
+      <div class="collapse-card" id="collapse-bw">
+        <div class="collapse-card-header" onclick="toggleProfileCollapse('bw')">
+          <span class="profile-section-title" style="margin:0;">Bodyweight</span>
+          <button type="button" class="chevron-btn ${profileExpandedCard === 'bw' ? '' : 'collapsed'}" id="chevron-bw" aria-label="Toggle bodyweight">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
         </div>
-        <div id="bw-chart-container" style="margin-bottom:12px;">${chartHtml}</div>
-        <div id="bw-history-list">${bwHistHtml}</div>
+        <div class="collapse-card-body ${profileExpandedCard === 'bw' ? '' : 'collapsed'}" id="collapse-body-bw">
+          <div class="settings-panel" style="margin-top:10px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+              <input type="number" id="profile-bw-input" class="profile-measure-input" placeholder="Today's weight (kg)"
+                value="${todayBW}" step="0.1" min="30" max="300" style="flex:1;">
+              <button onclick="let v=parseFloat(document.getElementById('profile-bw-input').value);if(v&&v>0){autoSaveBW(v);renderChart();renderBWHistory();}" class="timer-set-btn" style="height:44px;padding:0 18px;">Log</button>
+            </div>
+            <div id="bw-chart-container" style="margin-bottom:12px;">${chartHtml}</div>
+            <div id="bw-history-list">${bwHistHtml}</div>
+          </div>
+        </div>
       </div>
 
       <!-- Personal Records -->
-      <div class="profile-section-title">Personal Records</div>
-      <div id="pr-list" class="settings-panel" style="padding:0;">
-        ${prHtml || '<div class="u13" style="padding:20px;">No PRs set yet.<br><span class="u5">Use the PR panel on any exercise to record your 1RM.</span></div>'}
+      <div class="collapse-card" id="collapse-pr">
+        <div class="collapse-card-header" onclick="toggleProfileCollapse('pr')">
+          <span class="profile-section-title" style="margin:0;">Personal Records</span>
+          <button type="button" class="chevron-btn ${profileExpandedCard === 'pr' ? '' : 'collapsed'}" id="chevron-pr" aria-label="Toggle personal records">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+        </div>
+        <div class="collapse-card-body ${profileExpandedCard === 'pr' ? '' : 'collapsed'}" id="collapse-body-pr">
+          <div id="pr-list" class="settings-panel" style="padding:0;margin-top:10px;">
+            ${prHtml || '<div class="u13" style="padding:20px;">No PRs set yet.<br><span class="u5">Use the PR panel on any exercise to record your 1RM.</span></div>'}
+          </div>
+        </div>
       </div>
 
       <!-- Workout History -->
-      <div class="profile-section-title">Workout History</div>
-      <div id="history-list">
-        ${histHtml}
+      <div class="collapse-card" id="collapse-hist">
+        <div class="collapse-card-header" onclick="toggleProfileCollapse('hist')">
+          <span class="profile-section-title" style="margin:0;">Workout History</span>
+          <button type="button" class="chevron-btn ${profileExpandedCard === 'hist' ? '' : 'collapsed'}" id="chevron-hist" aria-label="Toggle workout history">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+        </div>
+        <div class="collapse-card-body ${profileExpandedCard === 'hist' ? '' : 'collapsed'}" id="collapse-body-hist">
+          <div id="history-list" style="margin-top:10px;">
+            ${histHtml}
+          </div>
+        </div>
       </div>
 
       <!-- Muscle Volume (last 30 days) -->
@@ -3730,10 +3822,46 @@ function toggleRestFromModule() {
 
 function resetStopwatch(n) {
   let sw = state.sw[n];
-  if (sw.running) toggleSW(n);
+  if (sw.running) {
+    clearInterval(sw.interval);
+    sw.running = false;
+  }
   sw.elapsed = 0;
+  sw.laps = [];
   let el = document.getElementById('sw' + n + '-time');
   if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
+  let btn = document.querySelector('#timer-stopwatch-panel .timer-btn-play');
+  if (btn) btn.innerHTML = '&#9654;';
+  renderLaps(n);
+}
+
+function hardResetApp() {
+  openModal('⚠️ Hard Reset Everything', `
+    <div style="text-align:center;padding:8px 0 16px;">
+      <p style="margin:0 0 8px;font-size:14px;color:var(--txt);">This will wipe <strong>all workout logs, splits, bodyweight records, settings, and PRs</strong> — exactly like a fresh install.</p>
+      <p style="margin:0 0 20px;font-size:12px;color:var(--txt-muted);">This cannot be undone. Export your data first if you want a backup.</p>
+      <button type="button" class="settings-btn settings-danger-btn" style="width:100%;margin-bottom:10px;" onclick="confirmHardReset()">🗑️ YES, WIPE EVERYTHING</button>
+      <button type="button" class="settings-btn" style="width:100%;" onclick="closeModal()">Cancel</button>
+    </div>
+  `);
+}
+
+function confirmHardReset() {
+  closeModal();
+  // Stop all intervals
+  if (state.sw && state.sw[1] && state.sw[1].interval) clearInterval(state.sw[1].interval);
+  if (restTimers && restTimers[1] && restTimers[1].interval) clearInterval(restTimers[1].interval);
+  // Nuke localStorage
+  localStorage.removeItem(LOCAL_STORAGE_KEY);
+  // Full re-init (same flow as a first-time app open)
+  init().then(() => {
+    // Brief visual confirmation
+    let toast = document.createElement('div');
+    toast.textContent = '✓ App reset to factory defaults';
+    toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;z-index:9999;pointer-events:none;';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  });
 }
 
 function countWorkoutsLogged() {
@@ -3778,6 +3906,22 @@ function toggleTimerSection() {
   if (!btn || !body) return;
   let collapsed = btn.classList.toggle('collapsed');
   body.style.display = collapsed ? 'none' : '';
+}
+
+/* ── Profile stats cards: Bodyweight / Personal Records / Workout History ──
+   Only one of these three may be expanded at a time. Expanding one auto-collapses the others. */
+function toggleProfileCollapse(key) {
+  let isCurrentlyOpen = profileExpandedCard === key;
+  profileExpandedCard = isCurrentlyOpen ? null : key;
+
+  ['bw', 'pr', 'hist'].forEach(k => {
+    let chevron = document.getElementById('chevron-' + k);
+    let body = document.getElementById('collapse-body-' + k);
+    if (!chevron || !body) return;
+    let shouldBeOpen = (k === profileExpandedCard);
+    chevron.classList.toggle('collapsed', !shouldBeOpen);
+    body.classList.toggle('collapsed', !shouldBeOpen);
+  });
 }
 
 async function bootstrapApp() {
