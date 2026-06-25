@@ -2473,29 +2473,28 @@ function exportJSON() {
 function shareBackup() {
   let payload = buildBackupPayload();
   let fileName = `dod-backup-${new Date().toISOString().slice(0,10)}.json`;
+
+  if (!navigator.share) {
+    // Web Share API isn't available at all in this browser context
+    // (common on desktop browsers, or if the app isn't served over HTTPS).
+    alert('Sharing isn\'t supported in this browser — downloading the backup file instead.');
+    downloadBackupFile(payload, fileName);
+    return;
+  }
+
   let file = new File([payload], fileName, { type: 'application/json' });
+  let canShareFile = !!(navigator.canShare && navigator.canShare({ files: [file] }));
 
-  let canShareFile = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+  let shareAttempt = canShareFile
+    ? navigator.share({ title: 'DOD Workout Backup', files: [file] })
+    : navigator.share({ title: 'DOD Workout Backup', text: payload });
 
-  if (canShareFile) {
-    navigator.share({ title: 'DOD Workout Backup', files: [file] }).catch((err) => {
-      if (err && err.name === 'AbortError') return; // user cancelled share sheet — not an error
-      // File share failed (common on some browsers/OSes) — fall back to a normal download
-      downloadBackupFile(payload, fileName);
-    });
-    return;
-  }
-
-  if (navigator.share) {
-    navigator.share({ title: 'DOD Workout Backup', text: payload }).catch((err) => {
-      if (err && err.name === 'AbortError') return;
-      downloadBackupFile(payload, fileName);
-    });
-    return;
-  }
-
-  // No Web Share API support at all (most desktop browsers) — just download
-  downloadBackupFile(payload, fileName);
+  shareAttempt.catch((err) => {
+    if (err && err.name === 'AbortError') return; // user closed the share sheet — not an error
+    // Share genuinely failed (rare) — fall back to download so the user still gets their backup.
+    alert('Share failed — downloading the backup file instead.');
+    downloadBackupFile(payload, fileName);
+  });
 }
 
 function triggerJSONImport() {
@@ -3836,14 +3835,16 @@ function resetStopwatch(n) {
 }
 
 function hardResetApp() {
-  openModal('⚠️ Hard Reset Everything', `
+  document.getElementById('modal-title').textContent = '⚠️ Hard Reset Everything';
+  document.getElementById('modal-body').innerHTML = `
     <div style="text-align:center;padding:8px 0 16px;">
       <p style="margin:0 0 8px;font-size:14px;color:var(--txt);">This will wipe <strong>all workout logs, splits, bodyweight records, settings, and PRs</strong> — exactly like a fresh install.</p>
       <p style="margin:0 0 20px;font-size:12px;color:var(--txt-muted);">This cannot be undone. Export your data first if you want a backup.</p>
       <button type="button" class="settings-btn settings-danger-btn" style="width:100%;margin-bottom:10px;" onclick="confirmHardReset()">🗑️ YES, WIPE EVERYTHING</button>
       <button type="button" class="settings-btn" style="width:100%;" onclick="closeModal()">Cancel</button>
     </div>
-  `);
+  `;
+  openModal();
 }
 
 function confirmHardReset() {
