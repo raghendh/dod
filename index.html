@@ -47,24 +47,21 @@
   <!-- TRAIN PAGE -->
   <div class="page active" id="page-workout">
     <header class="session-header">
-      <div class="date-card" id="date-card">
-        <div class="date-card-header" onclick="toggleDateSection()">
-          <span class="session-kicker">WORKOUT DATE</span>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button type="button" class="date-cal-btn" onclick="event.stopPropagation();openDatePicker()" aria-label="Open calendar" title="Open calendar">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            </button>
-            <button type="button" class="chevron-btn collapsed" id="date-chevron" aria-label="Toggle date">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-            </button>
+      <section class="dh-card" id="date-card" data-purpose="date-header">
+        <div class="dh-row" onclick="toggleDateSection()">
+          <div class="dh-left">
+            <span class="dh-kicker">Workout:</span>
+            <h1 class="dh-label" id="cur-date-lbl"></h1>
           </div>
+          <button type="button" class="dh-cal-btn" onclick="event.stopPropagation();openDatePicker()" aria-label="Open calendar" title="Open calendar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </button>
         </div>
-        <div id="cur-date-lbl" class="date-full-label"></div>
         <div class="date-card-body collapsed" id="date-card-body">
           <input type="date" id="hidden-date-picker" onchange="applyDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
           <div class="week-strip" id="week-strip"></div>
         </div>
-      </div>
+      </section>
     </header>
 
     <section class="timer-module" id="timer-module">
@@ -81,59 +78,51 @@
       </div>
       <div id="timer-body">
 
-      <div class="timer-tabs-row">
-        <div class="timer-tabs" style="margin-top:16px;">
-          <button type="button" class="timer-tab active" id="timer-tab-rest" onclick="setTimerTab('rest')">
-            <span class="timer-tab-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="13" r="7"/><polyline points="12 10 12 13 14 15"/><path d="M5 3l-2 2M19 3l2 2"/></svg>
-            </span> REST TIMER
-          </button>
-          <button type="button" class="timer-tab" id="timer-tab-stopwatch" onclick="setTimerTab('stopwatch')">
-            <span class="timer-tab-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-            </span> STOPWATCH
-          </button>
-        </div>
+      <div class="timer-swipe-dots" id="timer-swipe-dots">
+        <span class="ts-dot active" data-target="rest"></span>
+        <span class="ts-dot" data-target="stopwatch"></span>
       </div>
 
-      <div id="timer-rest-panel">
-        <div class="timer-main-row">
-          <div>
-            <div class="timer-display" id="timer-rest-display">01:30</div>
-            <div class="timer-sub" id="timer-rest-sub">REST TIMER - ACTIVE SET</div>
-          </div>
-          <div class="timer-controls">
-            <button type="button" class="timer-btn-sm" onclick="adjustRestTimer(1, 30)">+30s</button>
-            <button type="button" class="timer-btn-play" id="timer-rest-play" onclick="toggleRestFromModule()" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-          </div>
-        </div>
-        <div class="timer-presets">
-          <button type="button" class="preset-chip" onclick="setRestPreset(30)">30s</button>
-          <button type="button" class="preset-chip" onclick="setRestPreset(60)">60s</button>
-          <button type="button" class="preset-chip active" onclick="setRestPreset(90)">90s</button>
-          <button type="button" class="preset-chip" onclick="setRestPreset(120)">120s</button>
-          <button type="button" class="preset-chip" onclick="setRestPreset(180)">180s</button>
-        </div>
-        <div class="timer-manual-row">
-          <input type="text" id="timer-manual-input" class="timer-manual-input" placeholder="e.g. 2m, 90sec, 2-3 min">
-          <button type="button" class="timer-set-btn" onclick="applyManualRest()">Set</button>
-        </div>
-      </div>
+      <div class="timer-carousel" id="timer-carousel">
 
-      <div id="timer-stopwatch-panel" class="hidden">
-        <div class="timer-main-row">
-          <div>
-            <div class="timer-display" id="sw1-time">00:00<span class="sw-ms">.00</span></div>
-            <div class="timer-sub">STOPWATCH - TIME ELAPSED</div>
+        <!-- REST TIMER PANEL -->
+        <div class="timer-slide" id="timer-rest-panel" data-slide="rest">
+          <div class="tc-numcard" id="timer-rest-numcard" onclick="toggleRestFromModule()" role="button" aria-label="Start or reset rest timer">
+            <span class="tc-num timer-font" id="timer-rest-display">1:30<span class="sw-ms">.00</span></span>
           </div>
-          <div class="timer-controls">
-            <button type="button" class="timer-btn-sm" onclick="lapStopwatch(1)" title="Lap">LAP</button>
-            <button type="button" class="timer-btn-play" id="sw1-play" onclick="toggleSW(1)" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-            <button type="button" class="timer-btn-icon" onclick="resetStopwatch(1)" title="Reset">&#8635;</button>
+          <div class="tc-presets">
+            <button type="button" class="tc-preset-chip" onclick="setRestPreset(30)">30s</button>
+            <button type="button" class="tc-preset-chip" onclick="setRestPreset(60)">60s</button>
+            <button type="button" class="tc-preset-chip active" onclick="setRestPreset(90)">90s</button>
+            <button type="button" class="tc-preset-chip" onclick="setRestPreset(120)">120s</button>
+            <button type="button" class="tc-preset-chip" onclick="setRestPreset(180)">180s</button>
           </div>
+          <div class="tc-manual-row">
+            <input type="text" id="timer-manual-input" class="tc-manual-input" placeholder="Manual Set..." inputmode="text">
+            <button type="button" class="tc-set-btn" onclick="applyManualRest()">Set</button>
+          </div>
+          <div class="timer-sub" id="timer-rest-sub">REST TIMER - ACTIVE SET</div>
         </div>
-        <div id="sw-laps-list" class="sw-laps-list"></div>
-      </div>
+
+        <!-- STOPWATCH PANEL -->
+        <div class="timer-slide" id="timer-stopwatch-panel" data-slide="stopwatch">
+          <div class="tc-numcard tc-numcard-sw" id="sw1-numcard" onclick="toggleSW(1)" role="button" aria-label="Start or pause stopwatch">
+            <span class="tc-num timer-font" id="sw1-time">00:00<span class="sw-ms">.00</span></span>
+          </div>
+          <div class="tc-sw-actions">
+            <button type="button" class="tc-sw-action-btn" onclick="resetStopwatch(1)" title="Reset">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.65 6.35A8 8 0 1 0 19.9 14"/><polyline points="20 4 20 10 14 10"/></svg>
+              RESET
+            </button>
+            <button type="button" class="tc-sw-action-btn" onclick="lapStopwatch(1)" title="Lap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              LAP
+            </button>
+          </div>
+          <div id="sw-laps-list" class="sw-laps-list"></div>
+        </div>
+
+      </div><!-- /timer-carousel -->
       </div><!-- /timer-body -->
     </section>
 

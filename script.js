@@ -495,12 +495,8 @@ function resetAppState(){
   // Reset the stopwatch/rest-timer UI immediately so no stale display lingers
   let swTimeEl = document.getElementById('sw1-time');
   if (swTimeEl) swTimeEl.innerHTML = '00:00<span class="sw-ms">.00</span>';
-  let sw1El = document.getElementById('sw1');
-  if (sw1El) sw1El.classList.remove('running');
-  let stopwatchUi = document.getElementById('sw1-stopwatch-ui');
-  if (stopwatchUi) stopwatchUi.style.display = 'flex';
-  let restUi = document.getElementById('sw1-rest-ui');
-  if (restUi) restUi.style.display = 'none';
+  let sw1Card = document.getElementById('sw1-numcard');
+  if (sw1Card) sw1Card.classList.remove('running');
   let floatingWidget = document.getElementById('rest-timer-widget-1');
   if (floatingWidget) floatingWidget.style.display = 'none';
 
@@ -656,13 +652,13 @@ const RT_RESET_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="cur
 function toggleSW(n){
   let sw = state.sw[n];
   if (!sw.laps) sw.laps = [];
+  let card = document.getElementById('sw' + n + '-numcard');
   if (sw.running) {
     // PAUSE
     clearInterval(sw.interval);
     sw.elapsed += Date.now() - sw.start;
     sw.running = false;
-    let btn = document.getElementById('sw' + n + '-play');
-    if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
+    if (card) card.classList.remove('running');
   } else {
     // PLAY / RESUME
     sw.start = Date.now();
@@ -672,8 +668,7 @@ function toggleSW(n){
       let el = document.getElementById('sw' + n + '-time');
       if (el) el.innerHTML = fmt(total);
     }, 10);
-    let btn = document.getElementById('sw' + n + '-play');
-    if (btn) { btn.innerHTML = SW_PAUSE_ICON; btn.title = 'Pause'; }
+    if (card) card.classList.add('running');
   }
 }
 
@@ -729,15 +724,10 @@ function syncTimerUI() {
   if (floatingWidget) floatingWidget.style.display = showFloating ? 'flex' : 'none';
   if (isRunning && state.settings.timerMerged) setTimerTab('rest');
 
-  // The rest timer's main button does double duty: play when idle, reset when running
-  // (pressing it mid-run used to trigger the exact same action as the separate reset
-  // button, so the two have been merged into one). Icons match the stopwatch button's
-  // size/style exactly so nothing visually shifts when switching tabs.
-  let playBtn = document.getElementById('timer-rest-play');
-  if (playBtn) {
-    playBtn.innerHTML = isRunning ? RT_RESET_ICON : SW_PLAY_ICON;
-    playBtn.title = isRunning ? 'Reset' : 'Start';
-  }
+  // The rest timer's number card does double duty: tap to start when idle,
+  // tap to reset when running — same press-the-card interaction as the stopwatch.
+  let restCard = document.getElementById('timer-rest-numcard');
+  if (restCard) restCard.classList.toggle('running', !!isRunning);
 }
 
 function startRestTimer(seconds = 90) {
@@ -749,7 +739,7 @@ function startRestTimer(seconds = 90) {
   rt.running = true;
 
   clearInterval(rt.interval);
-  rt.interval = setInterval(() => updateRestTimer(p), 1000);
+  rt.interval = setInterval(() => updateRestTimer(p), 30);
 
   syncTimerUI();
   updateRestTimer(p);
@@ -759,11 +749,13 @@ function updateRestTimer(p) {
   let rt = restTimers[p];
   if (!rt.running) return;
 
-  let rem = Math.ceil((rt.end - Date.now()) / 1000);
+  let remMs = rt.end - Date.now();
+  let rem = Math.ceil(remMs / 1000);
   let floatText = document.getElementById('rest-timer-text-' + p);
   let topText = document.getElementById('sw' + p + '-rest-time');
 
   let displayStr = "";
+  let moduleHtml = "";
   if (rem <= 0) {
     if (rt.interval) {
       clearInterval(rt.interval);
@@ -771,16 +763,20 @@ function updateRestTimer(p) {
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     }
     displayStr = "WORK";
+    moduleHtml = "WORK";
   } else {
     let m = Math.floor(rem/60);
     let s = rem%60;
     displayStr = `${m}:${s<10?'0':''}${s}`;
+    // Sub-second digits count down within each second, mirroring the stopwatch's look
+    let cs = Math.floor((((remMs % 1000) + 1000) % 1000) / 10);
+    moduleHtml = `${m}:${s<10?'0':''}${s}<span class="sw-ms">.${cs<10?'0':''}${cs}</span>`;
   }
 
   if (floatText) floatText.textContent = displayStr;
   if (topText) topText.textContent = displayStr;
   let moduleDisplay = document.getElementById('timer-rest-display');
-  if (moduleDisplay) moduleDisplay.textContent = displayStr;
+  if (moduleDisplay) moduleDisplay.innerHTML = moduleHtml;
   let moduleSub = document.getElementById('timer-rest-sub');
   if (moduleSub) moduleSub.textContent = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
   // update global header floating timer
@@ -4322,6 +4318,7 @@ async function init(){
   goPage('workout');
   renderPRPage();
   applyWakeLock();
+  initTimerCarousel();
 }
 
 let _wakeLock = null;
@@ -4587,15 +4584,42 @@ let restPresetSeconds = 90;
 
 function setTimerTab(mode) {
   timerTab = mode;
-  document.getElementById('timer-tab-rest')?.classList.toggle('active', mode === 'rest');
-  document.getElementById('timer-tab-stopwatch')?.classList.toggle('active', mode === 'stopwatch');
-  document.getElementById('timer-rest-panel')?.classList.toggle('hidden', mode !== 'rest');
-  document.getElementById('timer-stopwatch-panel')?.classList.toggle('hidden', mode !== 'stopwatch');
+  let carousel = document.getElementById('timer-carousel');
+  let slide = document.querySelector('.timer-slide[data-slide="' + mode + '"]');
+  if (carousel && slide) {
+    carousel.scrollTo({ left: slide.offsetLeft - carousel.offsetLeft, behavior: 'smooth' });
+  }
+  document.querySelectorAll('.ts-dot').forEach(dot => {
+    dot.classList.toggle('active', dot.dataset.target === mode);
+  });
+}
+
+// Keep the dots in sync when the user swipes the carousel by hand
+function initTimerCarousel() {
+  let carousel = document.getElementById('timer-carousel');
+  if (!carousel || carousel.dataset.bound) return;
+  carousel.dataset.bound = '1';
+  let dots = document.querySelectorAll('.ts-dot');
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => setTimerTab(dot.dataset.target));
+  });
+  let scrollTimeout = null;
+  carousel.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      let idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+      let slides = carousel.querySelectorAll('.timer-slide');
+      let active = slides[idx];
+      if (!active) return;
+      timerTab = active.dataset.slide;
+      dots.forEach(dot => dot.classList.toggle('active', dot.dataset.target === timerTab));
+    }, 80);
+  });
 }
 
 function setRestPreset(sec) {
   restPresetSeconds = sec;
-  document.querySelectorAll('.preset-chip').forEach(btn => {
+  document.querySelectorAll('.tc-preset-chip').forEach(btn => {
     btn.classList.toggle('active', btn.textContent.trim() === sec + 's');
   });
   let rt = restTimers[1];
@@ -4608,7 +4632,7 @@ function setRestPreset(sec) {
   let el = document.getElementById('timer-rest-display');
   if (el) {
     let m = Math.floor(sec / 60), s = sec % 60;
-    el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    el.innerHTML = m + ':' + (s < 10 ? '0' : '') + s + '<span class="sw-ms">.00</span>';
   }
 }
 
@@ -4640,8 +4664,8 @@ function resetStopwatch(n) {
   sw.laps = [];
   let el = document.getElementById('sw' + n + '-time');
   if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
-  let btn = document.getElementById('sw' + n + '-play');
-  if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
+  let card = document.getElementById('sw' + n + '-numcard');
+  if (card) card.classList.remove('running');
   renderLaps(n);
 }
 
@@ -4699,11 +4723,12 @@ function updateGlobalTimer(text) {
 
 /* ── Date section collapse/expand ── */
 function toggleDateSection() {
-  let btn = document.getElementById('date-chevron');
   let body = document.getElementById('date-card-body');
-  if (!btn || !body) return;
-  let collapsed = btn.classList.toggle('collapsed');
+  if (!body) return;
+  let collapsed = !body.classList.contains('collapsed');
   body.classList.toggle('collapsed', collapsed);
+  let btn = document.getElementById('date-chevron');
+  if (btn) btn.classList.toggle('collapsed', collapsed);
 }
 
 /* ── Timer section collapse/expand ── */

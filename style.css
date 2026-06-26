@@ -134,7 +134,7 @@ body::before, body::after { display: none !important; }
   background: var(--green);
 }
 
-/* Date card */
+/* Date card (legacy selectors kept for safety) */
 .date-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -172,6 +172,70 @@ body::before, body::after { display: none !important; }
   max-height: 0;
   margin-top: 0;
   opacity: 0;
+}
+
+/* ── Combat-style compact date header ── */
+.dh-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.dh-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  gap: 8px;
+  padding: 4px 6px;
+}
+.dh-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dh-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.dh-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dh-cal-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.dh-cal-btn:hover,
+.dh-cal-btn:active { background: var(--accent-soft); }
+.dh-card .date-card-body {
+  padding: 0 6px 6px;
+}
+.dh-card .date-card-body:not(.collapsed) {
+  margin-top: 8px;
 }
 
 /* Week strip calendar — scrollable across multiple weeks */
@@ -277,6 +341,156 @@ body::before, body::after { display: none !important; }
   text-transform: uppercase;
   color: var(--txt);
 }
+
+/* ── Combat-style swipe dots (timer / stopwatch selector) ── */
+.timer-swipe-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  margin-bottom: 10px;
+}
+.ts-dot {
+  width: 18px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--border2);
+  cursor: pointer;
+  transition: background 0.2s, width 0.2s;
+}
+.ts-dot.active {
+  background: var(--accent);
+  width: 28px;
+}
+
+/* ── Combat-style scroll-snap carousel ── */
+.timer-carousel {
+  display: flex;
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 0;
+}
+.timer-carousel::-webkit-scrollbar { display: none; }
+.timer-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 2px;
+}
+
+/* Big number card — shared by timer + stopwatch, same footprint */
+.tc-numcard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  padding: 18px 6px;
+  min-height: 132px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: transform 0.1s ease, border-color 0.15s ease;
+  overflow: hidden;
+}
+.tc-numcard:active { transform: scale(0.97); }
+.tc-numcard.running {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green) inset;
+}
+.tc-numcard-sw {}
+.tc-num {
+  font-size: clamp(48px, 16vw, 80px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--txt);
+  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+.timer-font { font-variant-numeric: tabular-nums; }
+.tc-num .sw-ms { font-size: 0.45em; opacity: 0.55; }
+.tc-numcard-sw .sw-ms { font-size: 0.45em; opacity: 0.55; }
+
+/* Rest timer presets row — 5 across, combat chip style */
+.tc-presets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.tc-preset-chip {
+  background: var(--input-bg);
+  border: none;
+  border-radius: 8px;
+  padding: 9px 4px;
+  color: var(--txt-muted);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tc-preset-chip.active {
+  background: rgba(193,95,60,0.28);
+  color: var(--accent);
+  border: 1px solid rgba(193,95,60,0.4);
+}
+.tc-manual-row { display: flex; gap: 6px; }
+.tc-manual-input {
+  flex: 1;
+  background: var(--input-bg);
+  border: none;
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--txt-muted);
+  font-size: 11px;
+  font-family: inherit;
+}
+.tc-manual-input:focus { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
+.tc-set-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  padding: 0 18px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Stopwatch reset/lap row — sits below the number card, same width budget the timer presets use */
+.tc-sw-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tc-sw-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 4px;
+  color: var(--txt);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  font-family: inherit;
+}
+.tc-sw-action-btn:active { background: var(--accent-soft); }
 .timer-tabs {
   display: flex;
   background: rgba(0,0,0,0.3);
@@ -338,6 +552,7 @@ body::before, body::after { display: none !important; }
   text-transform: uppercase;
   color: var(--accent);
   margin-top: 6px;
+  text-align: center;
 }
 .sw-ms { font-size: 22px; opacity: 0.55; }
 .timer-controls {
@@ -678,6 +893,7 @@ body.pitch-black #nav { background: #000000; border-top-color: #1e1e1e; }
 body.pitch-black .page { background: #000000; }
 body.pitch-black .ex-item,
 body.pitch-black .date-card,
+body.pitch-black .dh-card,
 body.pitch-black .timer-module,
 body.pitch-black .settings-card,
 body.pitch-black .settings-panel,
@@ -686,6 +902,9 @@ body.pitch-black #modal-box,
 body.pitch-black #float-panel { background: #0a0a0a; }
 body.pitch-black .set-input,
 body.pitch-black .timer-manual-input,
+body.pitch-black .tc-manual-input,
+body.pitch-black .tc-preset-chip,
+body.pitch-black .tc-sw-action-btn,
 body.pitch-black .preset-chip,
 body.pitch-black .set-num-btn,
 body.pitch-black .ex-action-btn,
