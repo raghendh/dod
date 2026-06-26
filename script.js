@@ -2417,40 +2417,114 @@ function renderBWHistory() {
   if (el) el.innerHTML = html;
 }
 
-function renderChart() {
-  let bws = state.bw[state.profile] || {};
+/* ── Bodyweight chart — shared builder ──────────────────────────
+   Smooth gradient-filled curve with gridlines, a pulsing highlight
+   on the latest entry, and a stat row (current / change / average).
+   Used both on initial profile render and on live updates so the
+   two call sites can never drift out of sync. */
+function buildBWChartHtml(bws) {
   let dates = Object.keys(bws).sort();
-  let chartEl = document.getElementById('bw-chart-container');
-  if(!chartEl) return;
-
   if (dates.length < 2) {
-    chartEl.innerHTML = `<div style="text-align:center;color:var(--txt3);font-size:12px;padding:30px 0;">Need at least 2 entries to chart progress</div>`;
-    return;
+    return '<div style="text-align:center;color:var(--txt3);font-size:12px;padding:30px 0;">Need at least 2 entries to chart progress</div>';
   }
 
   let entries = dates.slice(-14).map(d => ({ date: d, w: parseFloat(bws[d]) }));
-  let minW = Math.min(...entries.map(e => e.w)) - 2;
-  let maxW = Math.max(...entries.map(e => e.w)) + 2;
-  let range = maxW - minW;
-  if (range === 0) range = 10;
+  let weights = entries.map(e => e.w);
+  let minW = Math.min(...weights);
+  let maxW = Math.max(...weights);
+  let pad = Math.max((maxW - minW) * 0.2, 1);
+  let chartMin = minW - pad;
+  let chartMax = maxW + pad;
+  let range = chartMax - chartMin || 10;
 
-  let points = entries.map((e, i) => {
-      let x = (i / (entries.length - 1)) * 100;
-      let y = 100 - (((e.w - minW) / range) * 100);
-      return `${x},${y}`;
-  }).join(" ");
+  const W = 300, H = 120, PAD_X = 4, PAD_Y = 10;
+  let plotW = W - PAD_X * 2;
+  let plotH = H - PAD_Y * 2;
 
-  let html = `
-  <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100px;overflow:visible;">
-      <polyline fill="none" stroke="${getProfileColor(state.profile)}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
-      ${entries.map((e, i) => {
-          let x = (i / (entries.length - 1)) * 100;
-          let y = 100 - (((e.w - minW) / range) * 100);
-          return `<circle cx="${x}" cy="${y}" r="3" fill="var(--bg2)" stroke="${getProfileColor(state.profile)}" stroke-width="2"/>`;
-      }).join("")}
+  let coords = entries.map((e, i) => {
+    let x = PAD_X + (entries.length === 1 ? plotW / 2 : (i / (entries.length - 1)) * plotW);
+    let y = PAD_Y + (1 - (e.w - chartMin) / range) * plotH;
+    return { x, y, w: e.w, date: e.date };
+  });
+
+  // Smooth catmull-rom-ish curve via simple cubic bezier through midpoints
+  function smoothPath(pts) {
+    if (pts.length === 1) return `M ${pts[0].x},${pts[0].y}`;
+    let d = `M ${pts[0].x.toFixed(2)},${pts[0].y.toFixed(2)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      let p0 = pts[i], p1 = pts[i + 1];
+      let midX = (p0.x + p1.x) / 2;
+      d += ` Q ${p0.x.toFixed(2)},${p0.y.toFixed(2)} ${midX.toFixed(2)},${((p0.y + p1.y) / 2).toFixed(2)}`;
+    }
+    let last = pts[pts.length - 1];
+    d += ` T ${last.x.toFixed(2)},${last.y.toFixed(2)}`;
+    return d;
+  }
+
+  let linePath = smoothPath(coords);
+  let areaPath = `${linePath} L ${coords[coords.length - 1].x.toFixed(2)},${(H - PAD_Y).toFixed(2)} L ${coords[0].x.toFixed(2)},${(H - PAD_Y).toFixed(2)} Z`;
+
+  let gridLines = [0, 0.5, 1].map(t => {
+    let y = PAD_Y + t * plotH;
+    return `<line x1="${PAD_X}" y1="${y.toFixed(2)}" x2="${W - PAD_X}" y2="${y.toFixed(2)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>`;
+  }).join('');
+
+  let gradId = 'bwGrad' + Math.random().toString(36).slice(2, 8);
+  let last = coords[coords.length - 1];
+  let first = coords[0];
+
+  let dots = coords.map((c, i) => {
+    let isLast = i === coords.length - 1;
+    return isLast ? '' : `<circle cx="${c.x.toFixed(2)}" cy="${c.y.toFixed(2)}" r="2.2" fill="var(--card-bg)" stroke="${getProfileColor(state.profile)}" stroke-width="1.6" opacity="0.85"/>`;
+  }).join('');
+
+  let svg = `
+  <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:120px;overflow:visible;display:block;">
+    <defs>
+      <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${getProfileColor(state.profile)}" stop-opacity="0.32"/>
+        <stop offset="100%" stop-color="${getProfileColor(state.profile)}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${gridLines}
+    <path d="${areaPath}" fill="url(#${gradId})" stroke="none"/>
+    <path d="${linePath}" fill="none" stroke="${getProfileColor(state.profile)}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}
+    <circle cx="${last.x.toFixed(2)}" cy="${last.y.toFixed(2)}" r="6" fill="${getProfileColor(state.profile)}" opacity="0.18"/>
+    <circle cx="${last.x.toFixed(2)}" cy="${last.y.toFixed(2)}" r="3.8" fill="var(--card-bg)" stroke="${getProfileColor(state.profile)}" stroke-width="2.2"/>
   </svg>`;
 
-  chartEl.innerHTML = html;
+  let current = last.w;
+  let delta = last.w - first.w;
+  let avg = weights.reduce((a, b) => a + b, 0) / weights.length;
+  let deltaColor = delta > 0 ? 'var(--accent)' : (delta < 0 ? 'var(--green)' : 'var(--txt-muted)');
+  let deltaSign = delta > 0 ? '+' : '';
+  let rangeLabel = entries.length >= 14 ? '14-entry' : `${entries.length}-entry`;
+
+  let statsRow = `
+  <div style="display:flex;gap:8px;margin-bottom:14px;">
+    <div style="flex:1;background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+      <div style="font-size:9px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Current</div>
+      <div style="font-size:16px;font-weight:800;color:var(--txt);">${current.toFixed(1)}<span style="font-size:10px;font-weight:600;color:var(--txt-muted);"> kg</span></div>
+    </div>
+    <div style="flex:1;background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+      <div style="font-size:9px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">${rangeLabel} trend</div>
+      <div style="font-size:16px;font-weight:800;color:${deltaColor};">${deltaSign}${delta.toFixed(1)}<span style="font-size:10px;font-weight:600;color:var(--txt-muted);"> kg</span></div>
+    </div>
+    <div style="flex:1;background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:8px 10px;">
+      <div style="font-size:9px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;">Average</div>
+      <div style="font-size:16px;font-weight:800;color:var(--txt);">${avg.toFixed(1)}<span style="font-size:10px;font-weight:600;color:var(--txt-muted);"> kg</span></div>
+    </div>
+  </div>`;
+
+  return statsRow + svg;
+}
+
+function renderChart() {
+  let bws = state.bw[state.profile] || {};
+  let chartEl = document.getElementById('bw-chart-container');
+  if (!chartEl) return;
+  chartEl.innerHTML = buildBWChartHtml(bws);
 }
 
 // Detailed muscle group mapping
@@ -3149,30 +3223,8 @@ function renderProfilePage() {
     });
   }
 
-  /* ── Build bodyweight chart SVG ── */
-  let chartHtml = '';
-  let bwDates = Object.keys(bws).sort();
-  if (bwDates.length < 2) {
-    chartHtml = '<div style="text-align:center;color:var(--txt3);font-size:12px;padding:24px 0;">Log at least 2 weigh-ins to see the chart.</div>';
-  } else {
-    let entries = bwDates.slice(-14).map(d2 => ({ date: d2, w: parseFloat(bws[d2]) }));
-    let minW = Math.min(...entries.map(e => e.w)) - 2;
-    let maxW = Math.max(...entries.map(e => e.w)) + 2;
-    let range = maxW - minW || 10;
-    let points = entries.map((e, i) => {
-      let x = (i / (entries.length - 1)) * 100;
-      let y = 100 - (((e.w - minW) / range) * 100);
-      return `${x},${y}`;
-    }).join(' ');
-    chartHtml = `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:80px;overflow:visible;display:block;">
-      <polyline fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${points}"/>
-      ${entries.map((e, i) => {
-        let x = (i / (entries.length - 1)) * 100;
-        let y = 100 - (((e.w - minW) / range) * 100);
-        return `<circle cx="${x}" cy="${y}" r="3" fill="var(--card-bg)" stroke="var(--accent)" stroke-width="2"/>`;
-      }).join('')}
-    </svg>`;
-  }
+  /* ── Build bodyweight chart (shared builder, see buildBWChartHtml) ── */
+  let chartHtml = buildBWChartHtml(bws);
 
   /* ── BW history list ── */
   let bwHistHtml = '';
@@ -4299,10 +4351,14 @@ function renderQuotesMarquee() {
   // Duplicate the whole strip so translateX(-100%) loops with no visible seam
   track.innerHTML = stripHtml + stripHtml;
 
-  // Rough reading speed: ~90px per second feels readable without dragging
-  let pxPerSecond = 90;
-  let widthEstimate = track.scrollWidth || (MARQUEE_QUOTES.length * 3 * 260);
-  let durationSeconds = Math.max(40, Math.round((widthEstimate / 2) / pxPerSecond));
+  // translateX(-100%) moves the track by its own full rendered width, which
+  // includes the 100% left padding PLUS both copies of the strip — not just
+  // one strip's width. Use the real scrollWidth directly (no /2) so the
+  // duration matches the actual distance traveled.
+  // Rough reading speed: ~60px per second feels readable without dragging
+  let pxPerSecond = 60;
+  let widthEstimate = track.scrollWidth || (MARQUEE_QUOTES.length * 3 * 260 * 3);
+  let durationSeconds = Math.max(40, Math.round(widthEstimate / pxPerSecond));
   track.style.animationDuration = durationSeconds + 's';
 
   track.dataset.built = '1';
