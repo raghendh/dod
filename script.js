@@ -661,25 +661,19 @@ function toggleSW(n){
     clearInterval(sw.interval);
     sw.elapsed += Date.now() - sw.start;
     sw.running = false;
-    ['sw' + n + '-play', 'cardio-sw' + n + '-play'].forEach(id => {
-      let btn = document.getElementById(id);
-      if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
-    });
+    let btn = document.getElementById('sw' + n + '-play');
+    if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
   } else {
     // PLAY / RESUME
     sw.start = Date.now();
     sw.running = true;
     sw.interval = setInterval(() => {
       let total = sw.elapsed + (Date.now() - sw.start);
-      ['sw' + n + '-time', 'cardio-sw' + n + '-time'].forEach(id => {
-        let el = document.getElementById(id);
-        if (el) el.innerHTML = fmt(total);
-      });
+      let el = document.getElementById('sw' + n + '-time');
+      if (el) el.innerHTML = fmt(total);
     }, 10);
-    ['sw' + n + '-play', 'cardio-sw' + n + '-play'].forEach(id => {
-      let btn = document.getElementById(id);
-      if (btn) { btn.innerHTML = SW_PAUSE_ICON; btn.title = 'Pause'; }
-    });
+    let btn = document.getElementById('sw' + n + '-play');
+    if (btn) { btn.innerHTML = SW_PAUSE_ICON; btn.title = 'Pause'; }
   }
 }
 
@@ -696,14 +690,14 @@ function lapStopwatch(n) {
 
 function renderLaps(n) {
   let sw = state.sw[n];
-  let containers = ['sw-laps-list', 'cardio-sw-laps-list'].map(id => document.getElementById(id)).filter(Boolean);
-  if (containers.length === 0) return;
-  if (!sw.laps || sw.laps.length === 0) { containers.forEach(c => c.innerHTML = ''); return; }
+  let container = document.getElementById('sw-laps-list');
+  if (!container) return;
+  if (!sw.laps || sw.laps.length === 0) { container.innerHTML = ''; return; }
   // Fastest and slowest split
   let splits = sw.laps.map(l => l.split);
   let fastest = Math.min(...splits);
   let slowest = Math.max(...splits);
-  let lapsHtml = sw.laps.slice().reverse().map(l => {
+  container.innerHTML = sw.laps.slice().reverse().map(l => {
     let tag = '';
     if (sw.laps.length > 1) {
       if (l.split === fastest) tag = '<span class="lap-tag lap-fast">BEST</span>';
@@ -716,7 +710,6 @@ function renderLaps(n) {
       <span class="lap-total">${fmtLap(l.total)}</span>
     </div>`;
   }).join('');
-  containers.forEach(c => c.innerHTML = lapsHtml);
 }
 
 function fmtLap(ms) {
@@ -740,24 +733,10 @@ function syncTimerUI() {
   // (pressing it mid-run used to trigger the exact same action as the separate reset
   // button, so the two have been merged into one). Icons match the stopwatch button's
   // size/style exactly so nothing visually shifts when switching tabs.
-  ['timer-rest-play', 'cardio-timer-rest-play'].forEach(id => {
-    let playBtn = document.getElementById(id);
-    if (playBtn) {
-      playBtn.innerHTML = isRunning ? RT_RESET_ICON : SW_PLAY_ICON;
-      playBtn.title = isRunning ? 'Reset' : 'Start';
-    }
-  });
-
-  // Keep the "Timer" tab's live status meta in sync whenever this runs
-  // (covers app reload / tab switch while a rest timer is already running).
-  if (isRunning) {
-    let rem = Math.ceil((rt.end - Date.now()) / 1000);
-    if (rem > 0) {
-      let m = Math.floor(rem/60), s = rem%60;
-      syncSessionTimerMeta(`${m}:${s<10?'0':''}${s}`);
-    }
-  } else {
-    syncSessionTimerMeta(null);
+  let playBtn = document.getElementById('timer-rest-play');
+  if (playBtn) {
+    playBtn.innerHTML = isRunning ? RT_RESET_ICON : SW_PLAY_ICON;
+    playBtn.title = isRunning ? 'Reset' : 'Start';
   }
 }
 
@@ -800,18 +779,12 @@ function updateRestTimer(p) {
 
   if (floatText) floatText.textContent = displayStr;
   if (topText) topText.textContent = displayStr;
-  ['timer-rest-display', 'cardio-timer-rest-display'].forEach(id => {
-    let el = document.getElementById(id);
-    if (el) el.textContent = displayStr;
-  });
-  let subText = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
-  ['timer-rest-sub', 'cardio-timer-rest-sub'].forEach(id => {
-    let el = document.getElementById(id);
-    if (el) el.textContent = subText;
-  });
+  let moduleDisplay = document.getElementById('timer-rest-display');
+  if (moduleDisplay) moduleDisplay.textContent = displayStr;
+  let moduleSub = document.getElementById('timer-rest-sub');
+  if (moduleSub) moduleSub.textContent = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
   // update global header floating timer
   updateGlobalTimer(rt.running ? displayStr : null);
-  syncSessionTimerMeta(rt.running ? displayStr : null);
 }
 
 function adjustRestTimer(p, seconds) {
@@ -828,19 +801,7 @@ function closeRestTimer(p) {
   rt.interval = null;
   rt.running = false;
   updateGlobalTimer(null);
-  syncSessionTimerMeta(null);
   syncTimerUI();
-}
-
-/* ── Session tab meta: shows a live running indicator on the "Timer" tab label
-   even while the Date tab is the one currently visible, so nothing running
-   is ever silently hidden behind the other tab. ── */
-function syncSessionTimerMeta(text) {
-  ['session-tab-timer-meta', 'cardio-session-tab-timer-meta'].forEach(id => {
-    let el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = text || '';
-  });
 }
 
 function toggleTimerMerge() {
@@ -915,20 +876,7 @@ function updateDateLabel(){
   if (dp) dp.value = dstr;
   // render week strip
   renderWeekStrip();
-  syncSessionTabMeta();
 }
-
-/* ── Session tab meta (short date shown in the "Date" tab even when Timer tab is active) ── */
-function syncSessionTabMeta() {
-  let d = state.date;
-  let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let shortDate = months[d.getMonth()] + ' ' + d.getDate();
-  ['session-tab-date-meta', 'cardio-session-tab-date-meta'].forEach(id => {
-    let el = document.getElementById(id);
-    if (el) el.textContent = shortDate;
-  });
-}
-
 
 function renderWeekStrip() {
   let strip = document.getElementById('week-strip');
@@ -4063,86 +4011,23 @@ function renderCardioPage() {
   let dateLabel = dayNames2[d.getDay()].toUpperCase() + ', ' + months2[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
 
   let html = `
-    <!-- Session Card: Date + Timer tabs (mirrors Train tab) -->
-    <div class="session-card" id="cardio-session-card">
-      <div class="session-tabs">
-        <button type="button" class="session-tab active" id="cardio-session-tab-date" onclick="setCardioSessionTab('date')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Date <span class="session-tab-meta" id="cardio-session-tab-date-meta"></span>
-        </button>
-        <button type="button" class="session-tab" id="cardio-session-tab-timer" onclick="setCardioSessionTab('timer')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-          Timer <span class="session-tab-meta" id="cardio-session-tab-timer-meta"></span>
-        </button>
-      </div>
-
-      <!-- DATE PANEL -->
-      <div class="session-panel" id="cardio-session-panel-date">
-        <div class="date-card-header" onclick="openCardioDatePicker()" style="margin-bottom:0;cursor:pointer;">
-          <div id="cardio-cur-date-lbl" class="date-full-label">${dateLabel}</div>
+    <!-- Date Card (mirrors Train tab) -->
+    <div class="date-card" id="cardio-date-card" style="margin-bottom:14px;">
+      <div class="date-card-header" onclick="toggleCardioDateSection()">
+        <span class="session-kicker">WORKOUT DATE</span>
+        <div style="display:flex;align-items:center;gap:6px;">
           <button type="button" class="date-cal-btn" onclick="event.stopPropagation();openCardioDatePicker()" aria-label="Open calendar" title="Open calendar">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </button>
+          <button type="button" class="chevron-btn collapsed" id="cardio-date-chevron" aria-label="Toggle date">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
         </div>
-        <input type="date" id="cardio-hidden-date-picker" onchange="applyCardioDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
-        <div class="week-strip" id="cardio-week-strip" style="margin-top:14px;"></div>
       </div>
-
-      <!-- TIMER PANEL (shares the same rest timer / stopwatch instance as the Train tab) -->
-      <div class="session-panel collapsed" id="cardio-session-panel-timer">
-        <div class="timer-tabs-row">
-          <div class="timer-tabs">
-            <button type="button" class="timer-tab active" id="cardio-timer-tab-rest" onclick="setTimerTab('rest')">
-              <span class="timer-tab-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="13" r="7"/><polyline points="12 10 12 13 14 15"/><path d="M5 3l-2 2M19 3l2 2"/></svg>
-              </span> REST TIMER
-            </button>
-            <button type="button" class="timer-tab" id="cardio-timer-tab-stopwatch" onclick="setTimerTab('stopwatch')">
-              <span class="timer-tab-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-              </span> STOPWATCH
-            </button>
-          </div>
-        </div>
-
-        <div id="cardio-timer-rest-panel">
-          <div class="timer-main-row">
-            <div>
-              <div class="timer-display" id="cardio-timer-rest-display">01:30</div>
-              <div class="timer-sub" id="cardio-timer-rest-sub">REST TIMER - ACTIVE SET</div>
-            </div>
-            <div class="timer-controls">
-              <button type="button" class="timer-btn-sm" onclick="adjustRestTimer(1, 30)">+30s</button>
-              <button type="button" class="timer-btn-play" id="cardio-timer-rest-play" onclick="toggleRestFromModule()" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-            </div>
-          </div>
-          <div class="timer-presets">
-            <button type="button" class="preset-chip" onclick="setRestPreset(30)">30s</button>
-            <button type="button" class="preset-chip" onclick="setRestPreset(60)">60s</button>
-            <button type="button" class="preset-chip active" onclick="setRestPreset(90)">90s</button>
-            <button type="button" class="preset-chip" onclick="setRestPreset(120)">120s</button>
-            <button type="button" class="preset-chip" onclick="setRestPreset(180)">180s</button>
-          </div>
-          <div class="timer-manual-row">
-            <input type="text" id="cardio-timer-manual-input" class="timer-manual-input" placeholder="e.g. 2m, 90sec, 2-3 min">
-            <button type="button" class="timer-set-btn" onclick="applyManualRest('cardio-timer-manual-input')">Set</button>
-          </div>
-        </div>
-
-        <div id="cardio-timer-stopwatch-panel" class="hidden">
-          <div class="timer-main-row">
-            <div>
-              <div class="timer-display" id="cardio-sw1-time">00:00<span class="sw-ms">.00</span></div>
-              <div class="timer-sub">STOPWATCH - TIME ELAPSED</div>
-            </div>
-            <div class="timer-controls">
-              <button type="button" class="timer-btn-sm" onclick="lapStopwatch(1)" title="Lap">LAP</button>
-              <button type="button" class="timer-btn-play" id="cardio-sw1-play" onclick="toggleSW(1)" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-              <button type="button" class="timer-btn-icon" onclick="resetStopwatch(1)" title="Reset">&#8635;</button>
-            </div>
-          </div>
-          <div id="cardio-sw-laps-list" class="sw-laps-list"></div>
-        </div>
+      <div id="cardio-cur-date-lbl" class="date-full-label">${dateLabel}</div>
+      <div class="date-card-body collapsed" id="cardio-date-card-body">
+        <input type="date" id="cardio-hidden-date-picker" onchange="applyCardioDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
+        <div class="week-strip" id="cardio-week-strip"></div>
       </div>
     </div>
 
@@ -4198,8 +4083,6 @@ function renderCardioPage() {
   document.getElementById('cardio-content').innerHTML = html;
   renderCardioWeekStrip();
   initCardioDragHandlers();
-  syncSessionTabMeta();
-  syncTimerUI();
   if(reorderMode.cardio) {
     setReorderActiveState('cardio', true);
     let btn = document.getElementById('reorder-toggle-cardio');
@@ -4207,13 +4090,14 @@ function renderCardioPage() {
   }
 }
 
-// ── Cardio session card helpers (Date / Timer tabs) ──
-function setCardioSessionTab(which) {
-  document.getElementById('cardio-session-tab-date')?.classList.toggle('active', which === 'date');
-  document.getElementById('cardio-session-tab-timer')?.classList.toggle('active', which === 'timer');
-  document.getElementById('cardio-session-panel-date')?.classList.toggle('collapsed', which !== 'date');
-  document.getElementById('cardio-session-panel-timer')?.classList.toggle('collapsed', which !== 'timer');
-  if (which === 'date') renderCardioWeekStrip();
+// ── Cardio date card helpers ──
+function toggleCardioDateSection() {
+  let body = document.getElementById('cardio-date-card-body');
+  let chevron = document.getElementById('cardio-date-chevron');
+  if (!body) return;
+  let collapsed = body.classList.toggle('collapsed');
+  if (chevron) chevron.classList.toggle('collapsed', collapsed);
+  if (!collapsed) renderCardioWeekStrip();
 }
 
 function openCardioDatePicker() {
@@ -4431,7 +4315,6 @@ async function init(){
   await loadState();
   state.page = 'workout';
   updateDateLabel();
-  syncTimerUI();
   updateProfileUI();
   applyButtonSizing();
   renderSplitSelector();
@@ -4704,10 +4587,10 @@ let restPresetSeconds = 90;
 
 function setTimerTab(mode) {
   timerTab = mode;
-  ['timer-tab-rest', 'cardio-timer-tab-rest'].forEach(id => document.getElementById(id)?.classList.toggle('active', mode === 'rest'));
-  ['timer-tab-stopwatch', 'cardio-timer-tab-stopwatch'].forEach(id => document.getElementById(id)?.classList.toggle('active', mode === 'stopwatch'));
-  ['timer-rest-panel', 'cardio-timer-rest-panel'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', mode !== 'rest'));
-  ['timer-stopwatch-panel', 'cardio-timer-stopwatch-panel'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', mode !== 'stopwatch'));
+  document.getElementById('timer-tab-rest')?.classList.toggle('active', mode === 'rest');
+  document.getElementById('timer-tab-stopwatch')?.classList.toggle('active', mode === 'stopwatch');
+  document.getElementById('timer-rest-panel')?.classList.toggle('hidden', mode !== 'rest');
+  document.getElementById('timer-stopwatch-panel')?.classList.toggle('hidden', mode !== 'stopwatch');
 }
 
 function setRestPreset(sec) {
@@ -4722,16 +4605,15 @@ function setRestPreset(sec) {
     adjustRestTimer(1, sec);
     return;
   }
-  let m = Math.floor(sec / 60), s = sec % 60;
-  let text = m + ':' + (s < 10 ? '0' : '') + s;
-  ['timer-rest-display', 'cardio-timer-rest-display'].forEach(id => {
-    let el = document.getElementById(id);
-    if (el) el.textContent = text;
-  });
+  let el = document.getElementById('timer-rest-display');
+  if (el) {
+    let m = Math.floor(sec / 60), s = sec % 60;
+    el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  }
 }
 
-function applyManualRest(inputId) {
-  let raw = (document.getElementById(inputId || 'timer-manual-input')?.value || '').trim();
+function applyManualRest() {
+  let raw = (document.getElementById('timer-manual-input')?.value || '').trim();
   if (!raw) return;
   let sec = parseRestTime(raw, restPresetSeconds);
   setRestPreset(sec);
@@ -4756,14 +4638,10 @@ function resetStopwatch(n) {
   }
   sw.elapsed = 0;
   sw.laps = [];
-  ['sw' + n + '-time', 'cardio-sw' + n + '-time'].forEach(id => {
-    let el = document.getElementById(id);
-    if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
-  });
-  ['sw' + n + '-play', 'cardio-sw' + n + '-play'].forEach(id => {
-    let btn = document.getElementById(id);
-    if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
-  });
+  let el = document.getElementById('sw' + n + '-time');
+  if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
+  let btn = document.getElementById('sw' + n + '-play');
+  if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
   renderLaps(n);
 }
 
@@ -4819,13 +4697,22 @@ function updateGlobalTimer(text) {
   }
 }
 
-/* ── Session card tab switch (Date / Timer) — Train tab ── */
-function setSessionTab(which) {
-  document.getElementById('session-tab-date')?.classList.toggle('active', which === 'date');
-  document.getElementById('session-tab-timer')?.classList.toggle('active', which === 'timer');
-  document.getElementById('session-panel-date')?.classList.toggle('collapsed', which !== 'date');
-  document.getElementById('session-panel-timer')?.classList.toggle('collapsed', which !== 'timer');
-  if (which === 'date') renderWeekStrip();
+/* ── Date section collapse/expand ── */
+function toggleDateSection() {
+  let btn = document.getElementById('date-chevron');
+  let body = document.getElementById('date-card-body');
+  if (!btn || !body) return;
+  let collapsed = btn.classList.toggle('collapsed');
+  body.classList.toggle('collapsed', collapsed);
+}
+
+/* ── Timer section collapse/expand ── */
+function toggleTimerSection() {
+  let btn = document.getElementById('timer-chevron');
+  let body = document.getElementById('timer-body');
+  if (!btn || !body) return;
+  let collapsed = btn.classList.toggle('collapsed');
+  body.style.display = collapsed ? 'none' : '';
 }
 
 /* ── Profile stats cards: Bodyweight / Water Reminder / Personal Records / Workout History ──

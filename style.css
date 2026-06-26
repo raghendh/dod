@@ -243,61 +243,6 @@ body::before, body::after { display: none !important; }
   color: var(--txt);
 }
 
-/* ── Session card (Date + Timer combined, tabbed) ──
-   Replaces the old separately-stacked .date-card + .timer-module pair.
-   Only one panel (date or timer) is visible at a time, so height is
-   capped at the taller panel instead of the sum of both. */
-.session-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 4px;
-  margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-  overflow: hidden;
-}
-.session-tabs {
-  display: flex;
-}
-.session-tab {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: var(--txt-muted);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 12px 8px 10px;
-  cursor: pointer;
-  font-family: inherit;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
-}
-.session-tab svg { flex-shrink: 0; }
-.session-tab.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.session-tab-meta {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: var(--txt3);
-  margin-left: 2px;
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
-}
-.session-tab.active .session-tab-meta { color: rgba(193,95,60,0.75); }
-.session-panel {
-  padding: 14px 14px 12px;
-}
-.session-panel.collapsed { display: none; }
-
 /* ── Timer module ── */
 .timer-module {
   background: var(--card-bg);
@@ -734,7 +679,6 @@ body.pitch-black .page { background: #000000; }
 body.pitch-black .ex-item,
 body.pitch-black .date-card,
 body.pitch-black .timer-module,
-body.pitch-black .session-card,
 body.pitch-black .settings-card,
 body.pitch-black .settings-panel,
 body.pitch-black .danger-panel { background: #0a0a0a; border-color: #1e1e1e; }
@@ -2418,8 +2362,7 @@ body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: #1e
   margin-top: 4px;
 }
 
-/* Cardio page session card spacing */
-#page-cardio .session-card,
+/* Cardio page date card spacing */
 #page-cardio .date-card {
   margin-top: 0;
 }
