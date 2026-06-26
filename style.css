@@ -1772,56 +1772,53 @@ body.pitch-black #onboarding-screen { background: #000; }
   transform: scale(0.96);
 }
 
+
 /* ─────────────────────────────────────────
-   POWER QUOTE MARQUEE
-   Shows multiple quotes in a continuous loop with separators.
-   Quotes scroll from right to left infinitely, displaying each
-   quote multiple times with dividers between them.
+   QUOTES MARQUEE — fixed strip below header,
+   visible on every tab. Continuous scroll,
+   each quote repeats 3x before the next.
 ───────────────────────────────────────── */
-#quote-marquee {
-  overflow: hidden;
+.quotes-marquee {
+  flex-shrink: 0;
+  width: 100%;
+  height: 28px;
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
-  padding: 6px 0;
-  flex-shrink: 0;
-  position: relative;
-}
-.quote-power-wrap {
-  position: relative;
-  width: 100%;
-  height: 18px;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-}
-.quote-power-item {
   position: relative;
-  left: 0;
-  font-size: 12.5px;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--accent);
-  white-space: nowrap;
-  text-shadow: 0 0 14px var(--accent-soft);
+  z-index: 49;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding-right: 16px;
-  animation: quote-power-scroll linear infinite;
 }
-.quote-power-item span {
-  flex-shrink: 0;
+body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: #1e1e1e; }
+.quotes-marquee.hidden { display: none !important; }
+
+.quotes-marquee-track {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  animation: quotes-scroll linear infinite;
+  padding-left: 100%; /* start fully off-screen to the right */
 }
-.quote-power-divider {
-  flex-shrink: 0;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent);
+
+.quotes-marquee-track .qm-item {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--txt-muted);
+  font-family: var(--font);
+}
+
+.quotes-marquee-track .qm-sep {
+  display: inline-block;
+  margin: 0 18px;
+  color: var(--accent);
   opacity: 0.6;
 }
-@keyframes quote-power-scroll {
+
+@keyframes quotes-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-100%); }
 }
@@ -1837,6 +1834,28 @@ body.pitch-black #onboarding-screen { background: #000; }
   color: var(--txt);
   line-height: 1.3;
   text-align: center;
+}
+
+/* ─────────────────────────────────────────
+   DATE CARD CALENDAR PICK BUTTON
+───────────────────────────────────────── */
+.date-cal-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  padding: 4px 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.date-cal-btn:hover,
+.date-cal-btn:active {
+  background: var(--accent);
+  color: #000;
 }
 
 /* ─────────────────────────────────────────

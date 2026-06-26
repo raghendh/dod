@@ -7,6 +7,69 @@ const TAG_COLORS = {
 };
 const DAY_COLORS = ["#ff2741","#00b8c4","#1fcf8c","#5e6470","#ff9900","#a259ff","#0090e0","#5e6470"];
 
+/* ── MOTIVATIONAL QUOTES MARQUEE ──
+   Static list, edit/add freely. Each quote is shown 3x back-to-back
+   in the scrolling strip before moving to the next one. */
+const MARQUEE_QUOTES = [
+  "Discipline is choosing between what you want now and what you want most.",
+  "The pain you feel today is the strength you feel tomorrow.",
+  "Do or die. There is no try.",
+  "Your body achieves what your mind believes.",
+  "Sweat is just fat crying.",
+  "The only bad workout is the one that didn't happen.",
+  "Strength doesn't come from comfort.",
+  "Push yourself because no one else is going to do it for you.",
+  "The iron never lies to you.",
+  "Champions train, losers complain.",
+  "Suffer the pain of discipline or suffer the pain of regret.",
+  "Excuses don't burn calories.",
+  "What seems impossible today will one day become your warm-up.",
+  "Wake up. Work out. Look hot. Conquer the day.",
+  "Pain is temporary, quitting lasts forever.",
+  "You don't have to be extreme, just consistent.",
+  "The body achieves what the mind believes.",
+  "Make your body the sexiest outfit you own.",
+  "Nobody who ever gave their best effort regretted it.",
+  "The clock is ticking. Are you becoming the person you want to be?",
+  "Today I will do what others won't, so tomorrow I can do what others can't.",
+  "Motivation gets you started. Discipline keeps you going.",
+  "A one hour workout is 4% of your day. No excuses.",
+  "Strive for progress, not perfection.",
+  "Your only limit is you.",
+  "When you feel like quitting, remember why you started.",
+  "Train insane or remain the same.",
+  "Fall in love with the process and the results will come.",
+  "Success starts with self-discipline.",
+  "Don't wish for it, work for it.",
+  "If it doesn't challenge you, it doesn't change you.",
+  "The hard days are what make you stronger.",
+  "Be stronger than your excuses.",
+  "Little progress is still progress.",
+  "You are your only limit.",
+  "Sore today, strong tomorrow.",
+  "No pain, no gain. Shut up and train.",
+  "Make sweat your best accessory.",
+  "Once you see results, it becomes an addiction.",
+  "The gym is my therapy.",
+  "Earn your body.",
+  "Difficult roads often lead to beautiful destinations.",
+  "Strength grows in the moments you think you can't go on but you keep going anyway.",
+  "Your health is an investment, not an expense.",
+  "Good things come to those who sweat.",
+  "Train your mind and your body will follow.",
+  "Every workout counts, even on the days you don't feel like it.",
+  "Consistency beats intensity over time.",
+  "The body you want is built one rep at a time.",
+  "You can't out-rest discipline.",
+  "Comfort is the enemy of progress.",
+  "Be the hardest worker in the room.",
+  "Rome wasn't built in a day, but they worked on it every single day.",
+  "Set goals that scare you and excite you.",
+  "There is no elevator to success, you have to take the stairs.",
+  "What hurts today makes you stronger tomorrow.",
+  "Action is the foundational key to all success."
+];
+
 const SPLITS = {
   "Bro Split":{
     days:[
@@ -377,6 +440,7 @@ let state = {
     showPRCalc: true,
     compactButtons: false,
     lockUI: true,
+    showQuotesMarquee: true,
     waterReminder: { enabled: false, intervalMinutes: 60 },
   }
 };
@@ -417,6 +481,7 @@ function resetAppState(){
       showPRCalc: true,
       compactButtons: false,
       lockUI: true,
+      showQuotesMarquee: true,
       waterReminder: { enabled: false, intervalMinutes: 60 },
     }
   };
@@ -506,6 +571,7 @@ function applyLoadedData(parsed) {
   if (state.settings.keepAwake === undefined) state.settings.keepAwake = false;
   if (state.settings.lockUI === undefined) state.settings.lockUI = true;
   if (state.settings.singleExpand === undefined) state.settings.singleExpand = true;
+  if (state.settings.showQuotesMarquee === undefined) state.settings.showQuotesMarquee = true;
   if (!state.bw) state.bw = {1:{}};
   if (!state.bw[1]) state.bw[1] = {};
   if (!state.knownExerciseNames) state.knownExerciseNames = [];
@@ -786,9 +852,12 @@ function updateDateLabel(){
   let label = days[d.getDay()].toUpperCase() + ', ' + months[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
   let lbl = document.getElementById('cur-date-lbl');
   if (lbl) lbl.textContent = label;
-  // global header date subtitle
+  // global header date subtitle — always shows TODAY, not the selected workout date
   let ghSub = document.getElementById('gh-date-sub');
-  if (ghSub) ghSub.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  if (ghSub) {
+    let today = new Date();
+    ghSub.textContent = days[today.getDay()] + ', ' + months[today.getMonth()] + ' ' + today.getDate() + ', ' + today.getFullYear();
+  }
   // legacy elements (no-ops if removed from HTML, safe)
   let monthEl = document.getElementById('cur-date-month');
   if (monthEl) monthEl.textContent = months[d.getMonth()].toUpperCase();
@@ -855,6 +924,15 @@ function applyDateDirect(val){
     if(state.page === 'profile') renderProfilePage();
     saveState();
   }
+}
+
+function openDatePicker(){
+  let dp = document.getElementById('hidden-date-picker');
+  if(!dp) return;
+  // Sync current date into the picker so it opens at the right month
+  let d = state.date;
+  dp.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  try { dp.showPicker(); } catch(e) { dp.click(); }
 }
 
 function shiftDate(days) {
@@ -1516,111 +1594,6 @@ function showPRBurst(exName, weight){
    screen for QUOTE_REPEAT_COUNT "views" (it re-pulses each cycle)
    before swapping to the next quote in the list. Big arsenal of
    quotes below — built to hit hard every single time it's read. */
-const POWER_QUOTES = [
-  "DISCIPLINE OVER MOTIVATION",
-  "THE IRON NEVER LIES",
-  "EARN IT EVERY DAY",
-  "PAIN IS TEMPORARY, PRIDE IS FOREVER",
-  "NO EXCUSES, ONLY RESULTS",
-  "OUTWORK YESTERDAY",
-  "STRONGER THAN YOUR EXCUSES",
-  "SHOW UP. LIFT. REPEAT.",
-  "GROWTH LIVES OUTSIDE COMFORT",
-  "CONSISTENCY BEATS INTENSITY",
-  "BUILT NOT BORN",
-  "DO OR DIE",
-  "BE THE STORM, NOT THE VICTIM OF IT",
-  "WEAK MINDS QUIT. YOU DON'T.",
-  "DEMAND MORE FROM YOURSELF",
-  "EVERY REP IS A PROMISE KEPT",
-  "FEAR THE MIRROR, NOT THE WEIGHT",
-  "SUFFER NOW, DOMINATE LATER",
-  "YOU WERE BORN TO CONQUER",
-  "THE GRIND DOESN'T CARE HOW YOU FEEL",
-  "GREATNESS IS EARNED IN SILENCE",
-  "BECOME UNSTOPPABLE",
-  "NO ONE IS COMING TO SAVE YOU. RISE.",
-  "PRESSURE MAKES DIAMONDS",
-  "TRAIN LIKE YOUR FUTURE DEPENDS ON IT",
-  "COMFORT IS THE ENEMY OF PROGRESS",
-  "RELENTLESS BEATS TALENTED",
-  "YOUR ONLY COMPETITION IS YESTERDAY'S YOU",
-  "MAKE FEAR YOUR FUEL",
-  "CHAMPIONS TRAIN, LOSERS COMPLAIN",
-  "OWN THE GRIND",
-  "WHAT YOU AVOID, OWNS YOU",
-  "GO UNTIL THERE'S NOTHING LEFT",
-  "THE BODY ACHIEVES WHAT THE MIND BELIEVES",
-  "HARD CHOICES, EASY LIFE",
-  "ZERO DAYS OFF FROM YOUR STANDARDS",
-  "PROVE IT WHEN NO ONE IS WATCHING",
-  "RESPECT THE PROCESS, FEAR NOTHING",
-  "RUTHLESS WITH YOUR EXCUSES",
-  "RISE LIKE IT'S WAR",
-  "RECLAIM YOUR POWER, REP BY REP",
-  "RESULTS DON'T LIE, EFFORT DOESN'T HIDE",
-  "EAT YOUR DOUBTS FOR BREAKFAST",
-  "BE DANGEROUS IN PURSUIT OF YOUR GOALS",
-  "STRENGTH IS BUILT IN THE DARK",
-  "NEVER NEGOTIATE WITH WEAKNESS",
-  "ATTACK THE DAY BEFORE IT ATTACKS YOU",
-  "SACRIFICE NOW, DOMINATE FOREVER",
-  "FORGE YOURSELF IN FIRE",
-  "ONE MORE REP. ALWAYS ONE MORE.",
-  "YOUR LIMITS ARE A LIE YOU TELL YOURSELF"
-];
-let _quoteIdx = 0;
-let _quotePasses = 0;
-
-function initPowerQuotes(){
-  let wrap = document.querySelector('.quote-power-wrap');
-  let el = document.getElementById('quote-power-text');
-  if(!wrap || !el) return;
-
-  // Build a continuous sequence of quotes
-  // Each quote appears 2 times before the separator
-  let quoteSequence = [];
-  let totalDuration = 0;
-  
-  POWER_QUOTES.forEach((quote, idx) => {
-    // Add quote twice
-    for (let i = 0; i < 2; i++) {
-      quoteSequence.push({ text: quote, isQuote: true });
-      totalDuration++;
-    }
-    // Add separator (except after the last quote's second occurrence)
-    if (idx < POWER_QUOTES.length - 1 || true) { // Always add after each pair
-      quoteSequence.push({ text: '|', isQuote: false });
-      totalDuration += 0.3; // Separators are shorter
-    }
-  });
-
-  // Calculate animation duration (each unit = ~1 second of scroll)
-  // Adjust the multiplier to control scroll speed
-  const baseSpeed = 0.6; // seconds per unit
-  const totalAnimationDuration = (quoteSequence.length * baseSpeed) + 5; // Add buffer
-
-  // Build HTML content
-  let html = '';
-  quoteSequence.forEach((item, idx) => {
-    if (item.isQuote) {
-      html += `<span>${item.text}</span>`;
-      // Add separator after each quote (except the last one overall)
-      if (idx < quoteSequence.length - 1 && quoteSequence[idx + 1].isQuote) {
-        html += `<div class="quote-power-divider"></div>`;
-      }
-    }
-  });
-  
-  el.innerHTML = html;
-  
-  // Duplicate content to create seamless loop
-  el.innerHTML = el.innerHTML + el.innerHTML;
-  
-  // Set animation duration
-  el.style.animationDuration = totalAnimationDuration + 's';
-}
-
 /* ── WATER REMINDER ENGINE ───────────────────────────────────────
    Two layers, since there's no backend to push from:
    1) Periodic Background Sync — lets the service worker fire a
@@ -2417,7 +2390,8 @@ function renderPRPage(){
       </div>`;
     }
   }
-  document.getElementById('pr-list').innerHTML=html||'<div class="u13">No PRs unlocked yet.<br><span class="u5">Track heavy sets to set records.</span></div>';
+  let prListEl = document.getElementById('pr-list');
+  if (prListEl) prListEl.innerHTML=html||'<div class="u13">No PRs unlocked yet.<br><span class="u5">Track heavy sets to set records.</span></div>';
 }
 
 function renderBWHistory() {
@@ -3060,6 +3034,12 @@ function toggleStitchSetting(key, el) {
   else if (key === 'showNotes') state.settings.showNotes = on;
   else if (key === 'lockUI') state.settings.lockUI = on;
   else if (key === 'singleExpand') state.settings.singleExpand = on;
+  else if (key === 'showQuotesMarquee') {
+    state.settings.showQuotesMarquee = on;
+    let track = document.getElementById('quotes-marquee-track');
+    if (on && track) track.dataset.built = '0'; // force rebuild if it was never built while hidden
+    renderQuotesMarquee();
+  }
   else if (key === 'pitchBlack') {
     state.settings.pitchBlack = on;
     document.body.classList.toggle('pitch-black', on);
@@ -3446,6 +3426,10 @@ function renderProfilePage() {
         <div class="settings-row">
           <div><div class="settings-row-label">Show PR Calculator</div><div class="settings-row-sub">Shows the percentage-based 1RM calculator on exercises</div></div>
           <label class="set-toggle"><input type="checkbox" ${s.showPRCalc !== false ? 'checked' : ''} onchange="toggleStitchSetting('showPRCalc', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Show Quotes Marquee</div><div class="settings-row-sub">Scrolling motivational quotes bar below the header on every tab</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.showQuotesMarquee !== false ? 'checked' : ''} onchange="toggleStitchSetting('showQuotesMarquee', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Show Exercise Notes</div><div class="settings-row-sub">Displays cues and coaching notes inside exercise panels</div></div>
@@ -4286,12 +4270,54 @@ function toggleProfileCollapse(key) {
   });
 }
 
+/* ── Quotes marquee (fixed bar below header, all tabs) ──
+   Builds one long inline strip: each quote repeated 3x back-to-back,
+   separated by a small dot, then the whole strip is duplicated once
+   so the CSS animation (translateX -100%) loops seamlessly. Animation
+   duration scales with content length so longer quote sets don't
+   suddenly speed up or crawl. */
+function renderQuotesMarquee() {
+  let bar = document.getElementById('quotes-marquee');
+  let track = document.getElementById('quotes-marquee-track');
+  if (!bar || !track) return;
+
+  let on = !(state.settings && state.settings.showQuotesMarquee === false);
+  bar.classList.toggle('hidden', !on);
+  if (!on) return;
+
+  // Only build the DOM once; the CSS animation runs forever after that.
+  if (track.dataset.built === '1') return;
+
+  let parts = [];
+  MARQUEE_QUOTES.forEach(q => {
+    for (let i = 0; i < 3; i++) {
+      parts.push(`<span class="qm-item">${escapeHtml(q)}</span>`);
+      parts.push('<span class="qm-sep">&#9670;</span>');
+    }
+  });
+  let stripHtml = parts.join('');
+  // Duplicate the whole strip so translateX(-100%) loops with no visible seam
+  track.innerHTML = stripHtml + stripHtml;
+
+  // Rough reading speed: ~90px per second feels readable without dragging
+  let pxPerSecond = 90;
+  let widthEstimate = track.scrollWidth || (MARQUEE_QUOTES.length * 3 * 260);
+  let durationSeconds = Math.max(40, Math.round((widthEstimate / 2) / pxPerSecond));
+  track.style.animationDuration = durationSeconds + 's';
+
+  track.dataset.built = '1';
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 async function bootstrapApp() {
   await init();
   setTimerTab('rest');
   setRestPreset(90);
-  initPowerQuotes();
   startWaterReminderTimer();
+  renderQuotesMarquee();
   if (!state.settings?.onboardingDone) showOnboarding();
 }
 
