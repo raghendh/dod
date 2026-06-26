@@ -11,6 +11,12 @@ const DAY_COLORS = ["#ff2741","#00b8c4","#1fcf8c","#5e6470","#ff9900","#a259ff",
    Static list, edit/add freely. Each quote is shown 3x back-to-back
    in the scrolling strip before moving to the next one. */
 const MARQUEE_QUOTES = [
+  "Do or die.",
+  "Discipline over motivation.",
+  "No excuses.",
+  "Earn it.",
+  "Pain is progress.",
+  "Outwork yesterday.",
   "Discipline is choosing between what you want now and what you want most.",
   "The pain you feel today is the strength you feel tomorrow.",
   "Do or die. There is no try.",
@@ -655,19 +661,25 @@ function toggleSW(n){
     clearInterval(sw.interval);
     sw.elapsed += Date.now() - sw.start;
     sw.running = false;
-    let btn = document.getElementById('sw' + n + '-play');
-    if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
+    ['sw' + n + '-play', 'cardio-sw' + n + '-play'].forEach(id => {
+      let btn = document.getElementById(id);
+      if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
+    });
   } else {
     // PLAY / RESUME
     sw.start = Date.now();
     sw.running = true;
     sw.interval = setInterval(() => {
       let total = sw.elapsed + (Date.now() - sw.start);
-      let el = document.getElementById('sw' + n + '-time');
-      if (el) el.innerHTML = fmt(total);
+      ['sw' + n + '-time', 'cardio-sw' + n + '-time'].forEach(id => {
+        let el = document.getElementById(id);
+        if (el) el.innerHTML = fmt(total);
+      });
     }, 10);
-    let btn = document.getElementById('sw' + n + '-play');
-    if (btn) { btn.innerHTML = SW_PAUSE_ICON; btn.title = 'Pause'; }
+    ['sw' + n + '-play', 'cardio-sw' + n + '-play'].forEach(id => {
+      let btn = document.getElementById(id);
+      if (btn) { btn.innerHTML = SW_PAUSE_ICON; btn.title = 'Pause'; }
+    });
   }
 }
 
@@ -684,14 +696,14 @@ function lapStopwatch(n) {
 
 function renderLaps(n) {
   let sw = state.sw[n];
-  let container = document.getElementById('sw-laps-list');
-  if (!container) return;
-  if (!sw.laps || sw.laps.length === 0) { container.innerHTML = ''; return; }
+  let containers = ['sw-laps-list', 'cardio-sw-laps-list'].map(id => document.getElementById(id)).filter(Boolean);
+  if (containers.length === 0) return;
+  if (!sw.laps || sw.laps.length === 0) { containers.forEach(c => c.innerHTML = ''); return; }
   // Fastest and slowest split
   let splits = sw.laps.map(l => l.split);
   let fastest = Math.min(...splits);
   let slowest = Math.max(...splits);
-  container.innerHTML = sw.laps.slice().reverse().map(l => {
+  let lapsHtml = sw.laps.slice().reverse().map(l => {
     let tag = '';
     if (sw.laps.length > 1) {
       if (l.split === fastest) tag = '<span class="lap-tag lap-fast">BEST</span>';
@@ -704,6 +716,7 @@ function renderLaps(n) {
       <span class="lap-total">${fmtLap(l.total)}</span>
     </div>`;
   }).join('');
+  containers.forEach(c => c.innerHTML = lapsHtml);
 }
 
 function fmtLap(ms) {
@@ -727,10 +740,24 @@ function syncTimerUI() {
   // (pressing it mid-run used to trigger the exact same action as the separate reset
   // button, so the two have been merged into one). Icons match the stopwatch button's
   // size/style exactly so nothing visually shifts when switching tabs.
-  let playBtn = document.getElementById('timer-rest-play');
-  if (playBtn) {
-    playBtn.innerHTML = isRunning ? RT_RESET_ICON : SW_PLAY_ICON;
-    playBtn.title = isRunning ? 'Reset' : 'Start';
+  ['timer-rest-play', 'cardio-timer-rest-play'].forEach(id => {
+    let playBtn = document.getElementById(id);
+    if (playBtn) {
+      playBtn.innerHTML = isRunning ? RT_RESET_ICON : SW_PLAY_ICON;
+      playBtn.title = isRunning ? 'Reset' : 'Start';
+    }
+  });
+
+  // Keep the "Timer" tab's live status meta in sync whenever this runs
+  // (covers app reload / tab switch while a rest timer is already running).
+  if (isRunning) {
+    let rem = Math.ceil((rt.end - Date.now()) / 1000);
+    if (rem > 0) {
+      let m = Math.floor(rem/60), s = rem%60;
+      syncSessionTimerMeta(`${m}:${s<10?'0':''}${s}`);
+    }
+  } else {
+    syncSessionTimerMeta(null);
   }
 }
 
@@ -773,12 +800,18 @@ function updateRestTimer(p) {
 
   if (floatText) floatText.textContent = displayStr;
   if (topText) topText.textContent = displayStr;
-  let moduleDisplay = document.getElementById('timer-rest-display');
-  if (moduleDisplay) moduleDisplay.textContent = displayStr;
-  let moduleSub = document.getElementById('timer-rest-sub');
-  if (moduleSub) moduleSub.textContent = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
+  ['timer-rest-display', 'cardio-timer-rest-display'].forEach(id => {
+    let el = document.getElementById(id);
+    if (el) el.textContent = displayStr;
+  });
+  let subText = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
+  ['timer-rest-sub', 'cardio-timer-rest-sub'].forEach(id => {
+    let el = document.getElementById(id);
+    if (el) el.textContent = subText;
+  });
   // update global header floating timer
   updateGlobalTimer(rt.running ? displayStr : null);
+  syncSessionTimerMeta(rt.running ? displayStr : null);
 }
 
 function adjustRestTimer(p, seconds) {
@@ -795,7 +828,19 @@ function closeRestTimer(p) {
   rt.interval = null;
   rt.running = false;
   updateGlobalTimer(null);
+  syncSessionTimerMeta(null);
   syncTimerUI();
+}
+
+/* ── Session tab meta: shows a live running indicator on the "Timer" tab label
+   even while the Date tab is the one currently visible, so nothing running
+   is ever silently hidden behind the other tab. ── */
+function syncSessionTimerMeta(text) {
+  ['session-tab-timer-meta', 'cardio-session-tab-timer-meta'].forEach(id => {
+    let el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text || '';
+  });
 }
 
 function toggleTimerMerge() {
@@ -852,11 +897,15 @@ function updateDateLabel(){
   let label = days[d.getDay()].toUpperCase() + ', ' + months[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
   let lbl = document.getElementById('cur-date-lbl');
   if (lbl) lbl.textContent = label;
-  // global header date subtitle — always shows TODAY, not the selected workout date
-  let ghSub = document.getElementById('gh-date-sub');
-  if (ghSub) {
+  // global header date pill — always shows TODAY, not the selected workout date,
+  // formatted to match the timer pill's look (e.g. 26/06/26)
+  let ghPill = document.getElementById('gh-date-pill');
+  if (ghPill) {
     let today = new Date();
-    ghSub.textContent = days[today.getDay()] + ', ' + months[today.getMonth()] + ' ' + today.getDate() + ', ' + today.getFullYear();
+    let dd = String(today.getDate()).padStart(2, '0');
+    let mm = String(today.getMonth() + 1).padStart(2, '0');
+    let yy = String(today.getFullYear()).slice(-2);
+    ghPill.textContent = `${dd}/${mm}/${yy}`;
   }
   // legacy elements (no-ops if removed from HTML, safe)
   let monthEl = document.getElementById('cur-date-month');
@@ -866,7 +915,20 @@ function updateDateLabel(){
   if (dp) dp.value = dstr;
   // render week strip
   renderWeekStrip();
+  syncSessionTabMeta();
 }
+
+/* ── Session tab meta (short date shown in the "Date" tab even when Timer tab is active) ── */
+function syncSessionTabMeta() {
+  let d = state.date;
+  let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let shortDate = months[d.getMonth()] + ' ' + d.getDate();
+  ['session-tab-date-meta', 'cardio-session-tab-date-meta'].forEach(id => {
+    let el = document.getElementById(id);
+    if (el) el.textContent = shortDate;
+  });
+}
+
 
 function renderWeekStrip() {
   let strip = document.getElementById('week-strip');
@@ -3044,9 +3106,74 @@ function saveSettingsAuto() {
   
 }
 
+// Key lifts used for the strength pillar, with their bodyweight-ratio
+// standards at a few benchmark levels (ratio = best 1RM / bodyweight).
+// Standards are unisex general-population approximations, intentionally
+// a bit conservative since we have no sex field to split them by.
+const STRENGTH_LIFTS = [
+  { key: 'squat',    match: ['Back Squat', 'Front Squat', 'Smith Machine Squats'], standards: [0.75, 1.25, 1.75, 2.25] },
+  { key: 'bench',    match: ['Flat Barbell Bench Press', 'Barbell Bench Press', 'Close Grip Bench Press'], standards: [0.5, 0.9, 1.3, 1.7] },
+  { key: 'deadlift', match: ['Deadlift', 'Sumo Deadlift', 'Rack Pull'], standards: [1.0, 1.5, 2.0, 2.5] },
+  { key: 'ohp',      match: ['Overhead Press', 'Military Press', 'Seated Dumbbell Shoulder Press', 'Machine Shoulder Press'], standards: [0.35, 0.6, 0.85, 1.1] }
+];
+
+// Best estimated 1RM for one of the STRENGTH_LIFTS entries: prefer a
+// manually-set PR, otherwise fall back to the heaviest logged set ever,
+// converted to an estimated 1RM with the Epley formula (w * (1 + r/30)).
+function bestEst1RM(matchNames, profile) {
+  let best = null;
+  matchNames.forEach(exName => {
+    let pr = getPR(exName, profile);
+    if (pr && (best === null || pr > best)) best = pr;
+  });
+  if (best !== null) return { value: best, source: 'PR' };
+
+  // Fallback: scan logged history for this profile for the heaviest set
+  // across any matching exercise name (handles renamed/duplicate variants).
+  let bestEst = null;
+  Object.keys(state.workouts || {}).forEach(k => {
+    if (!k.endsWith('_' + profile)) return;
+    let w = state.workouts[k];
+    if (!w || !w.exs) return;
+    w.exs.forEach(ex => {
+      if (!matchNames.some(name => isSameEx(ex.name, name))) return;
+      (ex.sets || []).forEach(s => {
+        let wt = parseFloat(s.w), reps = parseFloat(s.r);
+        if (!wt || !reps) return;
+        let est1RM = wt * (1 + reps / 30);
+        if (bestEst === null || est1RM > bestEst) bestEst = est1RM;
+      });
+    });
+  });
+  return bestEst !== null ? { value: bestEst, source: 'log' } : null;
+}
+
+// Interpolate a 0-100 score from a ratio against 4 ascending benchmark
+// standards (roughly: beginner / intermediate / advanced / elite).
+function scoreAgainstStandards(ratio, standards) {
+  let [s1, s2, s3, s4] = standards;
+  if (ratio <= 0) return 0;
+  if (ratio < s1) return (ratio / s1) * 25;
+  if (ratio < s2) return 25 + ((ratio - s1) / (s2 - s1)) * 25;
+  if (ratio < s3) return 50 + ((ratio - s2) / (s3 - s2)) * 25;
+  if (ratio < s4) return 75 + ((ratio - s3) / (s4 - s3)) * 25;
+  return 100;
+}
+
+// Strength standards get easier with age past the mid-30s (natural decline
+// in max force production) and increase slightly for younger lifters who
+// haven't had time to train into their genetic ceiling yet — this nudges
+// the *standards*, rather than just bolting a flat bonus onto the score.
+function ageStandardsMultiplier(age) {
+  if (!age) return 1;
+  if (age < 23) return 1.08;
+  if (age < 40) return 1.0;
+  if (age < 50) return 0.93;
+  if (age < 60) return 0.85;
+  return 0.75;
+}
+
 function calcFitnessLevel(metrics, bw){
-  // Waist-to-Height ratio based fitness score
-  let score = 0; let label = 'Unknown'; let color = 'var(--txt3)'; let pct = 0;
   let height = parseFloat(metrics.height);
   let waist = parseFloat((metrics.measurements||{}).waist);
   let fatPct = parseFloat(metrics.fatPct);
@@ -3054,48 +3181,150 @@ function calcFitnessLevel(metrics, bw){
   let weight = parseFloat(bw);
   let detail = [];
 
-  // Waist-to-Height ratio (primary method)
-  if(waist && height){
+  /* ── Pillar 1: Body composition (0-100) ──
+     WHtR and body-fat % both proxy the same thing (leanness), so they're
+     averaged together rather than summed — filling in both shouldn't be
+     worth "more" than filling in one well. BMI only kicks in as a weak
+     fallback when neither is available, since BMI alone misclassifies
+     muscular or very lean people. */
+  let compScore = null;
+  let compParts = [];
+  if (waist && height) {
     let whr = waist / height;
     detail.push('Waist-to-Height: ' + whr.toFixed(3));
-    if(whr < 0.43){ score += 30; }
-    else if(whr < 0.53){ score += 25; }
-    else if(whr < 0.58){ score += 15; }
-    else if(whr < 0.63){ score += 5; }
-    else { score += 0; }
+    let s = whr < 0.43 ? 100 : whr < 0.48 ? 90 : whr < 0.53 ? 75 : whr < 0.58 ? 55 : whr < 0.63 ? 30 : 10;
+    compParts.push(s);
   }
-  // Body fat %
-  if(fatPct){
+  if (fatPct) {
     detail.push('Body fat: ' + fatPct + '%');
-    if(fatPct < 10){ score += 30; }
-    else if(fatPct < 16){ score += 25; }
-    else if(fatPct < 22){ score += 18; }
-    else if(fatPct < 28){ score += 10; }
-    else if(fatPct < 35){ score += 4; }
-    else { score += 0; }
+    let s = fatPct < 10 ? 100 : fatPct < 14 ? 92 : fatPct < 18 ? 80 : fatPct < 22 ? 65 : fatPct < 26 ? 48 : fatPct < 32 ? 28 : 10;
+    compParts.push(s);
   }
-  // BMI component (supporting)
-  if(weight && height){
-    let bmi = weight / ((height/100)**2);
-    detail.push('BMI: ' + bmi.toFixed(1));
-    if(bmi >= 18.5 && bmi <= 24.9){ score += 20; }
-    else if(bmi >= 17 && bmi < 28){ score += 12; }
-    else if(bmi >= 15 && bmi < 30){ score += 6; }
+  if (compParts.length) {
+    compScore = compParts.reduce((a, b) => a + b, 0) / compParts.length;
+  } else if (weight && height) {
+    let bmi = weight / ((height / 100) ** 2);
+    detail.push('BMI: ' + bmi.toFixed(1) + ' (fallback — add waist or body fat % for accuracy)');
+    compScore = (bmi >= 18.5 && bmi <= 24.9) ? 80 : (bmi >= 17 && bmi < 28) ? 55 : (bmi >= 15 && bmi < 32) ? 30 : 10;
   }
-  // Age-adjusted bonus
-  if(age){ if(age < 30) score += 10; else if(age < 40) score += 8; else if(age < 50) score += 5; else score += 2; }
 
-  let maxScore = (waist&&height?30:0) + (fatPct?30:0) + (weight&&height?20:0) + (age?10:0);
-  if(maxScore === 0) return {label:'No Data', color:'var(--txt3)', pct:0, detail:[]};
-  pct = Math.min(100, Math.round((score/maxScore)*100));
+  /* ── Pillar 2: Strength (0-100) ──
+     Bodyweight-relative ratio for each key lift we have data on, scored
+     against age-adjusted standards, then averaged across however many
+     lifts are actually logged (no penalty for missing lifts). */
+  let strengthScore = null;
+  if (weight) {
+    let ageMult = ageStandardsMultiplier(age);
+    let liftScores = [];
+    STRENGTH_LIFTS.forEach(lift => {
+      let est = bestEst1RM(lift.match, state.profile);
+      if (!est) return;
+      let ratio = est.value / weight;
+      let adjStandards = lift.standards.map(s => s * ageMult);
+      let s = scoreAgainstStandards(ratio, adjStandards);
+      liftScores.push(s);
+      detail.push(`${lift.key[0].toUpperCase() + lift.key.slice(1)}: ${est.value.toFixed(1)}kg (${ratio.toFixed(2)}x BW${est.source === 'log' ? ', from logs' : ''})`);
+    });
+    if (liftScores.length) {
+      strengthScore = liftScores.reduce((a, b) => a + b, 0) / liftScores.length;
+    }
+  }
 
-  if(pct >= 80){ label = 'Elite'; color = '#00f3ff'; }
-  else if(pct >= 65){ label = 'Athletic'; color = '#ccff00'; }
-  else if(pct >= 50){ label = 'Fit'; color = '#4ade80'; }
-  else if(pct >= 35){ label = 'Average'; color = '#f59e0b'; }
+  /* ── Pillar 3: Training consistency (0-100) ──
+     Workouts logged in the trailing 30 days, capped at 16 (≈4/week) for
+     a full score. Reflects current habit, not just static body stats. */
+  let consistencyScore = null;
+  if (state.workouts) {
+    let todayKey = dateKey(state.date);
+    let cutoff = new Date(state.date); cutoff.setDate(cutoff.getDate() - 30);
+    let cutoffKey = dateKey(cutoff);
+    let loggedDays = new Set();
+    Object.keys(state.workouts).forEach(k => {
+      if (!k.endsWith('_' + state.profile)) return;
+      let dPart = k.slice(0, k.lastIndexOf('_'));
+      if (dPart < cutoffKey || dPart > todayKey) return;
+      let w = state.workouts[k];
+      if (w && w.exs && w.exs.some(e => e.sets.some(s => s.w || s.r))) loggedDays.add(dPart);
+    });
+    if (loggedDays.size > 0) {
+      consistencyScore = Math.min(100, (loggedDays.size / 16) * 100);
+      detail.push(`Consistency: ${loggedDays.size} workout${loggedDays.size === 1 ? '' : 's'} in last 30 days`);
+    }
+  }
+
+  /* ── Pillar 4: Cardio (0-100, minimal weight) ──
+     Kept deliberately simple — just session frequency + total minutes
+     in the trailing 30 days, capped at modest targets (8 sessions /
+     120 min for a full score, roughly 2x/week). This is a small input
+     into overall fitness, not a substitute for strength or composition,
+     so it carries the lowest weight of the four pillars. */
+  let cardioScore = null;
+  if (state.cardioLog) {
+    let todayKey = dateKey(state.date);
+    let cutoff = new Date(state.date); cutoff.setDate(cutoff.getDate() - 30);
+    let cutoffKey = dateKey(cutoff);
+    let sessions = 0, minutes = 0;
+    Object.keys(state.cardioLog).forEach(dKey => {
+      if (dKey < cutoffKey || dKey > todayKey) return;
+      (state.cardioLog[dKey] || []).forEach(s => {
+        sessions++;
+        minutes += parseFloat(s.duration) || 0;
+      });
+    });
+    if (sessions > 0) {
+      let freqScore = Math.min(100, (sessions / 8) * 100);
+      let volScore = Math.min(100, (minutes / 120) * 100);
+      cardioScore = (freqScore + volScore) / 2;
+      detail.push(`Cardio: ${sessions} session${sessions === 1 ? '' : 's'}, ${Math.round(minutes)} min in last 30 days`);
+    }
+  }
+
+  /* ── Combine pillars ──
+     Fixed weights: Strength 38, Composition 32, Consistency 20, Cardio 10.
+     Cardio is intentionally minor — it nudges the score, it never drives
+     it. Unlike the other three pillars, cardio is NOT included in the
+     "renormalize to whatever's present" pool: if it were, someone who
+     only logged cardio (and nothing else) would renormalize it to 100%
+     weight and get a misleadingly high score from cardio alone — exactly
+     the partial-data inflation bug being fixed here. So cardio only ever
+     applies as a capped nudge on top of at least one real pillar below.
+     A small age-context note is folded into the label only (not the
+     score — age already adjusts the strength standards above, so a
+     second flat age bonus would double-count it). */
+  let pillars = [];
+  if (strengthScore !== null)    pillars.push({ s: strengthScore,    w: 38 });
+  if (compScore !== null)        pillars.push({ s: compScore,        w: 32 });
+  if (consistencyScore !== null) pillars.push({ s: consistencyScore, w: 20 });
+
+  if (!pillars.length) return { label: 'No Data', color: 'var(--txt3)', pct: 0, detail: [] };
+
+  let totalW = pillars.reduce((a, p) => a + p.w, 0);
+  let basePct = pillars.reduce((a, p) => a + p.s * p.w, 0) / totalW;
+
+  // Cardio nudge: a flat, capped +4 / -2 point adjustment regardless of
+  // which other pillars are present — small enough that it can't rescue
+  // a low score or meaningfully inflate a high one on its own.
+  let pct = basePct;
+  if (cardioScore !== null) {
+    let nudge = ((cardioScore - 50) / 50) * 4; // -4..+4, biased slightly positive at full cardio
+    pct = basePct + Math.max(-2, Math.min(4, nudge));
+  }
+  pct = Math.round(Math.max(0, Math.min(100, pct)));
+
+  let label, color;
+  if (pct >= 80) { label = 'Elite'; color = '#00f3ff'; }
+  else if (pct >= 65) { label = 'Athletic'; color = '#ccff00'; }
+  else if (pct >= 50) { label = 'Fit'; color = '#4ade80'; }
+  else if (pct >= 35) { label = 'Average'; color = '#f59e0b'; }
   else { label = 'Below Avg'; color = '#ff2741'; }
-  return {label, color, pct, detail};
+
+  if (pillars.length < 2) {
+    detail.push('Add more data (waist, body fat %, or log a few heavy sets) for a fuller picture.');
+  }
+
+  return { label, color, pct, detail };
 }
+
 
 function toggleStitchSetting(key, el) {
   let on = !!el.checked;
@@ -3137,6 +3366,42 @@ function switchProfileTab(tab) {
   });
   document.getElementById('profile-tab-stats').style.display   = tab === 'stats'    ? 'block' : 'none';
   document.getElementById('profile-tab-settings').style.display = tab === 'settings' ? 'block' : 'none';
+}
+
+function buildProfileCardioHistory() {
+  let cardioLog = state.cardioLog || {};
+  let allDates = Object.keys(cardioLog).sort().reverse();
+  if (!allDates.length) {
+    return '<div class="u13">No cardio logged yet.<br><span class="u5">Log sessions in the Cardio tab to see history here.</span></div>';
+  }
+  let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = '';
+  allDates.forEach(dateStr => {
+    let sessions = cardioLog[dateStr];
+    if (!sessions || !sessions.length) return;
+    let d = new Date(dateStr + 'T12:00:00');
+    html += `<div class="hist-day">
+      <div class="hist-day-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="hist-day-num">${d.getDate()}</div>
+          <div class="hist-day-date">${dayNames[d.getDay()]}, ${months[d.getMonth()]} ${d.getFullYear()}</div>
+        </div>
+      </div>
+      <div class="hist-card">
+        <div class="hist-profile-col">`;
+    sessions.forEach(s => {
+      let badges = '';
+      if (s.duration) badges += `<span class="cardio-badge cardio-badge-cyan" style="font-size:10px;padding:2px 6px;">${s.duration}min</span>`;
+      if (s.distance) badges += `<span class="cardio-badge cardio-badge-green" style="font-size:10px;padding:2px 6px;">${s.distance}km</span>`;
+      if (s.calories) badges += `<span class="cardio-badge cardio-badge-red" style="font-size:10px;padding:2px 6px;">${s.calories}kcal</span>`;
+      html += `<div class="hist-ex-name">${s.type || 'Cardio'}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">${badges}</div>`;
+      if (s.notes) html += `<div class="hist-set-row" style="color:var(--txt2);">${s.notes}</div>`;
+    });
+    html += `</div></div></div>`;
+  });
+  return html;
 }
 
 function renderProfilePage() {
@@ -3432,6 +3697,21 @@ function renderProfilePage() {
         </div>
       </div>
 
+      <!-- Cardio History -->
+      <div class="collapse-card" id="collapse-cardio-hist">
+        <div class="collapse-card-header" onclick="toggleProfileCollapse('cardio-hist')">
+          <span class="profile-section-title" style="margin:0;">Cardio History</span>
+          <button type="button" class="chevron-btn ${profileExpandedCard === 'cardio-hist' ? '' : 'collapsed'}" id="chevron-cardio-hist" aria-label="Toggle cardio history">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+        </div>
+        <div class="collapse-card-body ${profileExpandedCard === 'cardio-hist' ? '' : 'collapsed'}" id="collapse-body-cardio-hist">
+          <div style="margin-top:10px;">
+            ${buildProfileCardioHistory()}
+          </div>
+        </div>
+      </div>
+
       <!-- Muscle Volume (last 30 days) -->
       <div class="profile-section-title">Muscle Volume — Last 30 Days</div>
       <div class="settings-panel">
@@ -3672,8 +3952,12 @@ function collapseAllExpandedCards(tab) {
       el.style.display = 'none';
     });
   } else if (tab === 'cardio') {
-    document.querySelectorAll('#cardio-entries .cardio-session-detail').forEach(el => {
+    cardioExpandedCards = {};
+    document.querySelectorAll('#cardio-entries .cardio-card-expand').forEach(el => {
       el.style.display = 'none';
+    });
+    document.querySelectorAll('#cardio-entries .chevron-btn').forEach(el => {
+      el.classList.add('collapsed');
     });
   }
 }
@@ -3715,45 +3999,153 @@ function toggleReorderMode(tab) {
 }
 
 // ── Cardio Tracking ──────────────────────────────────────────────────────
+
+// Tracks which cardio session cards are expanded: { "dateKey_idx": true }
+let cardioExpandedCards = {};
+
+function toggleCardioExpand(dateStr, idx) {
+  let key = dateStr + '_' + idx;
+  cardioExpandedCards[key] = !cardioExpandedCards[key];
+  // Re-render just the entries so the date card / log form stay intact
+  let today = dateKey(state.date);
+  let sessions = (state.cardioLog && state.cardioLog[today]) || [];
+  document.getElementById('cardio-entries').innerHTML = buildCardioEntriesHtml(today, sessions);
+  initCardioDragHandlers();
+  if(reorderMode.cardio) setReorderActiveState('cardio', true);
+}
+
+function buildCardioEntriesHtml(dayKey, sessions) {
+  if (!sessions || !sessions.length) {
+    return '<div class="u13" style="margin-top:8px;">No cardio logged for this day.<br><span class="u5">Log a session above to track it here.</span></div>';
+  }
+  let html = '';
+  sessions.forEach((s, si) => {
+    let expandKey = dayKey + '_' + si;
+    let isExpanded = !!cardioExpandedCards[expandKey];
+    let badgesHtml = '';
+    if (s.duration) badgesHtml += `<span class="cardio-badge cardio-badge-cyan">${s.duration} min</span>`;
+    if (s.distance) badgesHtml += `<span class="cardio-badge cardio-badge-green">${s.distance} km</span>`;
+    if (s.calories) badgesHtml += `<span class="cardio-badge cardio-badge-red">${s.calories} kcal</span>`;
+
+    html += `<div class="section-card cardio-session-card" data-date="${dayKey}" data-idx="${si}" style="margin-bottom:8px;">
+      <div class="cardio-card-header" onclick="toggleCardioExpand('${dayKey}',${si})">
+        <div class="cardio-card-title-col">
+          <div class="cardio-card-type">${s.type || 'Cardio'}</div>
+          <div class="cardio-card-badges">${badgesHtml}</div>
+        </div>
+        <button type="button" class="chevron-btn ${isExpanded ? '' : 'collapsed'}" onclick="event.stopPropagation();toggleCardioExpand('${dayKey}',${si})" aria-label="Expand">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+      </div>
+      <div class="cardio-card-expand" style="display:${isExpanded ? 'block' : 'none'};">
+        ${s.notes ? `<div class="cardio-card-notes">${s.notes}</div>` : ''}
+        <div class="cardio-card-actions">
+          <button class="ex-footer-btn edit" onclick="event.stopPropagation();editCardioEntry('${dayKey}',${si})">&#9998; Edit</button>
+          <button class="ex-footer-btn remove" onclick="event.stopPropagation();deleteCardioEntry('${dayKey}',${si})">Remove</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  return html;
+}
+
 function renderCardioPage() {
   let cardioLog = state.cardioLog || {};
-  let entries = Object.entries(cardioLog).sort((a,b) => b[0].localeCompare(a[0]));
-  let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-  let entriesHtml = '';
-  if(!entries.length) {
-    entriesHtml = '<div class="u13">No cardio logged yet.<br><span class="u5">Log a session to track it here.</span></div>';
-  } else {
-    entries.forEach(([key, sessions]) => {
-      let d = new Date(key + 'T12:00:00');
-      entriesHtml += `<div class="cardio-day-group" data-date="${key}" style="margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
-          <div class="hist-day-num">${d.getDate()}</div>
-          <div class="hist-day-date">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]}, ${months[d.getMonth()]} ${d.getFullYear()}</div>
-        </div>`;
-      sessions.forEach((s, si) => {
-        entriesHtml += `<div class="section-card cardio-session-card" data-date="${key}" data-idx="${si}" style="margin-bottom:6px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:8px;">
-            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-              <div style="font-size:14px;font-weight:700;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.type || 'Cardio'}</div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
-              ${s.duration ? `<span style="background:rgba(0,243,255,0.12);color:var(--secondary);border:1px solid rgba(0,243,255,0.3);border-radius:var(--radius);font-size:11px;font-weight:800;padding:4px 8px;font-family:'JetBrains Mono',monospace;">${s.duration} min</span>` : ''}
-              ${s.distance ? `<span style="background:rgba(204,255,0,0.12);color:var(--g1);border:1px solid rgba(204,255,0,0.3);border-radius:var(--radius);font-size:11px;font-weight:800;padding:4px 8px;font-family:'JetBrains Mono',monospace;">${s.distance} km</span>` : ''}
-              ${s.calories ? `<span style="background:rgba(255,39,65,0.12);color:var(--o1);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);font-size:11px;font-weight:800;padding:4px 8px;font-family:'JetBrains Mono',monospace;">${s.calories} kcal</span>` : ''}
-              <button onclick="event.stopPropagation();deleteCardioEntry('${key}',${si})" style="background:transparent;border:none;color:var(--txt3);font-size:16px;cursor:pointer;padding:2px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">✕</button>
-            </div>
-          </div>
-          ${s.notes ? `<div style="padding:0 14px 10px;font-size:12px;color:var(--txt2);">${s.notes}</div>` : ''}
-        </div>`;
-      });
-      entriesHtml += '</div>';
-    });
-  }
+  let today = dateKey(state.date);
+  let sessions = cardioLog[today] || [];
 
   const CARDIO_TYPES = ['Running','Cycling','Walking','Swimming','Rowing','Jump Rope','HIIT','Stairmaster','Elliptical','Other'];
 
+  // ── Date card (mirrors Train tab) ──
+  let d = state.date;
+  let dayNames2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let months2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let dateLabel = dayNames2[d.getDay()].toUpperCase() + ', ' + months2[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
+
   let html = `
+    <!-- Session Card: Date + Timer tabs (mirrors Train tab) -->
+    <div class="session-card" id="cardio-session-card">
+      <div class="session-tabs">
+        <button type="button" class="session-tab active" id="cardio-session-tab-date" onclick="setCardioSessionTab('date')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Date <span class="session-tab-meta" id="cardio-session-tab-date-meta"></span>
+        </button>
+        <button type="button" class="session-tab" id="cardio-session-tab-timer" onclick="setCardioSessionTab('timer')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+          Timer <span class="session-tab-meta" id="cardio-session-tab-timer-meta"></span>
+        </button>
+      </div>
+
+      <!-- DATE PANEL -->
+      <div class="session-panel" id="cardio-session-panel-date">
+        <div class="date-card-header" onclick="openCardioDatePicker()" style="margin-bottom:0;cursor:pointer;">
+          <div id="cardio-cur-date-lbl" class="date-full-label">${dateLabel}</div>
+          <button type="button" class="date-cal-btn" onclick="event.stopPropagation();openCardioDatePicker()" aria-label="Open calendar" title="Open calendar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </button>
+        </div>
+        <input type="date" id="cardio-hidden-date-picker" onchange="applyCardioDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
+        <div class="week-strip" id="cardio-week-strip" style="margin-top:14px;"></div>
+      </div>
+
+      <!-- TIMER PANEL (shares the same rest timer / stopwatch instance as the Train tab) -->
+      <div class="session-panel collapsed" id="cardio-session-panel-timer">
+        <div class="timer-tabs-row">
+          <div class="timer-tabs">
+            <button type="button" class="timer-tab active" id="cardio-timer-tab-rest" onclick="setTimerTab('rest')">
+              <span class="timer-tab-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="13" r="7"/><polyline points="12 10 12 13 14 15"/><path d="M5 3l-2 2M19 3l2 2"/></svg>
+              </span> REST TIMER
+            </button>
+            <button type="button" class="timer-tab" id="cardio-timer-tab-stopwatch" onclick="setTimerTab('stopwatch')">
+              <span class="timer-tab-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+              </span> STOPWATCH
+            </button>
+          </div>
+        </div>
+
+        <div id="cardio-timer-rest-panel">
+          <div class="timer-main-row">
+            <div>
+              <div class="timer-display" id="cardio-timer-rest-display">01:30</div>
+              <div class="timer-sub" id="cardio-timer-rest-sub">REST TIMER - ACTIVE SET</div>
+            </div>
+            <div class="timer-controls">
+              <button type="button" class="timer-btn-sm" onclick="adjustRestTimer(1, 30)">+30s</button>
+              <button type="button" class="timer-btn-play" id="cardio-timer-rest-play" onclick="toggleRestFromModule()" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+            </div>
+          </div>
+          <div class="timer-presets">
+            <button type="button" class="preset-chip" onclick="setRestPreset(30)">30s</button>
+            <button type="button" class="preset-chip" onclick="setRestPreset(60)">60s</button>
+            <button type="button" class="preset-chip active" onclick="setRestPreset(90)">90s</button>
+            <button type="button" class="preset-chip" onclick="setRestPreset(120)">120s</button>
+            <button type="button" class="preset-chip" onclick="setRestPreset(180)">180s</button>
+          </div>
+          <div class="timer-manual-row">
+            <input type="text" id="cardio-timer-manual-input" class="timer-manual-input" placeholder="e.g. 2m, 90sec, 2-3 min">
+            <button type="button" class="timer-set-btn" onclick="applyManualRest('cardio-timer-manual-input')">Set</button>
+          </div>
+        </div>
+
+        <div id="cardio-timer-stopwatch-panel" class="hidden">
+          <div class="timer-main-row">
+            <div>
+              <div class="timer-display" id="cardio-sw1-time">00:00<span class="sw-ms">.00</span></div>
+              <div class="timer-sub">STOPWATCH - TIME ELAPSED</div>
+            </div>
+            <div class="timer-controls">
+              <button type="button" class="timer-btn-sm" onclick="lapStopwatch(1)" title="Lap">LAP</button>
+              <button type="button" class="timer-btn-play" id="cardio-sw1-play" onclick="toggleSW(1)" title="Start"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+              <button type="button" class="timer-btn-icon" onclick="resetStopwatch(1)" title="Reset">&#8635;</button>
+            </div>
+          </div>
+          <div id="cardio-sw-laps-list" class="sw-laps-list"></div>
+        </div>
+      </div>
+    </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="font-size:18px;font-weight:800;">Cardio Log</div>
       <button id="reorder-toggle-cardio" onclick="toggleReorderMode('cardio')" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--txt3);font-size:10px;font-weight:800;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;transition:all 0.2s;">
@@ -3794,22 +4186,143 @@ function renderCardioPage() {
       <button onclick="logCardioSession()" class="import-btn" style="margin-top:4px;">LOG SESSION</button>
     </div>
 
-    <!-- Stats summary -->
+    <!-- Stats summary (all time) -->
     <div id="cardio-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
       ${buildCardioStats(cardioLog)}
     </div>
 
-    <!-- History -->
-    <div id="cardio-entries">${entriesHtml}</div>
+    <!-- Today's entries -->
+    <div id="cardio-entries">${buildCardioEntriesHtml(today, sessions)}</div>
   `;
 
   document.getElementById('cardio-content').innerHTML = html;
+  renderCardioWeekStrip();
   initCardioDragHandlers();
+  syncSessionTabMeta();
+  syncTimerUI();
   if(reorderMode.cardio) {
     setReorderActiveState('cardio', true);
     let btn = document.getElementById('reorder-toggle-cardio');
     if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--secondary)';btn.style.color='var(--secondary)';}
   }
+}
+
+// ── Cardio session card helpers (Date / Timer tabs) ──
+function setCardioSessionTab(which) {
+  document.getElementById('cardio-session-tab-date')?.classList.toggle('active', which === 'date');
+  document.getElementById('cardio-session-tab-timer')?.classList.toggle('active', which === 'timer');
+  document.getElementById('cardio-session-panel-date')?.classList.toggle('collapsed', which !== 'date');
+  document.getElementById('cardio-session-panel-timer')?.classList.toggle('collapsed', which !== 'timer');
+  if (which === 'date') renderCardioWeekStrip();
+}
+
+function openCardioDatePicker() {
+  let dp = document.getElementById('cardio-hidden-date-picker');
+  if (!dp) return;
+  let d = state.date;
+  dp.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  try { dp.showPicker(); } catch(e) { dp.click(); }
+}
+
+function applyCardioDateDirect(val) {
+  if (!val) return;
+  state.date = new Date(val + 'T12:00:00');
+  // also sync Train tab date label
+  updateDateLabel();
+  // re-render cardio tab
+  renderCardioPage();
+  saveState();
+}
+
+function renderCardioWeekStrip() {
+  let strip = document.getElementById('cardio-week-strip');
+  if (!strip) return;
+  let d = state.date;
+  let dayLetters = ['S','M','T','W','T','F','S'];
+  let dow = d.getDay();
+  let weekStart = new Date(d);
+  weekStart.setDate(d.getDate() - dow);
+  let rangeStart = new Date(weekStart);
+  rangeStart.setDate(weekStart.getDate() - 14);
+  strip.innerHTML = '';
+  let activeCol = null;
+  for (let i = 0; i < 35; i++) {
+    let day = new Date(rangeStart);
+    day.setDate(rangeStart.getDate() + i);
+    let isActive = day.toDateString() === d.toDateString();
+    let col = document.createElement('div');
+    col.className = 'week-day-col' + (isActive ? ' active' : '');
+    col.innerHTML = `<span class="week-day-letter">${dayLetters[day.getDay()]}</span><span class="week-day-num">${day.getDate()}</span>`;
+    col.addEventListener('click', () => {
+      state.date = new Date(day);
+      updateDateLabel();
+      renderCardioPage();
+      saveState();
+    });
+    strip.appendChild(col);
+    if (isActive) activeCol = col;
+  }
+  if (activeCol) {
+    setTimeout(() => {
+      let stripRect = strip.getBoundingClientRect();
+      let colRect = activeCol.getBoundingClientRect();
+      let offset = colRect.left - stripRect.left - (stripRect.width / 2) + (colRect.width / 2);
+      strip.scrollLeft += offset;
+    }, 0);
+  }
+}
+
+function editCardioEntry(dateStr, idx) {
+  if (!state.cardioLog || !state.cardioLog[dateStr]) return;
+  let s = state.cardioLog[dateStr][idx];
+  if (!s) return;
+  const CARDIO_TYPES = ['Running','Cycling','Walking','Swimming','Rowing','Jump Rope','HIIT','Stairmaster','Elliptical','Other'];
+  document.getElementById('modal-title').textContent = 'Edit Cardio Session';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Type</div>
+      <select id="edit-cardio-type" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;width:100%;font-family:'JetBrains Mono',monospace;">
+        ${CARDIO_TYPES.map(t => `<option value="${t}" ${t===s.type?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Duration (min)</div>
+        <input id="edit-cardio-duration" type="number" min="1" max="600" value="${s.duration||''}" placeholder="30" class="set-input" style="width:100%;padding:9px 10px;">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Distance (km)</div>
+        <input id="edit-cardio-distance" type="number" min="0" step="0.1" value="${s.distance||''}" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Calories (kcal)</div>
+        <input id="edit-cardio-calories" type="number" min="0" value="${s.calories||''}" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Notes</div>
+        <input id="edit-cardio-notes" type="text" value="${s.notes||''}" placeholder="optional..." class="set-input" style="width:100%;padding:9px 10px;">
+      </div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-confirm-p1" onclick="saveCardioEdit('${dateStr}',${idx})">Save</button>
+    </div>`;
+  openModal();
+}
+
+function saveCardioEdit(dateStr, idx) {
+  if (!state.cardioLog || !state.cardioLog[dateStr]) return;
+  let type = document.getElementById('edit-cardio-type')?.value || 'Cardio';
+  let duration = document.getElementById('edit-cardio-duration')?.value || '';
+  let distance = document.getElementById('edit-cardio-distance')?.value || '';
+  let calories = document.getElementById('edit-cardio-calories')?.value || '';
+  let notes = document.getElementById('edit-cardio-notes')?.value || '';
+  state.cardioLog[dateStr][idx] = { type, duration, distance, calories, notes };
+  saveState();
+  closeModal();
+  renderCardioPage();
 }
 
 function buildCardioStats(cardioLog) {
@@ -3850,6 +4363,17 @@ function logCardioSession() {
 
 function deleteCardioEntry(dateStr, idx) {
   if(!state.cardioLog || !state.cardioLog[dateStr]) return;
+  // clear expand state for this card and shift higher indices down
+  let newExpanded = {};
+  Object.keys(cardioExpandedCards).forEach(k => {
+    let parts = k.split('_');
+    let i = parseInt(parts[parts.length - 1]);
+    let d = parts.slice(0, parts.length - 1).join('_');
+    if (d === dateStr && i === idx) return; // remove this one
+    if (d === dateStr && i > idx) { newExpanded[d + '_' + (i - 1)] = cardioExpandedCards[k]; return; }
+    newExpanded[k] = cardioExpandedCards[k];
+  });
+  cardioExpandedCards = newExpanded;
   state.cardioLog[dateStr].splice(idx, 1);
   if(!state.cardioLog[dateStr].length) delete state.cardioLog[dateStr];
   saveState();
@@ -3857,13 +4381,14 @@ function deleteCardioEntry(dateStr, idx) {
 }
 
 function initCardioDragHandlers() {
-  document.querySelectorAll('#cardio-entries .cardio-session-card').forEach(item => {
+  let container = document.getElementById('cardio-entries');
+  if (!container) return;
+  container.querySelectorAll('.cardio-session-card').forEach(item => {
     item.onpointerdown = function(e) {
       if(!reorderMode.cardio) return;
       if(e.target.closest('button')) return;
-      let container = item.closest('.cardio-day-group');
       let date = item.dataset.date;
-      if (!container || !date) return;
+      if (!date) return;
       e.preventDefault();
       startGenericDrag(item, container, '.cardio-session-card', e, function(orderedIdxs) {
         let sessions = state.cardioLog && state.cardioLog[date];
@@ -3906,6 +4431,7 @@ async function init(){
   await loadState();
   state.page = 'workout';
   updateDateLabel();
+  syncTimerUI();
   updateProfileUI();
   applyButtonSizing();
   renderSplitSelector();
@@ -4178,10 +4704,10 @@ let restPresetSeconds = 90;
 
 function setTimerTab(mode) {
   timerTab = mode;
-  document.getElementById('timer-tab-rest')?.classList.toggle('active', mode === 'rest');
-  document.getElementById('timer-tab-stopwatch')?.classList.toggle('active', mode === 'stopwatch');
-  document.getElementById('timer-rest-panel')?.classList.toggle('hidden', mode !== 'rest');
-  document.getElementById('timer-stopwatch-panel')?.classList.toggle('hidden', mode !== 'stopwatch');
+  ['timer-tab-rest', 'cardio-timer-tab-rest'].forEach(id => document.getElementById(id)?.classList.toggle('active', mode === 'rest'));
+  ['timer-tab-stopwatch', 'cardio-timer-tab-stopwatch'].forEach(id => document.getElementById(id)?.classList.toggle('active', mode === 'stopwatch'));
+  ['timer-rest-panel', 'cardio-timer-rest-panel'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', mode !== 'rest'));
+  ['timer-stopwatch-panel', 'cardio-timer-stopwatch-panel'].forEach(id => document.getElementById(id)?.classList.toggle('hidden', mode !== 'stopwatch'));
 }
 
 function setRestPreset(sec) {
@@ -4196,15 +4722,16 @@ function setRestPreset(sec) {
     adjustRestTimer(1, sec);
     return;
   }
-  let el = document.getElementById('timer-rest-display');
-  if (el) {
-    let m = Math.floor(sec / 60), s = sec % 60;
-    el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
-  }
+  let m = Math.floor(sec / 60), s = sec % 60;
+  let text = m + ':' + (s < 10 ? '0' : '') + s;
+  ['timer-rest-display', 'cardio-timer-rest-display'].forEach(id => {
+    let el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
 }
 
-function applyManualRest() {
-  let raw = (document.getElementById('timer-manual-input')?.value || '').trim();
+function applyManualRest(inputId) {
+  let raw = (document.getElementById(inputId || 'timer-manual-input')?.value || '').trim();
   if (!raw) return;
   let sec = parseRestTime(raw, restPresetSeconds);
   setRestPreset(sec);
@@ -4229,10 +4756,14 @@ function resetStopwatch(n) {
   }
   sw.elapsed = 0;
   sw.laps = [];
-  let el = document.getElementById('sw' + n + '-time');
-  if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
-  let btn = document.getElementById('sw' + n + '-play');
-  if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
+  ['sw' + n + '-time', 'cardio-sw' + n + '-time'].forEach(id => {
+    let el = document.getElementById(id);
+    if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
+  });
+  ['sw' + n + '-play', 'cardio-sw' + n + '-play'].forEach(id => {
+    let btn = document.getElementById(id);
+    if (btn) { btn.innerHTML = SW_PLAY_ICON; btn.title = 'Start'; }
+  });
   renderLaps(n);
 }
 
@@ -4288,22 +4819,13 @@ function updateGlobalTimer(text) {
   }
 }
 
-/* ── Date section collapse/expand ── */
-function toggleDateSection() {
-  let btn = document.getElementById('date-chevron');
-  let body = document.getElementById('date-card-body');
-  if (!btn || !body) return;
-  let collapsed = btn.classList.toggle('collapsed');
-  body.classList.toggle('collapsed', collapsed);
-}
-
-/* ── Timer section collapse/expand ── */
-function toggleTimerSection() {
-  let btn = document.getElementById('timer-chevron');
-  let body = document.getElementById('timer-body');
-  if (!btn || !body) return;
-  let collapsed = btn.classList.toggle('collapsed');
-  body.style.display = collapsed ? 'none' : '';
+/* ── Session card tab switch (Date / Timer) — Train tab ── */
+function setSessionTab(which) {
+  document.getElementById('session-tab-date')?.classList.toggle('active', which === 'date');
+  document.getElementById('session-tab-timer')?.classList.toggle('active', which === 'timer');
+  document.getElementById('session-panel-date')?.classList.toggle('collapsed', which !== 'date');
+  document.getElementById('session-panel-timer')?.classList.toggle('collapsed', which !== 'timer');
+  if (which === 'date') renderWeekStrip();
 }
 
 /* ── Profile stats cards: Bodyweight / Water Reminder / Personal Records / Workout History ──
