@@ -97,6 +97,7 @@ body::before, body::after { display: none !important; }
   overscroll-behavior-y: contain;
 }
 .page.active { display: block; }
+#page-workout, #page-cardio { padding-top: 16px; }
 
 .page-simple-header {
   display: flex;
@@ -307,197 +308,196 @@ body::before, body::after { display: none !important; }
   color: var(--txt);
 }
 
-/* ── Timer module ── */
-.timer-module {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-}
-/* Timer collapsible header */
-.timer-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-}
-.timer-card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.timer-card-icon {
-  display: flex;
-  align-items: center;
-  color: var(--accent);
-  line-height: 1;
-}
-.timer-card-label {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--txt);
-}
+/* ─────────────────────────────────────────
+   CHRONO BAR — compact stopwatch/timer utility.
+   Colours match the app's own theme (rust accent
+   for Timer, olive green for Stopwatch). Sits as a
+   fixed strip between the marquee and the page
+   content, so it's visible on every tab. Swipe the
+   numbers left/right to loop between Timer and
+   Stopwatch — no buttons required.
+───────────────────────────────────────── */
+.chrono-bar {
+  --chrono-timer: var(--accent);
+  --chrono-timer-soft: var(--accent-soft);
+  --chrono-sw: var(--green);
+  --chrono-sw-soft: rgba(138,154,126,0.16);
 
-/* ── Combat-style swipe dots (timer / stopwatch selector) ── */
-.timer-swipe-dots {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 14px;
-  margin-bottom: 10px;
+  flex-shrink: 0;          /* stays fixed, pages scroll under it */
+  width: 100%;
+  background: var(--app-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px;
+  position: relative;
+  z-index: 48;
 }
-.ts-dot {
-  width: 18px;
-  height: 4px;
-  border-radius: 4px;
-  background: var(--border2);
-  cursor: pointer;
-  transition: background 0.2s, width 0.2s;
-}
-.ts-dot.active {
-  background: var(--accent);
-  width: 28px;
-}
+body.pitch-black .chrono-bar { background: #000000; border-bottom-color: #1e1e1e; }
 
-/* ── Combat-style scroll-snap carousel ── */
-.timer-carousel {
-  display: flex;
+/* Swipeable, infinitely-looping track: 4 slides wide, only one ever
+   visible at a time. The 1st and 4th slides are loop-clones of the
+   2nd and 3rd, so swiping past either end keeps cycling instead of
+   stopping dead at an edge. */
+.chrono-loop {
   width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  gap: 0;
 }
-.timer-carousel::-webkit-scrollbar { display: none; }
-.timer-slide {
+.chrono-loop::-webkit-scrollbar { display: none; }
+.chrono-track {
+  display: flex;
+  width: 100%;
+}
+.chrono-mode-row {
   flex: 0 0 100%;
-  min-width: 100%;
+  width: 100%;
   scroll-snap-align: start;
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
+  align-items: center;
   gap: 10px;
-  padding: 2px;
 }
 
-/* Big number card — shared by timer + stopwatch, same footprint */
-.tc-numcard {
+/* Vertical +/- stepper — adjusts the rest-timer preset (idle) or nudges
+   the running countdown, in 30s steps */
+.chrono-stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.chrono-step-btn {
+  width: 30px;
+  height: 23px;
+  border-radius: 7px;
+  border: 1px solid var(--border2);
+  background: var(--input-bg);
+  color: var(--txt);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--app-bg);
-  border: 2px solid var(--accent);
-  border-radius: 14px;
-  padding: 18px 6px;
-  min-height: 132px;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.1s;
+}
+.chrono-step-btn:active { background: var(--accent-soft); transform: scale(0.94); }
+
+/* Round reset / lap icon buttons, flanking the display */
+.chrono-icon-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--txt-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.chrono-icon-btn:active { background: var(--input-bg); color: var(--txt); transform: scale(0.94); }
+
+/* Tap-to-start/pause number display — the heart of the bar */
+.chrono-display {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  transition: transform 0.1s ease, border-color 0.15s ease;
-  overflow: hidden;
+  padding: 2px 0;
+  border-radius: 10px;
+  transition: background 0.15s;
 }
-.tc-numcard:active { transform: scale(0.97); }
-.tc-numcard.running {
-  border-color: var(--green);
-  box-shadow: 0 0 0 1px var(--green) inset;
-}
-.tc-numcard-sw {}
-.tc-num {
-  font-size: clamp(48px, 16vw, 80px);
+.chrono-display:active { background: var(--accent-soft); }
+.chrono-num {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: clamp(40px, 14vw, 60px);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   line-height: 1;
-  color: var(--txt);
-  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  color: var(--chrono-timer);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.chrono-mode-row[data-mode="stopwatch"] .chrono-num { color: var(--chrono-sw); }
 .timer-font { font-variant-numeric: tabular-nums; }
-.tc-num .sw-ms { font-size: 0.45em; opacity: 0.55; }
-.tc-numcard-sw .sw-ms { font-size: 0.45em; opacity: 0.55; }
+.chrono-num .sw-ms { font-size: 0.4em; opacity: 0.55; }
 
-/* Rest timer presets row — 5 across, combat chip style */
-.tc-presets {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-}
-.tc-preset-chip {
-  background: var(--input-bg);
-  border: none;
-  border-radius: 8px;
-  padding: 9px 4px;
-  color: var(--txt-muted);
-  font-size: 10px;
-  font-weight: 800;
-  cursor: pointer;
-  font-family: inherit;
-}
-.tc-preset-chip.active {
-  background: rgba(193,95,60,0.28);
-  color: var(--accent);
-  border: 1px solid rgba(193,95,60,0.4);
-}
-.tc-manual-row { display: flex; gap: 6px; }
-.tc-manual-input {
-  flex: 1;
-  background: var(--input-bg);
-  border: none;
-  border-radius: 10px;
-  padding: 9px 12px;
-  color: var(--txt-muted);
-  font-size: 11px;
-  font-family: inherit;
-}
-.tc-manual-input:focus { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
-.tc-set-btn {
-  background: var(--accent);
-  border: none;
-  border-radius: 10px;
-  padding: 0 18px;
-  color: #fff;
-  font-weight: 800;
-  font-size: 11px;
-  cursor: pointer;
-  font-family: inherit;
-}
+/* Colon blinks at 1Hz only while the clock is actually running */
+.chrono-colon { display: inline-block; }
+.chrono-display.running .chrono-colon { animation: chrono-blink 1s steps(2,start) infinite; }
+@keyframes chrono-blink { 50% { opacity: 0.15; } }
 
-/* Stopwatch reset/lap row — sits below the number card, same width budget the timer presets use */
-.tc-sw-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+/* Laps float below the bar on demand instead of permanently
+   occupying space — keeps the bar's footprint fixed and compact */
+.chrono-laps-flyout {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 100%;
+  margin-top: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+  z-index: 47;
 }
-.tc-sw-action-btn {
+.chrono-laps-flyout:empty { display: none; padding: 0; border: none; }
+.chrono-bar:not(.mode-stopwatch) .chrono-laps-flyout { display: none !important; }
+
+/* ── Stopwatch Laps (rows rendered into .chrono-laps-flyout) ── */
+.lap-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
   background: var(--input-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 11px 4px;
-  color: var(--txt);
-  font-size: 11px;
+  font-size: 12px;
+}
+.lap-num {
   font-weight: 800;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  font-family: inherit;
+  letter-spacing: 0.06em;
+  color: var(--txt-muted);
+  min-width: 46px;
 }
-.tc-sw-action-btn:active { background: var(--accent-soft); }
-.timer-tabs {
-  display: flex;
-  background: rgba(0,0,0,0.3);
-  border-radius: 12px;
-  padding: 4px;
-  margin-bottom: 20px;
+.lap-split {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt);
 }
+.lap-total {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--txt-muted);
+}
+.lap-tag {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.lap-fast { background: rgba(138,154,126,0.2); color: var(--green); }
+.lap-slow { background: rgba(255,39,65,0.15); color: #ff2741; }
 .timer-tabs-row {
   display: flex;
   align-items: center;
@@ -545,16 +545,6 @@ body::before, body::after { display: none !important; }
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, 'JetBrains Mono', monospace;
 }
-.timer-sub {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-top: 6px;
-  text-align: center;
-}
-.sw-ms { font-size: 22px; opacity: 0.55; }
 .timer-controls {
   display: grid;
   grid-template-columns: 44px 52px 40px;
@@ -643,52 +633,6 @@ body::before, body::after { display: none !important; }
   font-family: inherit;
 }
 
-/* ── Stopwatch Laps ── */
-.sw-laps-list {
-  margin-top: 4px;
-  max-height: 180px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.lap-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: var(--input-bg);
-  font-size: 12px;
-}
-.lap-num {
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--txt-muted);
-  min-width: 46px;
-}
-.lap-split {
-  flex: 1;
-  font-family: ui-monospace, monospace;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--txt);
-}
-.lap-total {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  color: var(--txt-muted);
-}
-.lap-tag {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.lap-fast { background: rgba(31,207,140,0.2); color: #1fcf8c; }
-.lap-slow { background: rgba(255,39,65,0.15); color: #ff2741; }
-
 /* ── Exercises log header ── */
 .exercises-log-header {
   display: flex;
@@ -704,7 +648,7 @@ body::before, body::after { display: none !important; }
   color: var(--accent);
   font-variant: all-small-caps;
 }
-.exercises-log-actions { display: flex; gap: 8px; align-items: center; }
+.exercises-log-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .chip-btn {
   display: inline-flex;
   align-items: center;
@@ -723,6 +667,15 @@ body::before, body::after { display: none !important; }
 .chip-btn.active {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--accent-soft);
+}
+.cal-chip-btn {
+  color: var(--accent);
+  white-space: nowrap;
+}
+.cal-chip-btn:hover,
+.cal-chip-btn:active {
+  border-color: var(--accent);
   background: var(--accent-soft);
 }
 .icon-chip {
@@ -894,7 +847,6 @@ body.pitch-black .page { background: #000000; }
 body.pitch-black .ex-item,
 body.pitch-black .date-card,
 body.pitch-black .dh-card,
-body.pitch-black .timer-module,
 body.pitch-black .settings-card,
 body.pitch-black .settings-panel,
 body.pitch-black .danger-panel { background: #0a0a0a; border-color: #1e1e1e; }
@@ -902,9 +854,8 @@ body.pitch-black #modal-box,
 body.pitch-black #float-panel { background: #0a0a0a; }
 body.pitch-black .set-input,
 body.pitch-black .timer-manual-input,
-body.pitch-black .tc-manual-input,
-body.pitch-black .tc-preset-chip,
-body.pitch-black .tc-sw-action-btn,
+body.pitch-black .chrono-step-btn,
+body.pitch-black .chrono-icon-btn,
 body.pitch-black .preset-chip,
 body.pitch-black .set-num-btn,
 body.pitch-black .ex-action-btn,
@@ -1958,21 +1909,6 @@ body.pitch-black #onboarding-screen { background: #000; }
   text-transform: uppercase;
   color: var(--txt);
   font-family: var(--font);
-}
-
-/* floating rest-timer pill in the header */
-#gh-timer {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 14px;
-  font-family: 'Courier New', monospace;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0.06em;
-  min-width: 68px;
-  text-align: center;
 }
 
 /* "Install" button in the global header — only shown when the browser

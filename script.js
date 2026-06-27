@@ -493,10 +493,10 @@ function resetAppState(){
   };
 
   // Reset the stopwatch/rest-timer UI immediately so no stale display lingers
-  let swTimeEl = document.getElementById('sw1-time');
-  if (swTimeEl) swTimeEl.innerHTML = '00:00<span class="sw-ms">.00</span>';
-  let sw1Card = document.getElementById('sw1-numcard');
-  if (sw1Card) sw1Card.classList.remove('running');
+  document.querySelectorAll('.js-sw-time').forEach(el => {
+    el.innerHTML = '00<span class="chrono-colon">:</span>00<span class="sw-ms">.00</span>';
+  });
+  document.querySelectorAll('.js-sw-card').forEach(el => el.classList.remove('running'));
   let floatingWidget = document.getElementById('rest-timer-widget-1');
   if (floatingWidget) floatingWidget.style.display = 'none';
 
@@ -613,7 +613,7 @@ function fmt(ms){
   let s=Math.floor(ms/1000);
   let m=Math.floor(s/60);
   s=s%60;
-  return (m<10?'0':'')+m+':'+(s<10?'0':'')+s+`<span class="sw-ms">.`+(cs<10?'0':'')+cs+`</span>`;
+  return (m<10?'0':'')+m+'<span class="chrono-colon">:</span>'+(s<10?'0':'')+s+`<span class="sw-ms">.`+(cs<10?'0':'')+cs+`</span>`;
 }
 
 function parseRestTime(restStr, defaultTime) {
@@ -652,23 +652,23 @@ const RT_RESET_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="cur
 function toggleSW(n){
   let sw = state.sw[n];
   if (!sw.laps) sw.laps = [];
-  let card = document.getElementById('sw' + n + '-numcard');
+  let cards = document.querySelectorAll('.js-sw-card');
   if (sw.running) {
     // PAUSE
     clearInterval(sw.interval);
     sw.elapsed += Date.now() - sw.start;
     sw.running = false;
-    if (card) card.classList.remove('running');
+    cards.forEach(card => card.classList.remove('running'));
   } else {
     // PLAY / RESUME
     sw.start = Date.now();
     sw.running = true;
     sw.interval = setInterval(() => {
       let total = sw.elapsed + (Date.now() - sw.start);
-      let el = document.getElementById('sw' + n + '-time');
-      if (el) el.innerHTML = fmt(total);
+      let html = fmt(total);
+      document.querySelectorAll('.js-sw-time').forEach(el => el.innerHTML = html);
     }, 10);
-    if (card) card.classList.add('running');
+    cards.forEach(card => card.classList.add('running'));
   }
 }
 
@@ -726,8 +726,7 @@ function syncTimerUI() {
 
   // The rest timer's number card does double duty: tap to start when idle,
   // tap to reset when running — same press-the-card interaction as the stopwatch.
-  let restCard = document.getElementById('timer-rest-numcard');
-  if (restCard) restCard.classList.toggle('running', !!isRunning);
+  document.querySelectorAll('.js-rest-card').forEach(card => card.classList.toggle('running', !!isRunning));
 }
 
 function startRestTimer(seconds = 90) {
@@ -770,17 +769,12 @@ function updateRestTimer(p) {
     displayStr = `${m}:${s<10?'0':''}${s}`;
     // Sub-second digits count down within each second, mirroring the stopwatch's look
     let cs = Math.floor((((remMs % 1000) + 1000) % 1000) / 10);
-    moduleHtml = `${m}:${s<10?'0':''}${s}<span class="sw-ms">.${cs<10?'0':''}${cs}</span>`;
+    moduleHtml = `${m<10?'0':''}${m}<span class="chrono-colon">:</span>${s<10?'0':''}${s}<span class="sw-ms">.${cs<10?'0':''}${cs}</span>`;
   }
 
   if (floatText) floatText.textContent = displayStr;
   if (topText) topText.textContent = displayStr;
-  let moduleDisplay = document.getElementById('timer-rest-display');
-  if (moduleDisplay) moduleDisplay.innerHTML = moduleHtml;
-  let moduleSub = document.getElementById('timer-rest-sub');
-  if (moduleSub) moduleSub.textContent = rem <= 0 ? 'REST COMPLETE' : 'REST TIMER - ACTIVE SET';
-  // update global header floating timer
-  updateGlobalTimer(rt.running ? displayStr : null);
+  document.querySelectorAll('.js-rest-time').forEach(el => el.innerHTML = moduleHtml);
 }
 
 function adjustRestTimer(p, seconds) {
@@ -796,7 +790,6 @@ function closeRestTimer(p) {
   clearInterval(rt.interval);
   rt.interval = null;
   rt.running = false;
-  updateGlobalTimer(null);
   syncTimerUI();
 }
 
@@ -845,15 +838,29 @@ function hasLoggedData(dateStr,profile){
   return w && w.exs.some(e=>e.sets.some(s=>s.w||s.r));
 }
 
+function formatShortDate(d){
+  let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let today = new Date();
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  let label = months[d.getMonth()] + ' ' + d.getDate();
+  if (d.getFullYear() !== today.getFullYear()) label += ', ' + d.getFullYear();
+  return label;
+}
+
 function updateDateLabel(){
   let d = state.date;
   let days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   let months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  let dayNames = ['S','M','T','W','T','F','S'];
-  // new single-line label: "WEDNESDAY, JUNE 24, 2026"
+  // full label kept for any legacy element that may still reference it (safe no-op otherwise)
   let label = days[d.getDay()].toUpperCase() + ', ' + months[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
   let lbl = document.getElementById('cur-date-lbl');
   if (lbl) lbl.textContent = label;
+  // compact calendar-button labels (Train + Cardio tabs)
+  let shortLabel = formatShortDate(d);
+  let trainCalLbl = document.getElementById('train-cal-lbl');
+  if (trainCalLbl) trainCalLbl.textContent = shortLabel;
+  let cardioCalLbl = document.getElementById('cardio-cal-lbl');
+  if (cardioCalLbl) cardioCalLbl.textContent = shortLabel;
   // global header date pill — always shows TODAY, not the selected workout date,
   // formatted to match the timer pill's look (e.g. 26/06/26)
   let ghPill = document.getElementById('gh-date-pill');
@@ -870,49 +877,8 @@ function updateDateLabel(){
   let dstr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   let dp = document.getElementById('hidden-date-picker');
   if (dp) dp.value = dstr;
-  // render week strip
-  renderWeekStrip();
-}
-
-function renderWeekStrip() {
-  let strip = document.getElementById('week-strip');
-  if (!strip) return;
-  let d = state.date;
-  let dayLetters = ['S','M','T','W','T','F','S'];
-  // Render 5 weeks: 2 before current week, current week, 2 after
-  let dow = d.getDay();
-  let weekStart = new Date(d);
-  weekStart.setDate(d.getDate() - dow); // start of current week (Sun)
-  let rangeStart = new Date(weekStart);
-  rangeStart.setDate(weekStart.getDate() - 14); // 2 weeks back
-  strip.innerHTML = '';
-  let activeCol = null;
-  for (let i = 0; i < 35; i++) {
-    let day = new Date(rangeStart);
-    day.setDate(rangeStart.getDate() + i);
-    let isActive = day.toDateString() === d.toDateString();
-    let col = document.createElement('div');
-    col.className = 'week-day-col' + (isActive ? ' active' : '');
-    col.innerHTML = `<span class="week-day-letter">${dayLetters[day.getDay()]}</span><span class="week-day-num">${day.getDate()}</span>`;
-    col.addEventListener('click', () => {
-      state.date = new Date(day);
-      updateDateLabel();
-      renderExerciseList();
-      if(state.page === 'profile') renderProfilePage();
-      saveState();
-    });
-    strip.appendChild(col);
-    if (isActive) activeCol = col;
-  }
-  // Scroll so the active day is centred
-  if (activeCol) {
-    setTimeout(() => {
-      let stripRect = strip.getBoundingClientRect();
-      let colRect = activeCol.getBoundingClientRect();
-      let offset = colRect.left - stripRect.left - (stripRect.width / 2) + (colRect.width / 2);
-      strip.scrollLeft += offset;
-    }, 0);
-  }
+  let cdp = document.getElementById('cardio-hidden-date-picker');
+  if (cdp) cdp.value = dstr;
 }
 
 function updateDateStatusDot(){
@@ -4000,40 +3966,22 @@ function renderCardioPage() {
 
   const CARDIO_TYPES = ['Running','Cycling','Walking','Swimming','Rowing','Jump Rope','HIIT','Stairmaster','Elliptical','Other'];
 
-  // ── Date card (mirrors Train tab) ──
-  let d = state.date;
-  let dayNames2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  let months2 = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  let dateLabel = dayNames2[d.getDay()].toUpperCase() + ', ' + months2[d.getMonth()].toUpperCase() + ' ' + d.getDate() + ', ' + d.getFullYear();
-
   let html = `
-    <!-- Date Card (mirrors Train tab) -->
-    <div class="date-card" id="cardio-date-card" style="margin-bottom:14px;">
-      <div class="date-card-header" onclick="toggleCardioDateSection()">
-        <span class="session-kicker">WORKOUT DATE</span>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <button type="button" class="date-cal-btn" onclick="event.stopPropagation();openCardioDatePicker()" aria-label="Open calendar" title="Open calendar">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </button>
-          <button type="button" class="chevron-btn collapsed" id="cardio-date-chevron" aria-label="Toggle date">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-        </div>
-      </div>
-      <div id="cardio-cur-date-lbl" class="date-full-label">${dateLabel}</div>
-      <div class="date-card-body collapsed" id="cardio-date-card-body">
-        <input type="date" id="cardio-hidden-date-picker" onchange="applyCardioDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
-        <div class="week-strip" id="cardio-week-strip"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:18px;font-weight:800;">Cardio Log</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <button id="cardio-cal-btn" onclick="openCardioDatePicker()" aria-label="Open calendar" title="Open calendar" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--accent);font-size:10px;font-weight:800;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all 0.2s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="cardio-cal-lbl"></span>
+        </button>
+        <button id="reorder-toggle-cardio" onclick="toggleReorderMode('cardio')" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--txt3);font-size:10px;font-weight:800;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;transition:all 0.2s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9h18M3 15h18"/><path d="M8 4L3 9l5 5M16 4l5 5-5 5"/></svg>
+          Reorder
+        </button>
       </div>
     </div>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="font-size:18px;font-weight:800;">Cardio Log</div>
-      <button id="reorder-toggle-cardio" onclick="toggleReorderMode('cardio')" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--txt3);font-size:10px;font-weight:800;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;transition:all 0.2s;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9h18M3 15h18"/><path d="M8 4L3 9l5 5M16 4l5 5-5 5"/></svg>
-        Reorder
-      </button>
-    </div>
+    <input type="date" id="cardio-hidden-date-picker" onchange="applyCardioDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
 
     <!-- Log new session -->
     <div class="section-card" style="padding:14px;margin-bottom:16px;">
@@ -4077,7 +4025,7 @@ function renderCardioPage() {
   `;
 
   document.getElementById('cardio-content').innerHTML = html;
-  renderCardioWeekStrip();
+  updateDateLabel();
   initCardioDragHandlers();
   if(reorderMode.cardio) {
     setReorderActiveState('cardio', true);
@@ -4086,16 +4034,7 @@ function renderCardioPage() {
   }
 }
 
-// ── Cardio date card helpers ──
-function toggleCardioDateSection() {
-  let body = document.getElementById('cardio-date-card-body');
-  let chevron = document.getElementById('cardio-date-chevron');
-  if (!body) return;
-  let collapsed = body.classList.toggle('collapsed');
-  if (chevron) chevron.classList.toggle('collapsed', collapsed);
-  if (!collapsed) renderCardioWeekStrip();
-}
-
+// ── Cardio date picker helper ──
 function openCardioDatePicker() {
   let dp = document.getElementById('cardio-hidden-date-picker');
   if (!dp) return;
@@ -4112,44 +4051,6 @@ function applyCardioDateDirect(val) {
   // re-render cardio tab
   renderCardioPage();
   saveState();
-}
-
-function renderCardioWeekStrip() {
-  let strip = document.getElementById('cardio-week-strip');
-  if (!strip) return;
-  let d = state.date;
-  let dayLetters = ['S','M','T','W','T','F','S'];
-  let dow = d.getDay();
-  let weekStart = new Date(d);
-  weekStart.setDate(d.getDate() - dow);
-  let rangeStart = new Date(weekStart);
-  rangeStart.setDate(weekStart.getDate() - 14);
-  strip.innerHTML = '';
-  let activeCol = null;
-  for (let i = 0; i < 35; i++) {
-    let day = new Date(rangeStart);
-    day.setDate(rangeStart.getDate() + i);
-    let isActive = day.toDateString() === d.toDateString();
-    let col = document.createElement('div');
-    col.className = 'week-day-col' + (isActive ? ' active' : '');
-    col.innerHTML = `<span class="week-day-letter">${dayLetters[day.getDay()]}</span><span class="week-day-num">${day.getDate()}</span>`;
-    col.addEventListener('click', () => {
-      state.date = new Date(day);
-      updateDateLabel();
-      renderCardioPage();
-      saveState();
-    });
-    strip.appendChild(col);
-    if (isActive) activeCol = col;
-  }
-  if (activeCol) {
-    setTimeout(() => {
-      let stripRect = strip.getBoundingClientRect();
-      let colRect = activeCol.getBoundingClientRect();
-      let offset = colRect.left - stripRect.left - (stripRect.width / 2) + (colRect.width / 2);
-      strip.scrollLeft += offset;
-    }, 0);
-  }
 }
 
 function editCardioEntry(dateStr, idx) {
@@ -4288,7 +4189,7 @@ function goPage(name, fromPopstate){
   let nb=document.getElementById('nav-'+name);
   if(nb)nb.classList.add('active',state.profile===1?'p1':'p2');
   state.page=name;
-  if(name==='workout')renderExerciseList();
+  if(name==='workout'){ renderExerciseList(); }
   if(name==='split'){ renderSplitSelector(); renderSplitPage(); }
   if(name==='cardio')renderCardioPage();
   if(name==='profile')renderProfilePage();
@@ -4318,7 +4219,7 @@ async function init(){
   goPage('workout');
   renderPRPage();
   applyWakeLock();
-  initTimerCarousel();
+  initChronoLoop();
 }
 
 let _wakeLock = null;
@@ -4578,70 +4479,86 @@ async function uninstallApp() {
 }
 
 
-// ====== STITCH UI HELPERS ======
+// ====== CHRONO BAR HELPERS ======
 let timerTab = 'rest';
 let restPresetSeconds = 90;
 
+// The loop track holds 4 slides: [TimerClone, Stopwatch, Timer, StopwatchClone].
+// Slides 1 and 2 are the "real" ones; 0 and 3 only exist so swiping past
+// either edge keeps revealing the other mode instead of stopping dead.
+const CHRONO_REAL_INDEX = { stopwatch: 1, rest: 2 };
+
+// Jumps the loop straight to a given mode — used for programmatic state
+// syncs (e.g. a rest timer auto-starting), never animated since it isn't
+// a user gesture.
 function setTimerTab(mode) {
   timerTab = mode;
-  let carousel = document.getElementById('timer-carousel');
-  let slide = document.querySelector('.timer-slide[data-slide="' + mode + '"]');
-  if (carousel && slide) {
-    carousel.scrollTo({ left: slide.offsetLeft - carousel.offsetLeft, behavior: 'smooth' });
+  let bar = document.getElementById('chrono-bar');
+  if (bar) bar.classList.toggle('mode-stopwatch', mode === 'stopwatch');
+  let loop = document.getElementById('chrono-loop');
+  if (loop && loop.clientWidth) {
+    loop.scrollLeft = CHRONO_REAL_INDEX[mode] * loop.clientWidth;
   }
-  document.querySelectorAll('.ts-dot').forEach(dot => {
-    dot.classList.toggle('active', dot.dataset.target === mode);
-  });
 }
 
-// Keep the dots in sync when the user swipes the carousel by hand
-function initTimerCarousel() {
-  let carousel = document.getElementById('timer-carousel');
-  if (!carousel || carousel.dataset.bound) return;
-  carousel.dataset.bound = '1';
-  let dots = document.querySelectorAll('.ts-dot');
-  dots.forEach(dot => {
-    dot.addEventListener('click', () => setTimerTab(dot.dataset.target));
+// Keeps the loop seamless: once a swipe settles on one of the two clone
+// slides at either end, silently snap back to the matching real slide
+// (identical content, so the jump is invisible) and update the mode.
+function initChronoLoop() {
+  let loop = document.getElementById('chrono-loop');
+  if (!loop || loop.dataset.bound) return;
+  loop.dataset.bound = '1';
+
+  requestAnimationFrame(() => { loop.scrollLeft = loop.clientWidth * CHRONO_REAL_INDEX.rest; });
+
+  let settleTimeout = null;
+  loop.addEventListener('scroll', () => {
+    clearTimeout(settleTimeout);
+    settleTimeout = setTimeout(() => {
+      let w = loop.clientWidth;
+      if (!w) return;
+      let idx = Math.round(loop.scrollLeft / w);
+      if (idx === 0) { loop.scrollLeft = w * CHRONO_REAL_INDEX.rest; idx = CHRONO_REAL_INDEX.rest; }
+      else if (idx === 3) { loop.scrollLeft = w * CHRONO_REAL_INDEX.stopwatch; idx = CHRONO_REAL_INDEX.stopwatch; }
+      let mode = idx === CHRONO_REAL_INDEX.stopwatch ? 'stopwatch' : 'rest';
+      if (mode !== timerTab) {
+        timerTab = mode;
+        let bar = document.getElementById('chrono-bar');
+        if (bar) bar.classList.toggle('mode-stopwatch', mode === 'stopwatch');
+      }
+    }, 100);
   });
-  let scrollTimeout = null;
-  carousel.addEventListener('scroll', () => {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      let idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
-      let slides = carousel.querySelectorAll('.timer-slide');
-      let active = slides[idx];
-      if (!active) return;
-      timerTab = active.dataset.slide;
-      dots.forEach(dot => dot.classList.toggle('active', dot.dataset.target === timerTab));
-    }, 80);
+
+  window.addEventListener('resize', () => {
+    let w = loop.clientWidth;
+    if (w) loop.scrollLeft = CHRONO_REAL_INDEX[timerTab] * w;
   });
 }
 
 function setRestPreset(sec) {
+  if (sec < 5) sec = 5;
   restPresetSeconds = sec;
-  document.querySelectorAll('.tc-preset-chip').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.trim() === sec + 's');
-  });
-  let rt = restTimers[1];
-  if (rt && rt.running) {
-    // Timer is mid-run: treat the preset tap as a quick "add time" action,
-    // same as the +30s button, instead of silently doing nothing.
-    adjustRestTimer(1, sec);
-    return;
-  }
-  let el = document.getElementById('timer-rest-display');
-  if (el) {
-    let m = Math.floor(sec / 60), s = sec % 60;
-    el.innerHTML = m + ':' + (s < 10 ? '0' : '') + s + '<span class="sw-ms">.00</span>';
-  }
+  let m = Math.floor(sec / 60), s = sec % 60;
+  let html = (m < 10 ? '0' : '') + m + '<span class="chrono-colon">:</span>' + (s < 10 ? '0' : '') + s + '<span class="sw-ms">.00</span>';
+  document.querySelectorAll('.js-rest-time').forEach(el => el.innerHTML = html);
 }
 
-function applyManualRest() {
-  let raw = (document.getElementById('timer-manual-input')?.value || '').trim();
-  if (!raw) return;
-  let sec = parseRestTime(raw, restPresetSeconds);
-  setRestPreset(sec);
-  startRestTimer(sec);
+// Stepper +/- on the Timer row: nudges the preset by 30s when idle,
+// or adds/removes time from the live countdown while running.
+function stepRestPreset(delta) {
+  let rt = restTimers[1];
+  if (rt && rt.running) {
+    adjustRestTimer(1, delta);
+    return;
+  }
+  setRestPreset(restPresetSeconds + delta);
+}
+
+// Reset icon on the Timer row: stop if running, snap back to the preset.
+function resetRestFromModule() {
+  let rt = restTimers[1];
+  if (rt.running) closeRestTimer(1);
+  setRestPreset(restPresetSeconds);
 }
 
 function toggleRestFromModule() {
@@ -4662,10 +4579,10 @@ function resetStopwatch(n) {
   }
   sw.elapsed = 0;
   sw.laps = [];
-  let el = document.getElementById('sw' + n + '-time');
-  if (el) el.innerHTML = '00:00<span class="sw-ms">.00</span>';
-  let card = document.getElementById('sw' + n + '-numcard');
-  if (card) card.classList.remove('running');
+  document.querySelectorAll('.js-sw-time').forEach(el => {
+    el.innerHTML = '00<span class="chrono-colon">:</span>00<span class="sw-ms">.00</span>';
+  });
+  document.querySelectorAll('.js-sw-card').forEach(card => card.classList.remove('running'));
   renderLaps(n);
 }
 
@@ -4709,18 +4626,6 @@ function openSettings() {
   // Already defined above.
 }
 
-// ── Global header floating timer ──
-function updateGlobalTimer(text) {
-  let el = document.getElementById('gh-timer');
-  if (!el) return;
-  if (text) {
-    el.textContent = text;
-    el.style.display = 'block';
-  } else {
-    el.style.display = 'none';
-  }
-}
-
 /* ── Date section collapse/expand ── */
 function toggleDateSection() {
   let body = document.getElementById('date-card-body');
@@ -4729,15 +4634,6 @@ function toggleDateSection() {
   body.classList.toggle('collapsed', collapsed);
   let btn = document.getElementById('date-chevron');
   if (btn) btn.classList.toggle('collapsed', collapsed);
-}
-
-/* ── Timer section collapse/expand ── */
-function toggleTimerSection() {
-  let btn = document.getElementById('timer-chevron');
-  let body = document.getElementById('timer-body');
-  if (!btn || !body) return;
-  let collapsed = btn.classList.toggle('collapsed');
-  body.style.display = collapsed ? 'none' : '';
 }
 
 /* ── Profile stats cards: Bodyweight / Water Reminder / Personal Records / Workout History ──
