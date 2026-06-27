@@ -4524,6 +4524,9 @@ async function uninstallApp() {
 // ====== CHRONO BAR HELPERS ======
 let timerTab = 'rest';
 let restPresetSeconds = 90;
+// True once the user has manually swiped to a tab; lets programmatic
+// syncs (rest timer auto-start) avoid yanking them away from Stopwatch.
+let userPickedChronoTab = false;
 
 // The loop track holds 4 slides: [TimerClone, Stopwatch, Timer, StopwatchClone].
 // Slides 1 and 2 are the "real" ones; 0 and 3 only exist so swiping past
@@ -4532,8 +4535,14 @@ const CHRONO_REAL_INDEX = { stopwatch: 1, rest: 2 };
 
 // Jumps the loop straight to a given mode — used for programmatic state
 // syncs (e.g. a rest timer auto-starting), never animated since it isn't
-// a user gesture.
-function setTimerTab(mode) {
+// a user gesture. Skips the actual scroll when the user has manually
+// swiped to Stopwatch, so starting a rest timer (e.g. right after
+// logging a set) doesn't yank their view away from it.
+function setTimerTab(mode, opts) {
+  let force = opts && opts.force;
+  if (!force && mode === 'rest' && timerTab === 'stopwatch' && userPickedChronoTab) {
+    return;
+  }
   timerTab = mode;
   let bar = document.getElementById('chrono-bar');
   if (bar) bar.classList.toggle('mode-stopwatch', mode === 'stopwatch');
@@ -4581,6 +4590,11 @@ function initChronoLoop() {
         });
       });
     }
+    // Any settle driven by this scroll listener originates from a real
+    // user swipe. Track when they've deliberately chosen Stopwatch so a
+    // rest timer auto-starting (setTimerTab('rest')) doesn't yank them
+    // back; clear it if they swipe back to Timer themselves.
+    userPickedChronoTab = (mode === 'stopwatch');
     if (mode !== timerTab) {
       timerTab = mode;
       let bar = document.getElementById('chrono-bar');

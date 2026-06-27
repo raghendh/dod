@@ -1866,8 +1866,8 @@ body.pitch-black #onboarding-screen { background: #000; }
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 8px 16px;
-  min-height: 52px;
+  padding: 0 16px;
+  height: 52px;
   background: var(--app-bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;          /* stays fixed, pages scroll under it */
@@ -1919,9 +1919,16 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 
 /* "Install" button in the global header — only shown when the browser
-   fires beforeinstallprompt (i.e. the app isn't installed yet) */
+   fires beforeinstallprompt (i.e. the app isn't installed yet). Sits
+   directly on top of the version pill (same spot), covering it, since
+   the two never need to be visible at once and the button disappears
+   for good right after install. */
 #install-pwa-btn {
   display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  justify-content: center;
   align-items: center;
   gap: 6px;
   background: var(--accent-soft);
