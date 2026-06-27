@@ -1355,7 +1355,13 @@ function startGenericDrag(item, container, itemSelector, startEvent, onCommit){
   placeholder.style.height = rect.height + 'px';
   item.parentNode.insertBefore(placeholder, item.nextSibling);
 
+  let pointerId = startEvent.pointerId;
+  if(typeof item.setPointerCapture === 'function'){
+    try { item.setPointerCapture(pointerId); } catch(err) {}
+  }
+
   function onMove(ev){
+    if(ev.pointerId !== undefined && ev.pointerId !== pointerId) return;
     let clientY = ev.clientY;
     let dy = clientY - startY;
     item.style.transform = `translateY(${dy}px)`;
@@ -1372,21 +1378,36 @@ function startGenericDrag(item, container, itemSelector, startEvent, onCommit){
     }
   }
 
-  function onUp(){
+  function finish(){
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onCancel);
+    if(typeof item.releasePointerCapture === 'function'){
+      try { item.releasePointerCapture(pointerId); } catch(err) {}
+    }
     container.insertBefore(item, placeholder);
     placeholder.remove();
     item.classList.remove('dragging');
     item.style.transform = '';
     item.style.zIndex = '';
+  }
+
+  function onUp(ev){
+    if(ev.pointerId !== undefined && ev.pointerId !== pointerId) return;
+    finish();
     let items = Array.from(container.querySelectorAll(itemSelector));
     let orderedIdxs = items.map(it => parseInt(it.dataset.idx,10));
     onCommit(orderedIdxs);
   }
 
+  function onCancel(ev){
+    if(ev.pointerId !== undefined && ev.pointerId !== pointerId) return;
+    finish();
+  }
+
   document.addEventListener('pointermove', onMove);
   document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onCancel);
 }
 
 function importSplitToToday() {
@@ -2060,7 +2081,13 @@ function startSplitDrag(item, container, e){
   placeholder.style.height = rect.height + 'px';
   item.parentNode.insertBefore(placeholder, item.nextSibling);
 
+  let pointerId = e.pointerId;
+  if(typeof item.setPointerCapture === 'function'){
+    try { item.setPointerCapture(pointerId); } catch(err) {}
+  }
+
   function onMove(ev){
+    if(ev.pointerId !== undefined && ev.pointerId !== pointerId) return;
     let dy = ev.clientY - startY;
     item.style.transform = `translateY(${dy}px)`;
     let siblings = Array.from(container.querySelectorAll('.day-ex-item:not(.dragging)'));
@@ -2076,19 +2103,34 @@ function startSplitDrag(item, container, e){
     }
   }
 
-  function onUp(){
+  function finish(){
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onCancel);
+    if(typeof item.releasePointerCapture === 'function'){
+      try { item.releasePointerCapture(pointerId); } catch(err) {}
+    }
     container.insertBefore(item, placeholder);
     placeholder.remove();
     item.classList.remove('dragging');
     item.style.transform = '';
     item.style.zIndex = '';
+  }
+
+  function onUp(ev){
+    if(ev.pointerId !== undefined && ev.pointerId !== pointerId) return;
+    finish();
     commitSplitOrder(container);
+  }
+
+  function onCancel(ev){
+    if(ev.pointerId !== undefined && ev.pointerId !== pointerId) return;
+    finish();
   }
 
   document.addEventListener('pointermove', onMove);
   document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onCancel);
 }
 
 function commitSplitOrder(container){
@@ -4512,22 +4554,45 @@ function initChronoLoop() {
   requestAnimationFrame(() => { loop.scrollLeft = loop.clientWidth * CHRONO_REAL_INDEX.rest; });
 
   let settleTimeout = null;
+  let correcting = false; // guards against our own corrective scrollLeft writes re-triggering this handler
+
+  function settle() {
+    let w = loop.clientWidth;
+    if (!w) return;
+    let idx = Math.round(loop.scrollLeft / w);
+    let mode = idx === CHRONO_REAL_INDEX.stopwatch ? 'stopwatch' : 'rest';
+    if (idx === 0 || idx === 3) {
+      mode = idx === 0 ? 'rest' : 'stopwatch';
+      correcting = true;
+      loop.scrollLeft = w * CHRONO_REAL_INDEX[mode];
+      // Let the corrective jump's own scroll event(s) flush out before
+      // re-enabling the listener, so it doesn't get treated as a new
+      // user gesture and re-armed mid-correction.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          correcting = false;
+          // Native scroll-snap can occasionally fight the manual write on
+          // fast flings; verify we actually landed where intended and
+          // re-apply once more if not, rather than leaving it adrift.
+          let w2 = loop.clientWidth;
+          if (w2 && loop.scrollLeft !== w2 * CHRONO_REAL_INDEX[mode]) {
+            loop.scrollLeft = w2 * CHRONO_REAL_INDEX[mode];
+          }
+        });
+      });
+    }
+    if (mode !== timerTab) {
+      timerTab = mode;
+      let bar = document.getElementById('chrono-bar');
+      if (bar) bar.classList.toggle('mode-stopwatch', mode === 'stopwatch');
+    }
+  }
+
   loop.addEventListener('scroll', () => {
+    if (correcting) return;
     clearTimeout(settleTimeout);
-    settleTimeout = setTimeout(() => {
-      let w = loop.clientWidth;
-      if (!w) return;
-      let idx = Math.round(loop.scrollLeft / w);
-      if (idx === 0) { loop.scrollLeft = w * CHRONO_REAL_INDEX.rest; idx = CHRONO_REAL_INDEX.rest; }
-      else if (idx === 3) { loop.scrollLeft = w * CHRONO_REAL_INDEX.stopwatch; idx = CHRONO_REAL_INDEX.stopwatch; }
-      let mode = idx === CHRONO_REAL_INDEX.stopwatch ? 'stopwatch' : 'rest';
-      if (mode !== timerTab) {
-        timerTab = mode;
-        let bar = document.getElementById('chrono-bar');
-        if (bar) bar.classList.toggle('mode-stopwatch', mode === 'stopwatch');
-      }
-    }, 100);
-  });
+    settleTimeout = setTimeout(settle, 120);
+  }, { passive: true });
 
   window.addEventListener('resize', () => {
     let w = loop.clientWidth;

@@ -739,6 +739,7 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: #1e1e1e
 }
 .reorder-active {
   cursor: grab;
+  touch-action: none;
   animation: reorder-wiggle 0.32s ease-in-out infinite;
   animation-delay: calc(var(--wiggle-offset, 0) * 1s);
 }
