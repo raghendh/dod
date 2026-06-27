@@ -4562,8 +4562,9 @@ function initChronoLoop() {
 
   requestAnimationFrame(() => { loop.scrollLeft = loop.clientWidth * CHRONO_REAL_INDEX.rest; });
 
-  let settleTimeout = null;
   let correcting = false; // guards against our own corrective scrollLeft writes re-triggering this handler
+  let pollTimer = null;
+  let lastPos = null;
 
   function settle() {
     let w = loop.clientWidth;
@@ -4574,15 +4575,9 @@ function initChronoLoop() {
       mode = idx === 0 ? 'rest' : 'stopwatch';
       correcting = true;
       loop.scrollLeft = w * CHRONO_REAL_INDEX[mode];
-      // Let the corrective jump's own scroll event(s) flush out before
-      // re-enabling the listener, so it doesn't get treated as a new
-      // user gesture and re-armed mid-correction.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           correcting = false;
-          // Native scroll-snap can occasionally fight the manual write on
-          // fast flings; verify we actually landed where intended and
-          // re-apply once more if not, rather than leaving it adrift.
           let w2 = loop.clientWidth;
           if (w2 && loop.scrollLeft !== w2 * CHRONO_REAL_INDEX[mode]) {
             loop.scrollLeft = w2 * CHRONO_REAL_INDEX[mode];
@@ -4590,10 +4585,6 @@ function initChronoLoop() {
         });
       });
     }
-    // Any settle driven by this scroll listener originates from a real
-    // user swipe. Track when they've deliberately chosen Stopwatch so a
-    // rest timer auto-starting (setTimerTab('rest')) doesn't yank them
-    // back; clear it if they swipe back to Timer themselves.
     userPickedChronoTab = (mode === 'stopwatch');
     if (mode !== timerTab) {
       timerTab = mode;
@@ -4602,10 +4593,47 @@ function initChronoLoop() {
     }
   }
 
+  // Native CSS scroll-snap keeps animating scrollLeft toward the target
+  // slide for a stretch of time *after* the last input-driven scroll
+  // event on a fast fling — reading scrollLeft as soon as events go
+  // quiet (a fixed debounce) can sample it mid-animation and round to
+  // the wrong (often the origin) slide. Polling clientWidth-relative
+  // position until it stops changing for two consecutive checks avoids
+  // ever reading a mid-flight value, regardless of swipe speed.
+  function waitForRest() {
+    clearInterval(pollTimer);
+    lastPos = null;
+    let stableTicks = 0;
+    pollTimer = setInterval(() => {
+      let pos = loop.scrollLeft;
+      if (lastPos !== null && Math.abs(pos - lastPos) < 0.5) {
+        stableTicks++;
+        if (stableTicks >= 2) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+          settle();
+        }
+      } else {
+        stableTicks = 0;
+      }
+      lastPos = pos;
+    }, 50);
+  }
+
   loop.addEventListener('scroll', () => {
     if (correcting) return;
-    clearTimeout(settleTimeout);
-    settleTimeout = setTimeout(settle, 120);
+    waitForRest();
+  }, { passive: true });
+
+  // scrollend fires exactly when the browser's own snap animation has
+  // fully finished — when supported, it's a more reliable trigger than
+  // polling and we use it as the primary signal; the poller above still
+  // runs as a fallback for browsers without scrollend.
+  loop.addEventListener('scrollend', () => {
+    if (correcting) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+    settle();
   }, { passive: true });
 
   window.addEventListener('resize', () => {
