@@ -4570,9 +4570,17 @@ function initChronoLoop() {
     let w = loop.clientWidth;
     if (!w) return;
     let idx = Math.round(loop.scrollLeft / w);
-    let mode = idx === CHRONO_REAL_INDEX.stopwatch ? 'stopwatch' : 'rest';
+    let mode;
     if (idx === 0 || idx === 3) {
-      mode = idx === 0 ? 'rest' : 'stopwatch';
+      // Landed on a loop-clone slide. With only two real modes, this
+      // always means the swipe ended up on "the other" mode from
+      // wherever it started — whether that's because it crossed the
+      // adjacent real slide directly (the normal, moderate-swipe case)
+      // or overshot all the way past it to the far clone on a fast
+      // swipe whose momentum outran the browser's own scroll-snap. In
+      // both cases the destination is simply the mode opposite
+      // `timerTab` at the moment the gesture began.
+      mode = (timerTab === 'rest') ? 'stopwatch' : 'rest';
       correcting = true;
       loop.scrollLeft = w * CHRONO_REAL_INDEX[mode];
       requestAnimationFrame(() => {
@@ -4584,6 +4592,8 @@ function initChronoLoop() {
           }
         });
       });
+    } else {
+      mode = idx === CHRONO_REAL_INDEX.stopwatch ? 'stopwatch' : 'rest';
     }
     userPickedChronoTab = (mode === 'stopwatch');
     if (mode !== timerTab) {
