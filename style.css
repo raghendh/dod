@@ -1931,11 +1931,11 @@ body.pitch-black #onboarding-screen { background: #000; }
   justify-content: center;
   align-items: center;
   gap: 6px;
-  background: var(--accent-soft);
+  background: var(--accent);
   border: 1px solid var(--accent);
   border-radius: 10px;
   padding: 6px 12px;
-  color: var(--accent);
+  color: #fff;
   font-family: inherit;
   font-size: 12px;
   font-weight: 800;
@@ -1946,6 +1946,7 @@ body.pitch-black #onboarding-screen { background: #000; }
   transition: background 0.15s, transform 0.15s;
 }
 #install-pwa-btn:active {
+  background: var(--accent);
   transform: scale(0.96);
 }
 
