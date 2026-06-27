@@ -1866,8 +1866,8 @@ body.pitch-black #onboarding-screen { background: #000; }
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 0 16px;
-  height: 52px;
+  padding: 8px 16px;
+  min-height: 52px;
   background: var(--app-bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;          /* stays fixed, pages scroll under it */
@@ -1901,6 +1901,12 @@ body.pitch-black #onboarding-screen { background: #000; }
   letter-spacing: 0.06em;
   min-width: 68px;
   text-align: center;
+}
+
+/* Version pill — identical sizing to the date pill so both header
+   badges read as a matching pair. */
+.gh-version-pill {
+  flex-shrink: 0;
 }
 
 #gh-title {
