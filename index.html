@@ -16,7 +16,7 @@
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png">
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/raghendh/dod/main/icon-192.png">
 <link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="style.css?v=20260627g">
+<link rel="stylesheet" href="style.css?v=20260628b">
 </head>
 <body>
 
@@ -339,16 +339,11 @@
       </div>
       <h2 class="ob-title">You're ready.</h2>
       <p class="ob-desc">Your data never leaves this device. Train hard.</p>
-      <div class="ob-theme-row">
-        <button type="button" class="ob-theme-btn" id="ob-theme-default" onclick="document.body.classList.remove('pitch-black');document.getElementById('ob-theme-default').classList.add('selected');document.getElementById('ob-theme-black').classList.remove('selected');">
-          <span class="ob-theme-swatch" style="background:#1F1F1E;border:2px solid var(--accent);"></span>
-          Dark
-        </button>
-        <button type="button" class="ob-theme-btn" id="ob-theme-black" onclick="document.body.classList.add('pitch-black');document.getElementById('ob-theme-black').classList.add('selected');document.getElementById('ob-theme-default').classList.remove('selected');">
-          <span class="ob-theme-swatch" style="background:#000;border:2px solid var(--border);"></span>
-          Pitch Black
-        </button>
-      </div>
+      <div class="theme-picker-grid" id="ob-theme-picker-grid" style="margin-bottom:14px;"></div>
+      <button type="button" class="ob-theme-btn" id="ob-pitch-black-toggle" onclick="obTogglePitchBlack()" style="width:100%;justify-content:center;">
+        <span class="ob-theme-swatch" id="ob-pitch-black-swatch" style="background:#000;border:2px solid var(--border);"></span>
+        Pitch Black Mode
+      </button>
       <button type="button" class="ob-btn-primary ob-btn-finish" onclick="obSaveTheme()">Start Training</button>
     </div>
 
@@ -364,6 +359,6 @@
   <div id="float-panel-body"></div>
 </div>
 
-<script src="script.js?v=20260627f"></script>
+<script src="script.js?v=20260628b"></script>
 </body>
 </html>
