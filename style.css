@@ -1249,6 +1249,199 @@ body.pitch-black #onboarding-screen { background: #000; }
 .day-ex-field-val { font-size: 13px; color: var(--txt-dim); line-height: 1.45; }
 .day-ex-note { margin-top: 10px; background: var(--input-bg); border-radius: 10px; padding: 10px 12px; }
 
+/* ── Splits sub-nav (Workout Splits / Exercise Library) ── */
+.splits-subnav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  gap: 0;
+}
+.splits-subnav-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 12px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--txt3);
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: color 0.15s, border-color 0.15s;
+}
+.splits-subnav-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Exercise Library ── */
+.exlib-search-block {
+  background: var(--card-bg);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.exlib-search-wrap {
+  position: relative;
+  margin: 10px 0 14px;
+}
+.exlib-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--txt3);
+  pointer-events: none;
+}
+.exlib-search-input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 11px 12px 11px 38px;
+  color: var(--txt);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.exlib-search-input::placeholder { color: var(--txt3); }
+.exlib-search-input:focus { border-color: var(--accent); }
+.exlib-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.exlib-filter-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--input-bg);
+  border: 1px solid transparent;
+  color: var(--txt-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+}
+.exlib-filter-chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.exlib-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+.exlib-empty {
+  text-align: center;
+  color: var(--txt3);
+  font-size: 13px;
+  padding: 32px 0;
+}
+/* Library exercise card — mirrors day-ex-item exactly */
+.exlib-item {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  cursor: pointer;
+}
+.exlib-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.exlib-num {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 11px;
+  color: #000;
+  background: var(--green);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-align: center;
+}
+.exlib-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 14px;
+  min-width: 0;
+}
+.exlib-detail {
+  display: none;
+  margin: 12px -14px -14px;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+.exlib-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+/* Muscle pills */
+.exlib-muscles {
+  margin-top: 10px;
+  background: var(--input-bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.exlib-muscle-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.exlib-muscle-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.exlib-muscle-pill.primary {
+  background: rgba(193,95,60,0.18);
+  color: var(--accent);
+  border: 1px solid rgba(193,95,60,0.3);
+}
+.exlib-muscle-pill.secondary {
+  background: var(--card-bg-2);
+  color: var(--txt-muted);
+  border: 1px solid var(--border2);
+}
+/* Add to workout button inside library card */
+.exlib-add-btn {
+  margin-top: 12px;
+  width: 100%;
+  background: var(--accent-soft);
+  border: 1px solid rgba(193,95,60,0.35);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: inherit;
+  padding: 10px;
+  cursor: pointer;
+}
+
 /* Info panel label/value pairs (Method / Tempo / Rest / Key Note) */
 .u4 {
   display: inline-block;

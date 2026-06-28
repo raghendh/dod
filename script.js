@@ -275,6 +275,344 @@ const SPLITS = {
 
 const DEFAULT_SPLITS_SNAPSHOT = JSON.parse(JSON.stringify(SPLITS));
 
+/* ══════════════════════════════════════════════════════════════════
+   EXERCISE LIBRARY DATABASE
+   Each entry: { name, category, equipment, muscles:{primary:[],secondary:[]},
+                 sets, reps, weightMethod, tempo, rest, notes }
+   ══════════════════════════════════════════════════════════════════ */
+const EXERCISE_DB = [
+  /* ─── CHEST ─── */
+  {name:"Flat Barbell Bench Press",category:"Chest",equipment:"Barbell",muscles:{primary:["Chest"],secondary:["Front Delts","Triceps"]},sets:"3 working",reps:"6–10",weightMethod:"2 warm-up sets first. Double progression.",tempo:"3s down, pause at chest, drive up",rest:"2–3 min",notes:"Primary chest builder. Keep shoulder blades pinned back."},
+  {name:"Incline Barbell Press",category:"Chest",equipment:"Barbell",muscles:{primary:["Upper Chest"],secondary:["Front Delts","Triceps"]},sets:"3 working",reps:"6–10",weightMethod:"Same weight all working sets",tempo:"Controlled descent",rest:"2–3 min",notes:"Upper chest emphasis. 30–45° incline."},
+  {name:"Incline Dumbbell Press",category:"Chest",equipment:"Dumbbell",muscles:{primary:["Upper Chest"],secondary:["Front Delts","Triceps"]},sets:"3",reps:"8–12",weightMethod:"Same weight all sets",tempo:"3–4s down, full stretch at bottom",rest:"90 sec",notes:"Don't let elbows flare past 75°."},
+  {name:"Cable Fly",category:"Chest",equipment:"Cable",muscles:{primary:["Chest"],secondary:["Front Delts"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Squeeze 1s at peak contraction",rest:"60 sec",notes:"Pure isolation — chase the pump."},
+  {name:"Dips",category:"Chest",equipment:"Bodyweight",muscles:{primary:["Chest"],secondary:["Triceps","Front Delts"]},sets:"2–3",reps:"To failure",weightMethod:"Bodyweight — add weight if easy",tempo:"Full range, controlled",rest:"60 sec",notes:"Lean forward slightly to bias chest over triceps."},
+  {name:"Hammer Strength Incline Press",category:"Chest",equipment:"Machine",muscles:{primary:["Upper Chest"],secondary:["Front Delts","Triceps"]},sets:"2",reps:"6–10",weightMethod:"Descending — start heavy, drop 15–20%",tempo:"3–4s eccentric, pause at stretch",rest:"2 min",notes:"Only descending pyramid. Start as heavy as possible."},
+  {name:"Machine Chest Press",category:"Chest",equipment:"Machine",muscles:{primary:["Chest"],secondary:["Triceps","Front Delts"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Controlled, full range",rest:"90 sec",notes:"Good finisher or high-rep pump work."},
+  {name:"Push-Up",category:"Chest",equipment:"Bodyweight",muscles:{primary:["Chest"],secondary:["Triceps","Front Delts","Core"]},sets:"3",reps:"To failure",weightMethod:"Bodyweight",tempo:"3s down, pause at bottom",rest:"60 sec",notes:"Elevate feet to shift load to upper chest."},
+
+  /* ─── BACK ─── */
+  {name:"Deadlift",category:"Back",equipment:"Barbell",muscles:{primary:["Lower Back","Hamstrings"],secondary:["Glutes","Traps","Lats"]},sets:"3 working",reps:"5–8",weightMethod:"2–3 warm-up sets first. Same weight all working sets.",tempo:"Controlled pull, reset each rep",rest:"2–3 min",notes:"Heaviest lift of the week. Brace hard, neutral spine."},
+  {name:"Barbell Row",category:"Back",equipment:"Barbell",muscles:{primary:["Mid Back","Lats"],secondary:["Biceps","Rear Delts"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Pull to lower chest, 2s squeeze",rest:"90 sec",notes:"Keep torso angle fixed — no jerking."},
+  {name:"Lat Pulldown",category:"Back",equipment:"Cable",muscles:{primary:["Lats"],secondary:["Biceps","Rear Delts"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Pull to upper chest, slow return",rest:"90 sec",notes:"Lead with elbows, not hands."},
+  {name:"Close Grip Underhand Lat Pulldown",category:"Back",equipment:"Cable",muscles:{primary:["Lats"],secondary:["Biceps","Mid Back"]},sets:"3 working",reps:"10–12",weightMethod:"2 warm-up sets first. Same weight all 3 working sets.",tempo:"Pull to upper chest, pause & squeeze. 3s return.",rest:"90 sec",notes:"Drive elbows to hips — not hands to chest."},
+  {name:"Seated Cable Row",category:"Back",equipment:"Cable",muscles:{primary:["Mid Back"],secondary:["Lats","Biceps"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Squeeze scapula at peak",rest:"90 sec",notes:"Mid-back thickness."},
+  {name:"Pull-Up",category:"Back",equipment:"Bodyweight",muscles:{primary:["Lats"],secondary:["Biceps","Rear Delts"]},sets:"3",reps:"6–10",weightMethod:"Bodyweight or assisted; add weight if easy",tempo:"Full hang to chin over bar",rest:"90 sec",notes:"Lean back slightly, drive elbows down."},
+  {name:"Chest-Supported T-Bar Row",category:"Back",equipment:"Barbell",muscles:{primary:["Mid Back","Lats"],secondary:["Biceps","Rear Delts"]},sets:"2",reps:"8–10",weightMethod:"1 warm-up. Set 1 heavy. Set 2: drop 25–30% → failure.",tempo:"Pull to lower chest, retract scapula hard",rest:"2 min",notes:"Chest support eliminates cheating."},
+  {name:"Chest-Supported Row",category:"Back",equipment:"Dumbbell",muscles:{primary:["Mid Back","Lats"],secondary:["Biceps","Rear Delts"]},sets:"3 working",reps:"8–10",weightMethod:"Same weight all working sets.",tempo:"Full hang, row to hip",rest:"2 min",notes:"Eliminates all momentum."},
+  {name:"Face Pull",category:"Back",equipment:"Cable",muscles:{primary:["Rear Delts"],secondary:["Traps","External Rotators"]},sets:"3",reps:"15–20",weightMethod:"Same weight all sets",tempo:"Pull to face, external rotation at end",rest:"60 sec",notes:"Rear delts and upper back health."},
+
+  /* ─── LEGS ─── */
+  {name:"Back Squat",category:"Legs",equipment:"Barbell",muscles:{primary:["Quads","Glutes"],secondary:["Hamstrings","Lower Back","Core"]},sets:"3 working",reps:"6–10",weightMethod:"2–3 warm-up sets first. Same weight all working sets.",tempo:"3–4s down, drive up",rest:"2–3 min",notes:"Primary leg builder. Hit depth every rep."},
+  {name:"Front Squat",category:"Legs",equipment:"Barbell",muscles:{primary:["Quads"],secondary:["Glutes","Core","Upper Back"]},sets:"3 working",reps:"6–10",weightMethod:"2 warm-up sets first. Same weight all working sets.",tempo:"Upright torso, controlled descent",rest:"2–3 min",notes:"More quad-dominant than back squat."},
+  {name:"Smith Machine Squats",category:"Legs",equipment:"Machine",muscles:{primary:["Quads","Glutes"],secondary:["Hamstrings"]},sets:"2 working",reps:"6–10",weightMethod:"2 warm-up sets (50%×15, 70%×10). Double progression.",tempo:"3–4s down, 1s pause at bottom, explode up",rest:"2–3 min",notes:"No bouncing out of the hole."},
+  {name:"Romanian Deadlift",category:"Legs",equipment:"Barbell",muscles:{primary:["Hamstrings","Glutes"],secondary:["Lower Back","Adductors"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Push hips back, feel hamstring stretch",rest:"90 sec",notes:"Slight knee bend only — this is a hip hinge."},
+  {name:"Lying Leg Curl",category:"Legs",equipment:"Machine",muscles:{primary:["Hamstrings"],secondary:[]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Curl up explosively, squeeze at top, 3–4s eccentric",rest:"90 sec",notes:"Full stretch at bottom every rep."},
+  {name:"Leg Press",category:"Legs",equipment:"Machine",muscles:{primary:["Quads","Glutes"],secondary:["Hamstrings"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Full range, no lockout",rest:"90 sec",notes:"Feet shoulder width for balanced quad/glute work."},
+  {name:"Leg Curl",category:"Legs",equipment:"Machine",muscles:{primary:["Hamstrings"],secondary:[]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Slow eccentric",rest:"60 sec",notes:"Hamstring isolation."},
+  {name:"Leg Extension",category:"Legs",equipment:"Machine",muscles:{primary:["Quads"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Hold 1s at peak, 2s eccentric",rest:"60 sec",notes:"Quad isolation and pump work."},
+  {name:"Standing Calf Raise",category:"Legs",equipment:"Machine",muscles:{primary:["Calves (Gastrocnemius)"],secondary:[]},sets:"4",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Full stretch, full contraction, pause both",rest:"60 sec",notes:"Don't bounce — the pauses are what make this work."},
+  {name:"Seated Calf Raise",category:"Legs",equipment:"Machine",muscles:{primary:["Calves (Soleus)"],secondary:[]},sets:"3",reps:"15–20",weightMethod:"Same weight all sets",tempo:"Slow throughout, 2s pause at top",rest:"60 sec",notes:"Soleus focus due to bent-knee position."},
+  {name:"Bulgarian Split Squat",category:"Legs",equipment:"Dumbbell",muscles:{primary:["Quads","Glutes"],secondary:["Hamstrings","Core"]},sets:"3",reps:"8–10 per leg",weightMethod:"Same weight all sets",tempo:"3s down, controlled",rest:"90 sec",notes:"Back foot elevated. Long stride to bias glutes."},
+
+  /* ─── SHOULDERS ─── */
+  {name:"Seated Barbell Press",category:"Shoulders",equipment:"Barbell",muscles:{primary:["Front Delts","Medial Delts"],secondary:["Triceps","Upper Chest"]},sets:"3 working",reps:"6–10",weightMethod:"2 warm-up sets first. Same weight all working sets.",tempo:"Controlled descent, no bounce",rest:"2 min",notes:"Heaviest pressing movement of the day."},
+  {name:"Seated Dumbbell Shoulder Press",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Front Delts","Medial Delts"],secondary:["Triceps"]},sets:"2 working",reps:"6–10",weightMethod:"2 warm-up sets first. Double progression.",tempo:"Lower to ear level 3–4s, 1s pause, press. Do NOT lock out.",rest:"2–3 min",notes:"Heaviest pressing movement of the day."},
+  {name:"Machine Shoulder Press",category:"Shoulders",equipment:"Machine",muscles:{primary:["Front Delts","Medial Delts"],secondary:["Triceps"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Controlled, full range",rest:"90 sec",notes:"Constant tension on the delts."},
+  {name:"Lateral Raise",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Medial Delts"],secondary:[]},sets:"4",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Lead with elbows, pause at top",rest:"60 sec",notes:"Strict form — light weight, no swinging."},
+  {name:"DB Lateral Raises — Ascending Pyramid",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Medial Delts"],secondary:[]},sets:"8 total (×2 rounds)",reps:"20 / 15 / 10 / fail",weightMethod:"20lb×20 → 30lb×15 → 35lb×10 → 40lb×fail. 30s rest. Run TWICE.",tempo:"Raise to shoulder, lead with elbow. Slow lower.",rest:"30 sec within, 2 min between rounds",notes:"The medial delt volume block. Short rest is intentional."},
+  {name:"Rear Delt Fly",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Rear Delts"],secondary:["Traps"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Squeeze shoulder blades together",rest:"60 sec",notes:"Bent over or machine, either works."},
+  {name:"Shrugs",category:"Shoulders",equipment:"Barbell",muscles:{primary:["Traps"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Pause 1s at top",rest:"60 sec",notes:"Straight up and down — don't roll the shoulders."},
+
+  /* ─── ARMS ─── */
+  {name:"Barbell Curl",category:"Arms",equipment:"Barbell",muscles:{primary:["Biceps"],secondary:["Brachialis"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"No swinging, full stretch at bottom",rest:"90 sec",notes:"Elbows pinned to sides throughout."},
+  {name:"EZ Bar Preacher Curls",category:"Arms",equipment:"Barbell",muscles:{primary:["Biceps"],secondary:["Brachialis"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Full stretch at bottom. Squeeze at top. 3–4s eccentric.",rest:"90 sec",notes:"Elbows stay on pad. Bottom stretch is the most important part."},
+  {name:"Machine Preacher Curls",category:"Arms",equipment:"Machine",muscles:{primary:["Biceps"],secondary:[]},sets:"2",reps:"10–12",weightMethod:"Same weight both sets",tempo:"Full stretch at bottom. Squeeze at top, 3–4s eccentric.",rest:"60 sec",notes:"Never cut the range of motion."},
+  {name:"Hammer Curl",category:"Arms",equipment:"Dumbbell",muscles:{primary:["Brachialis","Brachioradialis"],secondary:["Biceps"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Neutral grip, controlled",rest:"60 sec",notes:"Targets brachialis for arm thickness."},
+  {name:"Close Grip Bench Press",category:"Arms",equipment:"Barbell",muscles:{primary:["Triceps"],secondary:["Chest","Front Delts"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Elbows tucked, controlled descent",rest:"90 sec",notes:"Hands just inside shoulder width."},
+  {name:"Tricep Pushdown",category:"Arms",equipment:"Cable",muscles:{primary:["Triceps"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Lock out each rep, slow return",rest:"60 sec",notes:"Keep elbows fixed at your sides."},
+  {name:"Overhead Tricep Extension",category:"Arms",equipment:"Cable",muscles:{primary:["Triceps (Long Head)"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Deep stretch behind head",rest:"60 sec",notes:"Long head stretch — most important for mass."},
+
+  /* ─── CORE ─── */
+  {name:"Plank",category:"Core",equipment:"Bodyweight",muscles:{primary:["Core","Transverse Abdominis"],secondary:["Glutes","Shoulders"]},sets:"3",reps:"30–60s hold",weightMethod:"Bodyweight",tempo:"Braced, neutral spine",rest:"60 sec",notes:"Don't let hips sag or pike up."},
+  {name:"Cable Crunch",category:"Core",equipment:"Cable",muscles:{primary:["Abs"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Crunch fully, slow return",rest:"60 sec",notes:"Keep hips still — all movement from core."},
+  {name:"Hanging Leg Raise",category:"Core",equipment:"Bodyweight",muscles:{primary:["Lower Abs"],secondary:["Hip Flexors","Core"]},sets:"3",reps:"10–15",weightMethod:"Bodyweight",tempo:"Controlled, no swinging",rest:"60 sec",notes:"Posterior pelvic tilt at the top for full abs engagement."},
+  {name:"Ab Wheel Rollout",category:"Core",equipment:"Bodyweight",muscles:{primary:["Core","Abs"],secondary:["Lats","Shoulders"]},sets:"3",reps:"8–12",weightMethod:"Bodyweight",tempo:"Slow out, slow back",rest:"60 sec",notes:"Brace before rolling — don't let lower back collapse."},
+
+  /* ─── CARDIO ─── */
+  {name:"Incline Treadmill Walk",category:"Cardio",equipment:"Machine",muscles:{primary:["Calves","Glutes"],secondary:["Hamstrings","Core"]},sets:"1 session",reps:"20–45 min",weightMethod:"Incline 10–15%, speed 3–4 km/h",tempo:"Steady state",rest:"N/A",notes:"Low-impact cardio. Great for fat loss without taxing recovery."},
+  {name:"Stationary Bike",category:"Cardio",equipment:"Machine",muscles:{primary:["Quads","Calves"],secondary:["Glutes","Hamstrings"]},sets:"1 session",reps:"20–40 min",weightMethod:"Moderate resistance",tempo:"Steady state or intervals",rest:"N/A",notes:"Easy on the joints. Good post-leg-day option."},
+  {name:"Stair Master",category:"Cardio",equipment:"Machine",muscles:{primary:["Glutes","Calves"],secondary:["Quads","Hamstrings"]},sets:"1 session",reps:"15–30 min",weightMethod:"Moderate pace",tempo:"Steady",rest:"N/A",notes:"High glute activation. Good cardio without impact."},
+  {name:"Jump Rope",category:"Cardio",equipment:"Bodyweight",muscles:{primary:["Calves","Shoulders"],secondary:["Core","Quads"]},sets:"5–10",reps:"1 min on / 30s off",weightMethod:"Bodyweight",tempo:"Consistent pace",rest:"30 sec between sets",notes:"High-output cardio. Technique matters more than speed."},
+
+  /* ─── CHEST (expanded) ─── */
+  {name:"Decline Barbell Bench Press",category:"Chest",equipment:"Barbell",muscles:{primary:["Lower Chest"],secondary:["Triceps","Front Delts"]},sets:"3",reps:"8–12",weightMethod:"Same weight all sets",tempo:"3s down, controlled press",rest:"90 sec",notes:"Lower chest emphasis. Keep glutes on bench."},
+  {name:"Dumbbell Bench Press",category:"Chest",equipment:"Dumbbell",muscles:{primary:["Chest"],secondary:["Front Delts","Triceps"]},sets:"3",reps:"8–12",weightMethod:"Same weight all sets",tempo:"Full stretch at bottom, controlled press",rest:"90 sec",notes:"Wider range of motion than barbell. Great for chest development."},
+  {name:"Incline Dumbbell Fly",category:"Chest",equipment:"Dumbbell",muscles:{primary:["Upper Chest"],secondary:["Front Delts"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Wide arc, squeeze at top",rest:"60 sec",notes:"Feel the stretch at the bottom. Don't hyperextend shoulder."},
+  {name:"Pec Deck Machine",category:"Chest",equipment:"Machine",muscles:{primary:["Chest"],secondary:["Front Delts"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Squeeze hard at peak, slow return",rest:"60 sec",notes:"Constant tension. Great for pump work."},
+  {name:"Low Cable Fly",category:"Chest",equipment:"Cable",muscles:{primary:["Upper Chest"],secondary:["Front Delts"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Arc upward, squeeze at top",rest:"60 sec",notes:"Cables set low — hits upper chest via upward fly path."},
+  {name:"High Cable Fly",category:"Chest",equipment:"Cable",muscles:{primary:["Lower Chest"],secondary:["Front Delts"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Arc downward, squeeze at bottom",rest:"60 sec",notes:"Cables set high — hits lower chest via downward arc."},
+  {name:"Weighted Dips",category:"Chest",equipment:"Bodyweight",muscles:{primary:["Lower Chest","Triceps"],secondary:["Front Delts"]},sets:"3",reps:"6–10",weightMethod:"Add weight via belt or hold plate",tempo:"Full range, slow eccentric",rest:"90 sec",notes:"Lean forward to emphasize chest over triceps."},
+  {name:"Svend Press",category:"Chest",equipment:"Plate",muscles:{primary:["Chest"],secondary:["Front Delts"]},sets:"3",reps:"12–15",weightMethod:"Light plate, squeeze throughout",tempo:"Slow press out, slow return",rest:"60 sec",notes:"Squeeze plate hard at all times — constant pec tension."},
+  {name:"Landmine Press",category:"Chest",equipment:"Barbell",muscles:{primary:["Upper Chest","Front Delts"],secondary:["Triceps","Core"]},sets:"3",reps:"8–12",weightMethod:"Same weight all sets",tempo:"Controlled arc upward",rest:"90 sec",notes:"Unique pressing angle. Great for upper chest with shoulder-friendly path."},
+
+  /* ─── BACK (expanded) ─── */
+  {name:"Romanian Deadlift",category:"Back",equipment:"Barbell",muscles:{primary:["Hamstrings","Lower Back"],secondary:["Glutes","Traps"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Hip hinge, feel the stretch",rest:"90 sec",notes:"Slight knee bend only — hip hinge movement."},
+  {name:"Pendlay Row",category:"Back",equipment:"Barbell",muscles:{primary:["Mid Back","Lats"],secondary:["Biceps","Lower Back"]},sets:"3",reps:"6–8",weightMethod:"Same weight all sets",tempo:"Explosive pull from floor, controlled lower",rest:"90 sec",notes:"Each rep starts dead on floor. More explosive than Yates row."},
+  {name:"T-Bar Row",category:"Back",equipment:"Barbell",muscles:{primary:["Mid Back","Lats"],secondary:["Biceps","Rear Delts"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Pull to chest, squeeze scapula",rest:"90 sec",notes:"Neutral grip handles work lats more. Wide grip hits mid-back."},
+  {name:"Single-Arm Dumbbell Row",category:"Back",equipment:"Dumbbell",muscles:{primary:["Lats","Mid Back"],secondary:["Biceps","Rear Delts"]},sets:"3",reps:"8–12 per arm",weightMethod:"Same weight all sets",tempo:"Pull to hip, squeeze at top",rest:"90 sec",notes:"Brace on bench. Full stretch at bottom."},
+  {name:"Inverted Row",category:"Back",equipment:"Bodyweight",muscles:{primary:["Mid Back","Lats"],secondary:["Biceps","Rear Delts"]},sets:"3",reps:"10–15",weightMethod:"Bodyweight — elevate feet to increase difficulty",tempo:"Chest to bar, slow lower",rest:"60 sec",notes:"Great horizontal pull for all levels."},
+  {name:"Cable Lat Extension",category:"Back",equipment:"Cable",muscles:{primary:["Lats"],secondary:["Core"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Arms straight, push down and squeeze",rest:"60 sec",notes:"Pure lat isolation with straight arms."},
+  {name:"Hyperextension",category:"Back",equipment:"Bodyweight",muscles:{primary:["Lower Back"],secondary:["Glutes","Hamstrings"]},sets:"3",reps:"12–15",weightMethod:"Bodyweight, add plate to chest when ready",tempo:"Controlled rise, hold 1s at top",rest:"60 sec",notes:"Don't hyperextend at the top. Squeeze glutes."},
+  {name:"Good Morning",category:"Back",equipment:"Barbell",muscles:{primary:["Lower Back","Hamstrings"],secondary:["Glutes"]},sets:"3",reps:"10–12",weightMethod:"Light — technique is everything",tempo:"Hip hinge, controlled descent",rest:"90 sec",notes:"Bar on traps, hinge at hips. Lower back developer."},
+  {name:"Wide Grip Lat Pulldown",category:"Back",equipment:"Cable",muscles:{primary:["Lats"],secondary:["Biceps","Rear Delts"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Pull to upper chest, slow return",rest:"90 sec",notes:"Wide grip emphasizes lat width."},
+  {name:"Straight Arm Pulldown",category:"Back",equipment:"Cable",muscles:{primary:["Lats"],secondary:["Triceps (Long Head)"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Arms straight, arc from overhead to hips",rest:"60 sec",notes:"Isolates lats without bicep involvement."},
+  {name:"Rack Pull",category:"Back",equipment:"Barbell",muscles:{primary:["Lower Back","Traps"],secondary:["Glutes","Hamstrings"]},sets:"3",reps:"5–8",weightMethod:"Heavier than conventional deadlift",tempo:"Pull from pins at knee height",rest:"2–3 min",notes:"Shortened range develops upper back and traps. Load heavily."},
+  {name:"Sumo Deadlift",category:"Back",equipment:"Barbell",muscles:{primary:["Glutes","Inner Thighs","Lower Back"],secondary:["Hamstrings","Traps","Quads"]},sets:"3 working",reps:"5–8",weightMethod:"2–3 warm-up sets. Same weight all working sets.",tempo:"Push floor away, neutral spine",rest:"2–3 min",notes:"Wider stance, toes out, more upright torso than conventional."},
+
+  /* ─── LEGS (expanded) ─── */
+  {name:"Goblet Squat",category:"Legs",equipment:"Dumbbell",muscles:{primary:["Quads","Glutes"],secondary:["Core","Upper Back"]},sets:"3",reps:"10–15",weightMethod:"Same weight all sets",tempo:"3s down, drive up",rest:"60 sec",notes:"Great for quad development and mobility. Elbows inside knees."},
+  {name:"Hack Squat",category:"Legs",equipment:"Machine",muscles:{primary:["Quads"],secondary:["Glutes","Hamstrings"]},sets:"3 working",reps:"8–12",weightMethod:"2 warm-up sets. Same weight all working sets.",tempo:"3–4s down, full depth, drive up",rest:"90 sec",notes:"Feet high targets glutes. Feet low targets quads more."},
+  {name:"Unilateral Leg Press",category:"Legs",equipment:"Machine",muscles:{primary:["Quads","Glutes"],secondary:["Hamstrings"]},sets:"3",reps:"8–12 per leg",weightMethod:"Same weight all sets",tempo:"3s eccentric, full extension",rest:"90 sec",notes:"Eliminates dominant-side compensation. Single leg focus."},
+  {name:"Walking Lunges",category:"Legs",equipment:"Dumbbell",muscles:{primary:["Quads","Glutes"],secondary:["Hamstrings","Core"]},sets:"3",reps:"12 per leg",weightMethod:"Same weight all sets",tempo:"Long stride, controlled step",rest:"90 sec",notes:"Long stride to bias glutes. Short stride for quads."},
+  {name:"Hip Thrust",category:"Legs",equipment:"Barbell",muscles:{primary:["Glutes"],secondary:["Hamstrings","Adductors"]},sets:"3",reps:"10–15",weightMethod:"Same weight all sets",tempo:"Drive hips to ceiling, 1s squeeze at top",rest:"90 sec",notes:"Feet flat, chin tucked. Squeeze glutes hard at the top."},
+  {name:"Glute Bridge",category:"Legs",equipment:"Bodyweight",muscles:{primary:["Glutes"],secondary:["Hamstrings","Lower Back"]},sets:"3",reps:"15–20",weightMethod:"Bodyweight or barbell across hips",tempo:"Hold 2s at top",rest:"60 sec",notes:"Drive through heels. Full hip extension at top."},
+  {name:"Cable Kickback",category:"Legs",equipment:"Cable",muscles:{primary:["Glutes"],secondary:["Hamstrings"]},sets:"3",reps:"12–15 per leg",weightMethod:"Same weight all sets",tempo:"Kick back controlled, squeeze at extension",rest:"60 sec",notes:"Keep hips square. Squeeze glute hard at top of movement."},
+  {name:"Nordic Curl",category:"Legs",equipment:"Bodyweight",muscles:{primary:["Hamstrings"],secondary:["Glutes","Core"]},sets:"3",reps:"3–8",weightMethod:"Bodyweight — hardest hamstring exercise",tempo:"Control the descent as slowly as possible",rest:"2 min",notes:"Eccentric king. Lower yourself as slowly as possible. Catch and push back."},
+  {name:"Leg Press Calf Raise",category:"Legs",equipment:"Machine",muscles:{primary:["Calves (Gastrocnemius)"],secondary:[]},sets:"4",reps:"15–20",weightMethod:"Same weight all sets",tempo:"Full range — max stretch to full contraction",rest:"60 sec",notes:"Toes on edge of platform. Maximum range of motion is key."},
+  {name:"Donkey Calf Raise",category:"Legs",equipment:"Machine",muscles:{primary:["Calves (Gastrocnemius)"],secondary:[]},sets:"4",reps:"12–15",weightMethod:"Use machine or have partner sit on back",tempo:"Full stretch, full contraction, pause both ends",rest:"60 sec",notes:"Best stretch position for calves. Lean forward fully."},
+  {name:"Adductor Machine",category:"Legs",equipment:"Machine",muscles:{primary:["Adductors"],secondary:["Glutes"]},sets:"3",reps:"15–20",weightMethod:"Same weight all sets",tempo:"Controlled squeeze inward, slow return",rest:"60 sec",notes:"Inner thigh. Don't use momentum."},
+  {name:"Abductor Machine",category:"Legs",equipment:"Machine",muscles:{primary:["Abductors","Glutes"],secondary:[]},sets:"3",reps:"15–20",weightMethod:"Same weight all sets",tempo:"Push outward controlled, slow return",rest:"60 sec",notes:"Outer glute and hip. Keep back pressed to pad."},
+
+  /* ─── SHOULDERS (expanded) ─── */
+  {name:"Arnold Press",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Front Delts","Medial Delts"],secondary:["Triceps","Rear Delts"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Full rotation — palm faces you at bottom, away at top",rest:"90 sec",notes:"Hits all 3 delt heads through rotation. More time under tension."},
+  {name:"Military Press",category:"Shoulders",equipment:"Barbell",muscles:{primary:["Front Delts","Medial Delts"],secondary:["Triceps","Core"]},sets:"3 working",reps:"6–8",weightMethod:"2 warm-up sets. Same weight all working sets.",tempo:"Controlled descent, explosive press",rest:"2–3 min",notes:"Standing forces core stability. Heaviest shoulder press movement."},
+  {name:"Push Press",category:"Shoulders",equipment:"Barbell",muscles:{primary:["Front Delts","Medial Delts"],secondary:["Quads","Core","Triceps"]},sets:"3",reps:"5–8",weightMethod:"Heavier than strict press",tempo:"Dip and drive with legs, lockout overhead",rest:"2 min",notes:"Use leg drive to press heavier weights overhead."},
+  {name:"Cable Lateral Raise",category:"Shoulders",equipment:"Cable",muscles:{primary:["Medial Delts"],secondary:[]},sets:"3",reps:"15–20",weightMethod:"Same weight all sets",tempo:"Lead with elbow, constant tension throughout",rest:"60 sec",notes:"Cable keeps tension at full range unlike dumbbells."},
+  {name:"Front Raise",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Front Delts"],secondary:["Upper Chest"]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Raise to shoulder height, 1s hold, slow lower",rest:"60 sec",notes:"Light weight, full control. Don't swing."},
+  {name:"Upright Row",category:"Shoulders",equipment:"Barbell",muscles:{primary:["Medial Delts","Traps"],secondary:["Front Delts","Biceps"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Pull to chin, elbows above wrists",rest:"90 sec",notes:"Wide grip reduces shoulder impingement risk."},
+  {name:"Reverse Pec Deck",category:"Shoulders",equipment:"Machine",muscles:{primary:["Rear Delts"],secondary:["Traps","Mid Back"]},sets:"3",reps:"15–20",weightMethod:"Same weight all sets",tempo:"Arc back to shoulder height, squeeze rear delts",rest:"60 sec",notes:"Sit facing the pad. Great rear delt isolation machine."},
+  {name:"Cuban Press",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Rear Delts","External Rotators"],secondary:["Medial Delts","Traps"]},sets:"3",reps:"10–12",weightMethod:"Very light — mobility and rotator cuff work",tempo:"Row up, rotate, press — 3-phase movement",rest:"60 sec",notes:"Shoulder health movement. Full external rotation is the goal."},
+  {name:"Leaning Lateral Raise",category:"Shoulders",equipment:"Dumbbell",muscles:{primary:["Medial Delts"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Raise to shoulder height, slow lower",rest:"60 sec",notes:"Lean away from cable or support — pre-stretches the delt at the bottom."},
+
+  /* ─── ARMS (expanded) ─── */
+  {name:"EZ Bar Curl",category:"Arms",equipment:"Barbell",muscles:{primary:["Biceps"],secondary:["Brachialis"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"No swinging, full stretch at bottom",rest:"90 sec",notes:"EZ bar is easier on the wrists than straight bar."},
+  {name:"Incline Dumbbell Curl",category:"Arms",equipment:"Dumbbell",muscles:{primary:["Biceps (Long Head)"],secondary:["Brachialis"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Full stretch at bottom on the incline",rest:"60 sec",notes:"Incline stretches the long head — great for bicep peak."},
+  {name:"Concentration Curl",category:"Arms",equipment:"Dumbbell",muscles:{primary:["Biceps"],secondary:[]},sets:"3",reps:"10–12 per arm",weightMethod:"Same weight all sets",tempo:"Full range, squeeze at top",rest:"60 sec",notes:"Elbow on inner thigh. Eliminates all momentum."},
+  {name:"Spider Curl",category:"Arms",equipment:"Dumbbell",muscles:{primary:["Biceps (Short Head)"],secondary:[]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Arms vertical — no swinging possible",rest:"60 sec",notes:"Chest on incline bench, arms hanging vertical. Best short head isolation."},
+  {name:"Preacher Curl",category:"Arms",equipment:"Barbell",muscles:{primary:["Biceps"],secondary:["Brachialis"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Full stretch at bottom, squeeze at top",rest:"90 sec",notes:"Bottom stretch position is the most important part."},
+  {name:"Reverse Curl",category:"Arms",equipment:"Barbell",muscles:{primary:["Brachioradialis","Brachialis"],secondary:["Biceps"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Controlled — pronated grip is hard",rest:"60 sec",notes:"Overhand grip. Great for forearm and brachialis development."},
+  {name:"Skull Crusher",category:"Arms",equipment:"Barbell",muscles:{primary:["Triceps"],secondary:[]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Lower to forehead controlled, extend fully",rest:"90 sec",notes:"EZ bar is easier on wrists. Don't flare elbows out."},
+  {name:"Rope Overhead Cable Extension",category:"Arms",equipment:"Cable",muscles:{primary:["Triceps (Long Head)"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Deep stretch, full extension",rest:"60 sec",notes:"Arms behind head stretches the long head maximally."},
+  {name:"Triceps Kickback",category:"Arms",equipment:"Dumbbell",muscles:{primary:["Triceps (Lateral Head)"],secondary:[]},sets:"3",reps:"12–15",weightMethod:"Same weight all sets",tempo:"Hold 1s at lockout",rest:"60 sec",notes:"Torso parallel to floor. Only the elbow moves."},
+  {name:"Overhead Tricep Extension",category:"Arms",equipment:"Dumbbell",muscles:{primary:["Triceps (Long Head)"],secondary:[]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Full stretch behind head, controlled extension",rest:"60 sec",notes:"Use one heavy dumbbell held with both hands."},
+  {name:"JM Press",category:"Arms",equipment:"Barbell",muscles:{primary:["Triceps"],secondary:["Front Delts","Chest"]},sets:"3",reps:"8–10",weightMethod:"Same weight all sets",tempo:"Lower bar toward throat, extend back up",rest:"90 sec",notes:"Cross between skull crusher and close-grip bench. Power tricep movement."},
+  {name:"21s Bicep Curl",category:"Arms",equipment:"Barbell",muscles:{primary:["Biceps"],secondary:["Brachialis"]},sets:"3",reps:"7 lower half + 7 upper half + 7 full",weightMethod:"Lighter than your normal curl",tempo:"Controlled, no rest within the 21s",rest:"90 sec",notes:"7 reps bottom half, 7 reps top half, 7 full reps. Total: 21."},
+  {name:"Zottman Curl",category:"Arms",equipment:"Dumbbell",muscles:{primary:["Biceps","Brachioradialis"],secondary:["Brachialis"]},sets:"3",reps:"10–12",weightMethod:"Same weight all sets",tempo:"Curl up supinated, rotate to pronated, lower",rest:"60 sec",notes:"Supinate on the way up, pronate on the way down. Hits biceps and brachioradialis."},
+
+  /* ─── CORE (expanded) ─── */
+  {name:"Side Plank",category:"Core",equipment:"Bodyweight",muscles:{primary:["Obliques"],secondary:["Core","Glutes"]},sets:"3",reps:"30–60s per side",weightMethod:"Bodyweight",tempo:"Hold, brace hard",rest:"60 sec",notes:"Stack feet or stagger them. Hip must stay elevated."},
+  {name:"Hanging Knee Raise",category:"Core",equipment:"Bodyweight",muscles:{primary:["Lower Abs","Hip Flexors"],secondary:["Core"]},sets:"3",reps:"12–15",weightMethod:"Bodyweight",tempo:"Controlled, no swinging",rest:"60 sec",notes:"Posterior tilt at top to fully engage abs."},
+  {name:"Lying Leg Raise",category:"Core",equipment:"Bodyweight",muscles:{primary:["Lower Abs","Hip Flexors"],secondary:["Core"]},sets:"3",reps:"12–15",weightMethod:"Bodyweight",tempo:"Slow, controlled, don't let legs touch floor",rest:"60 sec",notes:"Press lower back into the floor throughout."},
+  {name:"Russian Twist",category:"Core",equipment:"Bodyweight",muscles:{primary:["Obliques"],secondary:["Abs","Core"]},sets:"3",reps:"20 total",weightMethod:"Bodyweight or hold plate/medicine ball",tempo:"Controlled rotation each side",rest:"60 sec",notes:"Lift feet off floor for more difficulty."},
+  {name:"Mountain Climbers",category:"Core",equipment:"Bodyweight",muscles:{primary:["Core","Hip Flexors"],secondary:["Shoulders","Chest","Quads"]},sets:"3",reps:"30s–60s",weightMethod:"Bodyweight",tempo:"Steady pace",rest:"45 sec",notes:"Keep hips level. Don't let them pike or sag."},
+  {name:"Wood Chopper",category:"Core",equipment:"Cable",muscles:{primary:["Obliques","Core"],secondary:["Shoulders","Lats"]},sets:"3",reps:"12–15 per side",weightMethod:"Same weight all sets",tempo:"Rotate through torso, not just arms",rest:"60 sec",notes:"High-to-low or low-to-high. Drive from hips, not arms."},
+  {name:"V-Up",category:"Core",equipment:"Bodyweight",muscles:{primary:["Abs","Hip Flexors"],secondary:["Core"]},sets:"3",reps:"10–15",weightMethod:"Bodyweight",tempo:"Meet hands to feet at top, slow lower",rest:"60 sec",notes:"Full-body fold. Lower back stays off floor at top."},
+  {name:"Dead Bug",category:"Core",equipment:"Bodyweight",muscles:{primary:["Core","Transverse Abdominis"],secondary:["Hip Flexors"]},sets:"3",reps:"10 per side",weightMethod:"Bodyweight",tempo:"Slow and controlled — anti-extension",rest:"60 sec",notes:"Press lower back into floor throughout. Never rush this."},
+  {name:"Pallof Press",category:"Core",equipment:"Cable",muscles:{primary:["Core","Obliques"],secondary:["Shoulders"]},sets:"3",reps:"12–15 per side",weightMethod:"Light — this is anti-rotation",tempo:"Press out slowly, hold 1–2s, return",rest:"60 sec",notes:"Anti-rotation core exercise. Cable pulls you sideways — resist it."},
+  {name:"Toes to Bar",category:"Core",equipment:"Bodyweight",muscles:{primary:["Abs","Hip Flexors"],secondary:["Lats","Core"]},sets:"3",reps:"8–12",weightMethod:"Bodyweight",tempo:"Controlled, no kipping",rest:"60 sec",notes:"Harder than hanging leg raise. Requires good grip and strong abs."},
+  {name:"GHD Sit-Up",category:"Core",equipment:"Machine",muscles:{primary:["Abs","Hip Flexors"],secondary:["Glutes","Lower Back"]},sets:"3",reps:"10–15",weightMethod:"Bodyweight (GHD machine)",tempo:"Full range — behind horizontal at bottom",rest:"60 sec",notes:"Full extension behind horizontal is the range that matters. Strong movement."},
+];
+
+// User-defined custom exercises added via the library modal
+function getFullExerciseDB() {
+  let custom = state.customExercises || [];
+  return EXERCISE_DB.concat(custom);
+}
+
+/* current library filter state */
+let exLibFilter = 'ALL';
+
+function switchSplitsSubtab(tab) {
+  let isSplits = tab === 'splits';
+  document.getElementById('splits-panel-splits').style.display = isSplits ? '' : 'none';
+  document.getElementById('splits-panel-library').style.display = isSplits ? 'none' : '';
+  document.getElementById('subnav-splits').classList.toggle('active', isSplits);
+  document.getElementById('subnav-library').classList.toggle('active', !isSplits);
+  if (!isSplits) {
+    renderExLibraryFilters();
+    renderExLibrary();
+  }
+}
+
+function renderExLibraryFilters() {
+  let cats = ['ALL','Chest','Back','Legs','Shoulders','Arms','Core','Cardio'];
+  let html = cats.map(c =>
+    `<button type="button" class="exlib-filter-chip ${exLibFilter===c?'active':''}" onclick="setExLibFilter('${c}')">${c}</button>`
+  ).join('');
+  html += `<button type="button" class="exlib-filter-chip" onclick="openAddCustomExerciseModal()" style="background:rgba(0,243,255,0.12);color:var(--secondary);border-color:rgba(0,243,255,0.3);">+ Add New</button>`;
+  document.getElementById('exlib-filter-row').innerHTML = html;
+}
+
+function setExLibFilter(cat) {
+  exLibFilter = cat;
+  renderExLibraryFilters();
+  renderExLibrary();
+}
+
+function renderExLibrary() {
+  let query = (document.getElementById('exlib-search-input')?.value || '').toLowerCase().trim();
+  let list = getFullExerciseDB().filter(ex => {
+    let matchCat = exLibFilter === 'ALL' || ex.category === exLibFilter;
+    let matchQ = !query ||
+      ex.name.toLowerCase().includes(query) ||
+      ex.category.toLowerCase().includes(query) ||
+      ex.equipment.toLowerCase().includes(query) ||
+      ex.muscles.primary.some(m => m.toLowerCase().includes(query)) ||
+      ex.muscles.secondary.some(m => m.toLowerCase().includes(query));
+    return matchCat && matchQ;
+  });
+
+  if (!list.length) {
+    document.getElementById('exlib-list').innerHTML = '<div class="exlib-empty">No exercises match your search.</div>';
+    return;
+  }
+
+  let html = list.map((ex, i) => {
+    let tagColor = TAG_COLORS[ex.tag] || 'var(--accent)';
+    let abbr = ex.category.substring(0,3).toUpperCase();
+    let primMuscles = ex.muscles.primary.map(m => `<span class="exlib-muscle-pill primary">${m}</span>`).join('');
+    let secMuscles = ex.muscles.secondary.map(m => `<span class="exlib-muscle-pill secondary">${m}</span>`).join('');
+    return `<div class="exlib-item" onclick="toggleLibExDetail('exlib-detail-${i}')">
+      <div class="exlib-row">
+        <div class="exlib-num">${abbr}</div>
+        <div class="exlib-name">${ex.name}</div>
+        <span class="day-ex-tag" style="background:var(--accent-soft);color:var(--accent);border:1px solid rgba(193,95,60,0.3);flex-shrink:0;">${ex.equipment}</span>
+      </div>
+      <div class="exlib-detail" id="exlib-detail-${i}">
+        <div class="exlib-detail-grid">
+          <div class="day-ex-field"><div class="day-ex-field-label">Sets</div><div class="day-ex-field-val">${ex.sets||'—'}</div></div>
+          <div class="day-ex-field"><div class="day-ex-field-label">Reps</div><div class="day-ex-field-val">${ex.reps||'—'}</div></div>
+          <div class="day-ex-field full"><div class="day-ex-field-label">Weight Method</div><div class="day-ex-field-val">${ex.weightMethod||'—'}</div></div>
+          <div class="day-ex-field"><div class="day-ex-field-label">Tempo</div><div class="day-ex-field-val">${ex.tempo||'—'}</div></div>
+          <div class="day-ex-field"><div class="day-ex-field-label">Rest</div><div class="day-ex-field-val">${ex.rest||'—'}</div></div>
+        </div>
+        ${ex.notes ? `<div class="day-ex-note"><div class="day-ex-field-label" style="color:var(--accent);">Key Note</div><div class="day-ex-field-val">${ex.notes}</div></div>` : ''}
+        <div class="exlib-muscles">
+          <div class="day-ex-field-label" style="color:var(--accent);">Target Muscles</div>
+          <div class="exlib-muscle-pills">
+            ${primMuscles}${secMuscles}
+          </div>
+        </div>
+        <button type="button" class="exlib-add-btn" onclick="event.stopPropagation();addLibExToWorkout('${ex.name.replace(/'/g,"\\'")}')">+ ADD TO TODAY'S WORKOUT</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('exlib-list').innerHTML = html;
+}
+
+function toggleLibExDetail(id) {
+  let el = document.getElementById(id);
+  if (!el) return;
+  let opening = el.style.display !== 'block';
+  // accordion — close all others
+  if (opening) {
+    document.querySelectorAll('#exlib-list .exlib-detail').forEach(d => { d.style.display = 'none'; });
+  }
+  el.style.display = opening ? 'block' : 'none';
+  if (opening) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function addLibExToWorkout(name) {
+  let k = getWorkoutKey();
+  if (!state.workouts[k]) state.workouts[k] = {exs:[]};
+  state.workouts[k].exs.push({name, tag:'', splitInfo:null, note:'', sets:[{w:'', r:'', uni:false, type:'normal'}]});
+  recordExerciseName(name);
+  saveState();
+  // Give feedback then switch to Train tab
+  let btn = event && event.target;
+  if (btn) { btn.textContent = '✓ ADDED'; btn.style.background = 'rgba(138,154,126,0.2)'; btn.style.color = 'var(--green)'; btn.style.borderColor = 'rgba(138,154,126,0.3)'; }
+  setTimeout(() => goPage('workout'), 900);
+}
+
+function openAddCustomExerciseModal() {
+  let cats = ['Chest','Back','Legs','Shoulders','Arms','Core','Cardio','Other'];
+  let equips = ['Barbell','Dumbbell','Cable','Machine','Bodyweight','Kettlebell','Resistance Band','Other'];
+  document.getElementById('modal-title').textContent = 'Add New Exercise to Library';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="u19" style="margin-bottom:10px;">
+      <label class="u20">Exercise Name *</label>
+      <input id="cex-name" class="add-ex-input u2" type="text" placeholder="e.g. Incline Cable Fly" autocomplete="off">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div>
+        <label class="u20">Category *</label>
+        <select id="cex-cat" class="add-ex-input" style="width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--txt);">
+          ${cats.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="u20">Equipment *</label>
+        <select id="cex-equip" class="add-ex-input" style="width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--txt);">
+          ${equips.map(e=>`<option value="${e}">${e}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="u19" style="margin-bottom:10px;">
+      <label class="u20">Primary Muscles (comma-separated)</label>
+      <input id="cex-muscles" class="add-ex-input u1" type="text" placeholder="e.g. Chest, Front Delts">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div>
+        <label class="u20">Sets</label>
+        <input id="cex-sets" class="add-ex-input u6" type="text" placeholder="e.g. 3">
+      </div>
+      <div>
+        <label class="u20">Reps</label>
+        <input id="cex-reps" class="add-ex-input u6" type="text" placeholder="e.g. 10–12">
+      </div>
+    </div>
+    <div class="u19" style="margin-bottom:10px;">
+      <label class="u20">Notes / Cues</label>
+      <input id="cex-notes" class="add-ex-input u3" type="text" placeholder="Key coaching note for this exercise">
+    </div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-confirm-p${state.profile}" onclick="confirmAddCustomExercise()">Add to Library</button>
+    </div>`;
+  openModal();
+}
+
+function confirmAddCustomExercise() {
+  let name = (document.getElementById('cex-name')?.value || '').trim();
+  if (!name) { alert('Exercise name is required.'); return; }
+  let cat = document.getElementById('cex-cat')?.value || 'Other';
+  let equip = document.getElementById('cex-equip')?.value || 'Other';
+  let musclesRaw = (document.getElementById('cex-muscles')?.value || '').split(',').map(m=>m.trim()).filter(Boolean);
+  let sets = (document.getElementById('cex-sets')?.value || '').trim() || '3';
+  let reps = (document.getElementById('cex-reps')?.value || '').trim() || '—';
+  let notes = (document.getElementById('cex-notes')?.value || '').trim();
+
+  if (!state.customExercises) state.customExercises = [];
+  // Prevent duplicates
+  let exists = getFullExerciseDB().some(e => e.name.toLowerCase() === name.toLowerCase());
+  if (exists) { alert(`"${name}" already exists in the library.`); return; }
+
+  let newEx = {
+    name, category: cat, equipment: equip,
+    muscles: { primary: musclesRaw.length ? musclesRaw : ['—'], secondary: [] },
+    sets, reps, weightMethod: 'Same weight all sets',
+    tempo: '—', rest: '—', notes,
+    custom: true
+  };
+  state.customExercises.push(newEx);
+  recordExerciseName(name);
+  saveState();
+  closeModal();
+  renderExLibrary();
+}
+
 function resetSplitsToDefault(){
   for(let k in SPLITS) delete SPLITS[k];
   let fresh = JSON.parse(JSON.stringify(DEFAULT_SPLITS_SNAPSHOT));
@@ -313,31 +651,261 @@ function isSameEx(name1, name2) {
 }
 
 const EXERCISE_LIBRARY = [
+  // ── CHEST ──────────────────────────────────────────────────────────────
   "Barbell Bench Press","Incline Barbell Bench Press","Decline Barbell Bench Press","Close Grip Bench Press",
-  "Dumbbell Bench Press","Incline Dumbbell Press","Decline Dumbbell Press","Dumbbell Fly","Incline Dumbbell Fly",
-  "Cable Fly","Low Cable Fly","High Cable Fly","Pec Deck Machine","Chest Press Machine","Push-Up","Incline Push-Up",
-  "Decline Push-Up","Weighted Dips","Landmine Press","Svend Press",
+  "Wide Grip Bench Press","Board Press","Spoto Press","Pause Bench Press","Pin Press",
+  "Floor Press","Guillotine Press","Reverse Grip Bench Press","Bamboo Bar Bench Press","Swiss Bar Bench Press",
+  "Dumbbell Bench Press","Incline Dumbbell Press","Decline Dumbbell Press","Neutral Grip Dumbbell Press",
+  "Single Arm Dumbbell Press","Dumbbell Pullover","Incline Dumbbell Pullover",
+  "Dumbbell Fly","Incline Dumbbell Fly","Decline Dumbbell Fly","Bent-Arm Dumbbell Pullover",
+  "Cable Fly","Low Cable Fly","High Cable Fly","Single Arm Cable Fly","Cable Crossover","Incline Cable Fly",
+  "Decline Cable Fly","Cable Pullover","Cable Press","Low-to-High Cable Fly","High-to-Low Cable Fly",
+  "Pec Deck Machine","Chest Press Machine","Incline Chest Press Machine","Converging Chest Press Machine",
+  "Hammer Strength Incline Press","Hammer Strength Flat Press","Hammer Strength Decline Press",
+  "Push-Up","Incline Push-Up","Decline Push-Up","Wide Push-Up","Diamond Push-Up","Archer Push-Up",
+  "Pike Push-Up","Pseudo Planche Push-Up","Hindu Push-Up","Explosive Push-Up","Clap Push-Up",
+  "Weighted Push-Up","Deficit Push-Up","Banded Push-Up","Ring Push-Up","Weighted Dips","Chest Dips",
+  "Landmine Press","Svend Press","Plate Press","Plate Squeeze Press","Chest Supported Press",
+
+  // ── BACK ───────────────────────────────────────────────────────────────
   "Deadlift","Romanian Deadlift","Stiff-Leg Deadlift","Sumo Deadlift","Rack Pull","Good Morning",
-  "Barbell Row","Pendlay Row","T-Bar Row","Seated Cable Row","Single-Arm Dumbbell Row","Chest-Supported Row",
-  "Lat Pulldown","Wide Grip Lat Pulldown","Close Grip Lat Pulldown","Cable Lat Extension","Straight Arm Pulldown",
-  "Pull-Up","Chin-Up","Assisted Pull-Up","Inverted Row","Face Pull","Hyperextension","Back Extension",
-  "Overhead Press","Seated Dumbbell Shoulder Press","Standing Dumbbell Shoulder Press","Arnold Press","Military Press",
-  "Machine Shoulder Press","Lateral Raise","Cable Lateral Raise","Leaning Lateral Raise","Front Raise","Rear Delt Fly",
-  "Reverse Pec Deck","Upright Row","Cuban Press","Shrugs","Landmine Lateral Raise",
-  "Barbell Curl","EZ Bar Curl","Dumbbell Curl","Incline Dumbbell Curl","Hammer Curl","Cable Curl","Preacher Curl",
-  "EZ Bar Preacher Curl","Concentration Curl","Spider Curl","Reverse Curl","21s Bicep Curl",
-  "Triceps Pushdown","Cable Pressdown","Rope Overhead Cable Extension","Skull Crusher","Lying Triceps Extension",
-  "Overhead Triceps Extension","Diamond Push-Up","Triceps Dips","Triceps Kickback","JM Press",
+  "Deficit Deadlift","Snatch Grip Deadlift","Trap Bar Deadlift","Banded Deadlift","Pause Deadlift",
+  "Block Pull","Kettlebell Deadlift","Dumbbell Romanian Deadlift","Single Leg Romanian Deadlift",
+  "Barbell Row","Pendlay Row","T-Bar Row","Seated Cable Row","Single-Arm Dumbbell Row",
+  "Chest-Supported Row","Dumbbell Chest Supported Row","Incline Dumbbell Row","Seal Row",
+  "Kroc Row","Machine Row","Low Row","High Row","Wide Grip Cable Row","Narrow Grip Cable Row",
+  "Underhand Barbell Row","Supinated Barbell Row","Yates Row","Helms Row","Meadows Row",
+  "Cable Row","Single Arm Cable Row","Resistance Band Row","TRX Row","Suspension Row",
+  "Lat Pulldown","Wide Grip Lat Pulldown","Close Grip Lat Pulldown","Neutral Grip Lat Pulldown",
+  "Underhand Lat Pulldown","Single Arm Lat Pulldown","Cable Lat Extension","Straight Arm Pulldown",
+  "Rope Pulldown","V-Bar Pulldown","Machine Pulldown","Behind Neck Pulldown",
+  "Pull-Up","Chin-Up","Assisted Pull-Up","Weighted Pull-Up","Weighted Chin-Up","Neutral Grip Pull-Up",
+  "Wide Grip Pull-Up","Close Grip Pull-Up","L-Sit Pull-Up","Archer Pull-Up","Negative Pull-Up",
+  "Inverted Row","Inverted Row Underhand","TRX Inverted Row","Face Pull","Rope Face Pull",
+  "Hyperextension","Back Extension","45-Degree Back Extension","Reverse Hyperextension","Good Morning",
+  "Superman Hold","Bird Dog","Renegade Row","Dumbbell Pullover","Straight-Arm Dumbbell Pullover",
+  "Landmine Row","Single Arm Landmine Row","Cable Pullover","Rope Pullover",
+
+  // ── SHOULDERS ──────────────────────────────────────────────────────────
+  "Overhead Press","Seated Barbell Press","Standing Barbell Press","Military Press","Push Press",
+  "Seated Dumbbell Shoulder Press","Standing Dumbbell Shoulder Press","Single Arm Dumbbell Press",
+  "Arnold Press","Alternating Dumbbell Press","Neutral Grip Dumbbell Press",
+  "Machine Shoulder Press","Plate Loaded Shoulder Press","Smith Machine Overhead Press",
+  "Landmine Shoulder Press","Landmine Push Press","Z Press","Bradford Press","Behind Neck Press",
+  "Lateral Raise","Dumbbell Lateral Raise","Cable Lateral Raise","Machine Lateral Raise",
+  "Leaning Lateral Raise","Banded Lateral Raise","Single Arm Lateral Raise","Bent-Over Lateral Raise",
+  "Seated Lateral Raise","Partial Lateral Raise","Cross-Body Lateral Raise",
+  "Front Raise","Dumbbell Front Raise","Cable Front Raise","Barbell Front Raise","Plate Front Raise",
+  "Alternating Front Raise","Single Arm Front Raise",
+  "Rear Delt Fly","Reverse Pec Deck","Bent-Over Rear Delt Fly","Seated Bent-Over Rear Delt Fly",
+  "Cable Rear Delt Fly","Single Arm Cable Rear Delt Fly","Machine Rear Delt Fly","Reverse Cable Crossover",
+  "Upright Row","Barbell Upright Row","Cable Upright Row","Dumbbell Upright Row","EZ Bar Upright Row",
+  "Cuban Press","Cuban Rotation","Scaption","Lu Raise","Shoulder W Raise","Shoulder Y Raise",
+  "Shrugs","Barbell Shrug","Dumbbell Shrug","Cable Shrug","Machine Shrug","Trap Bar Shrug",
+  "Landmine Lateral Raise","Plate Lateral Raise","Resistance Band Lateral Raise",
+
+  // ── BICEPS ─────────────────────────────────────────────────────────────
+  "Barbell Curl","EZ Bar Curl","Dumbbell Curl","Alternating Dumbbell Curl","Seated Dumbbell Curl",
+  "Incline Dumbbell Curl","Standing Dumbbell Curl","Single Arm Dumbbell Curl",
+  "Hammer Curl","Cross-Body Hammer Curl","Seated Hammer Curl",
+  "Cable Curl","Low Cable Curl","High Cable Curl","Single Arm Cable Curl","Rope Cable Curl",
+  "Preacher Curl","Barbell Preacher Curl","EZ Bar Preacher Curl","Dumbbell Preacher Curl",
+  "Machine Preacher Curl","Cable Preacher Curl","Scott Curl",
+  "Concentration Curl","Spider Curl","Drag Curl","Bayesian Cable Curl","Cable Bayesian Curl",
+  "Reverse Curl","Reverse EZ Bar Curl","Reverse Barbell Curl","Reverse Cable Curl",
+  "21s Bicep Curl","7-7-7 Curl","Zottman Curl","Narrow Grip Barbell Curl","Wide Grip Barbell Curl",
+  "Supinated Cable Curl","Cross Curl","Machine Curl","Lever Curl","Resistance Band Curl",
+  "TRX Curl","Chin-Up (Bicep Focus)","Negative Curl",
+
+  // ── TRICEPS ────────────────────────────────────────────────────────────
+  "Triceps Pushdown","Cable Pushdown","Rope Pushdown","V-Bar Pushdown","Single Arm Pushdown",
+  "Reverse Grip Pushdown","Reverse Cable Pushdown","Overhead Triceps Extension",
+  "Skull Crusher","EZ Bar Skull Crusher","Dumbbell Skull Crusher","Incline Skull Crusher",
+  "Lying Triceps Extension","Dumbbell Lying Triceps Extension","Single Arm Lying Extension",
+  "Close Grip Bench Press","Reverse Grip Bench Press","Board Press (Tricep)","Floor Press (Tricep)",
+  "Overhead Cable Extension","Rope Overhead Cable Extension","Single Arm Overhead Cable Extension",
+  "Triceps Dips","Bench Dips","Weighted Bench Dips","Ring Dips","Machine Dips",
+  "Diamond Push-Up","Triceps Kickback","Single Arm Triceps Kickback","Cable Kickback",
+  "JM Press","Tate Press","Rolling Dumbbell Extension","Wrist-Roll Extension",
+  "Resistance Band Triceps Extension","Banded Pushdown","Landmine Triceps Extension",
+
+  // ── FOREARMS ───────────────────────────────────────────────────────────
+  "Wrist Curl","Barbell Wrist Curl","Dumbbell Wrist Curl","Cable Wrist Curl",
+  "Reverse Wrist Curl","Barbell Reverse Wrist Curl","Dumbbell Reverse Wrist Curl",
+  "Wrist Roller","Plate Pinch","Pinch Grip Hold","Towel Pull-Up","Fat Grip Training",
+  "Radial Deviation","Ulnar Deviation","Forearm Supination","Forearm Pronation",
+  "Grip Crush","Crush Grip Deadlift","Dead Hang","Active Dead Hang","Finger Curls",
+
+  // ── QUADS ──────────────────────────────────────────────────────────────
   "Barbell Back Squat","Front Squat","Goblet Squat","Hack Squat","Smith Machine Squat","Belt Squat",
-  "Leg Press","Leg Extension","Leg Curl","Lying Leg Curl","Seated Leg Curl","Standing Leg Curl",
-  "Bulgarian Split Squat","Lunges","Walking Lunges","Reverse Lunge","Lateral Lunge","Step-Up",
-  "Hip Thrust","Glute Bridge","Cable Kickback","Calf Raise","Standing Calf Raise","Seated Calf Raise",
-  "Leg Press Calf Raise","Adductor Machine","Abductor Machine",
-  "Plank","Hanging Leg Raise","Lying Leg Raise","Cable Crunch","Crunch","Sit-Up","Russian Twist",
-  "Ab Wheel Rollout","Side Plank","Mountain Climbers","Wood Chopper","V-Up",
-  "Treadmill Run","Rowing Machine","Stationary Bike","Stair Climber","Battle Ropes","Kettlebell Swing",
-  "Box Jump","Burpees","Farmer's Carry","Sled Push","Sled Pull","Power Clean","Clean and Jerk","Snatch"
+  "Box Squat","Anderson Squat","Pause Squat","Safety Bar Squat","Zercher Squat","Pin Squat",
+  "High Bar Squat","Low Bar Squat","Heel Elevated Squat","Spanish Squat","Sissy Squat",
+  "Landmine Squat","Dumbbell Squat","Sumo Squat","Plié Squat","Overhead Squat",
+  "Leg Press","45-Degree Leg Press","Horizontal Leg Press","Single Leg Press",
+  "Narrow Stance Leg Press","Wide Stance Leg Press","High Foot Leg Press","Low Foot Leg Press",
+  "Leg Extension","Machine Leg Extension","Single Leg Extension","Slow Leg Extension",
+  "Bulgarian Split Squat","Rear-Foot-Elevated Split Squat","Dumbbell Bulgarian Split Squat",
+  "Lunges","Walking Lunges","Dumbbell Lunges","Barbell Lunges","Reverse Lunge","Lateral Lunge",
+  "Curtsy Lunge","Weighted Lunge","Pendulum Lunge","Transverse Lunge",
+  "Step-Up","Dumbbell Step-Up","Barbell Step-Up","Lateral Step-Up","Deficit Step-Up",
+  "Wall Sit","Sissy Squat","Terminal Knee Extension","Peterson Step-Up","Cyclist Squat",
+
+  // ── HAMSTRINGS ─────────────────────────────────────────────────────────
+  "Leg Curl","Lying Leg Curl","Seated Leg Curl","Standing Leg Curl","Single Leg Curl",
+  "Nordic Curl","Nordic Hamstring Curl","Natural Glute Ham Raise","Glute Ham Raise","GHR",
+  "Romanian Deadlift","Single Leg Romanian Deadlift","Dumbbell Romanian Deadlift",
+  "Stiff-Leg Deadlift","Snatch Grip Romanian Deadlift","Cable Pull-Through",
+  "Swiss Ball Leg Curl","Slider Leg Curl","Band Leg Curl","TRX Leg Curl",
+  "Good Morning","Seated Good Morning","Banded Good Morning","Kettlebell Good Morning",
+  "Hyperextension (Hamstring Focus)","45-Degree Hyperextension","Reverse Hyper",
+
+  // ── GLUTES ─────────────────────────────────────────────────────────────
+  "Hip Thrust","Barbell Hip Thrust","Dumbbell Hip Thrust","Smith Machine Hip Thrust",
+  "Single Leg Hip Thrust","Banded Hip Thrust","Elevated Hip Thrust","Pause Hip Thrust",
+  "Glute Bridge","Barbell Glute Bridge","Single Leg Glute Bridge","Banded Glute Bridge",
+  "Cable Kickback","Machine Kickback","Resistance Band Kickback","Donkey Kick",
+  "Fire Hydrant","Banded Fire Hydrant","Clamshell","Banded Clamshell",
+  "Sumo Deadlift","Sumo Romanian Deadlift","Cable Pull-Through","Kettlebell Swing",
+  "Frog Pump","Seated Hip Abduction","Lateral Band Walk","Monster Walk",
+  "Reverse Lunge (Glute)","Hip Abduction Machine","Hip Adduction Machine",
+  "Step Mill Glute Activation","Cable Hip Extension","Single Leg Press (Glute)",
+
+  // ── CALVES ─────────────────────────────────────────────────────────────
+  "Standing Calf Raise","Seated Calf Raise","Leg Press Calf Raise","Single Leg Calf Raise",
+  "Donkey Calf Raise","Machine Calf Raise","Smith Machine Calf Raise","Dumbbell Calf Raise",
+  "Barbell Calf Raise","Tibialis Raise","Tibialis Press","Reverse Calf Raise",
+  "Box Calf Raise","Explosive Calf Raise","Calf Raise on Steps",
+
+  // ── ADDUCTORS / ABDUCTORS ──────────────────────────────────────────────
+  "Adductor Machine","Hip Adduction Machine","Cable Hip Adduction","Sumo Squat (Adductor)",
+  "Abductor Machine","Hip Abduction Machine","Cable Hip Abduction","Lateral Band Walk",
+  "Lateral Lunge (Adductor)","Cossack Squat","Copenhagen Plank","Copenhagen Adduction",
+
+  // ── ABS / CORE ─────────────────────────────────────────────────────────
+  "Plank","Long Lever Plank","RKC Plank","Weighted Plank","Decline Plank",
+  "Side Plank","Side Plank with Hip Dip","Side Plank with Leg Raise","Weighted Side Plank",
+  "Hanging Leg Raise","Hanging Knee Raise","Hanging Oblique Knee Raise","Toes to Bar",
+  "Lying Leg Raise","Double Leg Lowering","Scissor Kick","Flutter Kick","Reverse Crunch",
+  "Cable Crunch","Kneeling Cable Crunch","Single Arm Cable Crunch","Rope Cable Crunch",
+  "Crunch","Bicycle Crunch","Decline Crunch","Weighted Crunch","Crunch Machine",
+  "Sit-Up","Decline Sit-Up","Weighted Sit-Up","V-Sit Up","Janda Sit-Up",
+  "Russian Twist","Weighted Russian Twist","Cable Russian Twist",
+  "Ab Wheel Rollout","Barbell Rollout","TRX Rollout","Swiss Ball Rollout",
+  "Mountain Climbers","Slow Mountain Climbers","Cross Body Mountain Climbers",
+  "Wood Chopper","Low-to-High Cable Chop","High-to-Low Cable Chop","Landmine Rotation",
+  "V-Up","L-Sit","Windshield Wiper","Dragon Flag","Dead Bug","Hollow Body Hold",
+  "Pallof Press","Band Pallof Press","Anti-Rotation Hold","Suitcase Carry","Suitcase Deadlift",
+  "Cable Rotation","Standing Oblique Crunch","Dumbbell Side Bend","Barbell Side Bend",
+  "Leg Pull-In","Knee-to-Chest","Ab Mat Sit-Up","GHD Sit-Up","McGill Big 3 Plank",
+  "Stir the Pot","Hardstyle Plank","Plank Walk-Up","Hip Circles","Copenhagen Side Plank",
+
+  // ── FULL BODY / COMPOUND ───────────────────────────────────────────────
+  "Power Clean","Hang Power Clean","Clean and Jerk","Snatch","Hang Snatch","Power Snatch",
+  "Push Press","Push Jerk","Split Jerk","High Pull","Muscle Clean","Muscle Snatch",
+  "Farmer's Carry","Dumbbell Farmer's Carry","Suitcase Carry","Trap Bar Carry","Waiter's Carry",
+  "Sled Push","Sled Pull","Sled Drag","Prowler Push","Reverse Sled Drag",
+  "Box Jump","Broad Jump","Squat Jump","Depth Jump","Lateral Box Jump","Step Jump",
+  "Burpees","Burpee Box Jump","Sprawl","Man Maker","Devil Press",
+  "Kettlebell Swing","Two-Hand Kettlebell Swing","One-Hand Kettlebell Swing","Kettlebell Clean",
+  "Kettlebell Snatch","Kettlebell Goblet Squat","Kettlebell Windmill","Kettlebell Turkish Get-Up",
+  "Kettlebell Press","Kettlebell Row","Kettlebell Figure 8","Kettlebell Halo",
+  "Tire Flip","Atlas Stone Lift","Yoke Carry","Log Press","Axle Bar Deadlift",
+  "Sandbag Carry","Sandbag Squat","Sandbag Clean","Sandbag Shoulder","Sandbag Throw",
+  "Battle Ropes","Alternating Battle Rope Wave","Double Wave","Battle Rope Slam",
+
+  // ── CARDIO / CONDITIONING ──────────────────────────────────────────────
+  "Treadmill Run","Treadmill Walk","Treadmill Incline Walk","Treadmill Sprint","Treadmill Jog",
+  "Rowing Machine","Concept2 Row","Air Bike","Assault Bike","Stationary Bike","Spin Bike",
+  "Stair Climber","StairMaster","Elliptical","Cross Trainer","Ski Erg","SkiErg",
+  "Jump Rope","Double Under","Single Under","Weighted Jump Rope",
+  "Jumping Jacks","High Knees","Butt Kicks","Running in Place","Shadow Boxing",
+  "Swimming","Freestyle Swim","Backstroke","Breaststroke","Butterfly","Pool Running",
+  "Cycling","Outdoor Run","Sprint","Hill Sprint","Interval Run","Fartlek Run",
+  "Box Step","Lateral Shuffle","Defensive Slide","Bear Crawl","Crab Walk","Duck Walk",
+
+  // ── STRETCHING / MOBILITY ──────────────────────────────────────────────
+  "Hip Flexor Stretch","Pigeon Pose","Couch Stretch","Quad Stretch","Hamstring Stretch",
+  "Standing Hamstring Stretch","Seated Hamstring Stretch","Forward Fold",
+  "Calf Stretch","Soleus Stretch","Ankle Circles","Ankle Mobility Drill",
+  "Chest Stretch","Doorway Chest Stretch","Pec Minor Stretch","Lat Stretch",
+  "Thoracic Spine Rotation","Thoracic Extension","Cat-Cow","Thread the Needle",
+  "Shoulder Circles","Cross-Body Shoulder Stretch","Sleeper Stretch","Band Dislocate",
+  "Neck Rolls","Cervical Retraction","Chin Tuck","Levator Scapulae Stretch",
+  "World's Greatest Stretch","Spiderman Stretch","90-90 Hip Stretch","Bretzel Stretch",
+  "ITB Stretch","Piriformis Stretch","Glute Stretch","Figure-4 Stretch",
+  "Wrist Flexor Stretch","Wrist Extensor Stretch","Forearm Stretch",
+  "Deep Squat Hold","ATG Squat","Pancake Stretch","Butterfly Stretch","Groin Stretch",
+  "Hip Circle","Hip CARs","Shoulder CARs","Thoracic CARs","Ankle CARs",
+
+  // ── CALISTHENICS / BODYWEIGHT ──────────────────────────────────────────
+  "Muscle-Up","Ring Muscle-Up","Bar Muscle-Up","Planche","Tuck Planche","Straddle Planche",
+  "Front Lever","Back Lever","Human Flag","Iron Cross","L-Sit","V-Sit",
+  "Handstand","Handstand Hold","Handstand Push-Up","Pike Push-Up","Wall Handstand",
+  "Ring Dips","Ring Push-Up","Ring Row","Ring Pull-Up","Ring Inverted Row",
+  "Pistol Squat","Single Leg Squat","Box Pistol Squat","Assisted Pistol Squat",
+  "Nordic Curl","Natural Leg Curl","Reverse Nordic Curl","Shrimp Squat",
+  "Skin the Cat","German Hang","Straight Body Dip","Korean Dip",
+
+  // ── MACHINES (VARIOUS) ─────────────────────────────────────────────────
+  "Cable Machine Row","Cable Machine Press","Cable Machine Fly","Cable Machine Curl",
+  "Cable Machine Pulldown","Cable Machine Extension","Cable Machine Lateral Raise",
+  "Pec Deck","Rear Delt Machine","Shoulder Press Machine","Lat Pulldown Machine",
+  "Leg Press Machine","Leg Extension Machine","Leg Curl Machine","Hack Squat Machine",
+  "Calf Raise Machine","Hip Thrust Machine","Glute Kickback Machine",
+  "Smith Machine Bench Press","Smith Machine Row","Smith Machine Squat",
+  "Smith Machine Deadlift","Smith Machine Shoulder Press","Smith Machine Lunge",
+  "Plate Loaded Leg Press","Plate Loaded Row","Plate Loaded Pulldown",
+  "Plate Loaded Chest Press","Hammer Strength Row","Hammer Strength Curl",
+  "Pendulum Squat","V-Squat Machine","Belt Squat Machine","Calf Raise on Leg Press",
+  "Seated Row Machine","Standing Row Machine","Low Row Machine","High Row Machine",
+  "Torso Rotation Machine","Ab Crunch Machine","Back Extension Machine",
+  "Assisted Dip Machine","Assisted Pull-Up Machine","Gravitron",
+
+  // ── RESISTANCE BANDS ───────────────────────────────────────────────────
+  "Band Pull-Apart","Band Front Raise","Band Overhead Triceps","Band Bicep Curl",
+  "Band Push-Down","Band Row","Band Face Pull","Band Squat","Band Hip Thrust",
+  "Band Deadlift","Band Press","Band Lateral Walk","Band Clamshell","Band Good Morning",
+  "Band Chest Fly","Band Overhead Press","Band Lat Pulldown","Band Assisted Pull-Up",
+
+  // ── TRX / SUSPENSION ───────────────────────────────────────────────────
+  "TRX Row","TRX Push-Up","TRX Pull-Up","TRX Chest Fly","TRX Squat","TRX Lunge",
+  "TRX Plank","TRX Mountain Climbers","TRX Curl","TRX Triceps Extension","TRX Fallout",
+  "TRX Hip Thrust","TRX Hamstring Curl","TRX Sprinter Start","TRX Atomic Push-Up",
+
+  // ── YOGA / PILATES ─────────────────────────────────────────────────────
+  "Downward Dog","Upward Dog","Warrior I","Warrior II","Warrior III",
+  "Chair Pose","Tree Pose","Bridge Pose","Boat Pose","Plank Pose",
+  "Child's Pose","Cobra Pose","Sphinx Pose","Locust Pose","Bow Pose",
+  "Seated Forward Bend","Seated Twist","Supine Twist","Happy Baby","Dead Bug (Yoga)",
+  "Pilates Hundred","Pilates Roll-Up","Pilates Leg Circles","Pilates Teaser",
+  "Pilates Swan","Pilates Single Leg Stretch","Pilates Double Leg Stretch",
+  "Pilates Criss-Cross","Pilates Side Kick","Pilates Plank",
+
+  // ── SPORT-SPECIFIC / PLYOMETRICS ───────────────────────────────────────
+  "Box Jump","Box Jump Over","Depth Drop","Depth Jump","Single Leg Box Jump",
+  "Broad Jump","Standing Long Jump","Vertical Jump","Squat Jump","Countermovement Jump",
+  "Lateral Bound","Ice Skater Jump","Lateral Hurdle Jump","Dot Drills","Ladder Drills",
+  "Cone Drills","Agility Hurdles","T-Drill","Pro Agility","Illinois Agility Drill",
+  "Medicine Ball Slam","Medicine Ball Chest Pass","Medicine Ball Overhead Throw",
+  "Medicine Ball Rotational Throw","Medicine Ball Wall Ball","Wall Ball Shot",
+  "Speed Skips","A-Skip","B-Skip","High Knees Skips","Bounding","Power Skip",
+  "Lateral Speed Shuffle","Defensive Slide","Resisted Sprint","Parachute Sprint",
+
+  // ── POWER LIFTING / WEIGHTLIFTING ACCESSORIES ──────────────────────────
+  "Paused Squat","Paused Bench Press","Paused Deadlift","Paused Romanian Deadlift",
+  "Anderson Squat","Anderson Bench","Anderson Deadlift","Banded Squat","Banded Deadlift",
+  "Chains Bench Press","Chains Squat","Chains Deadlift","Reverse Band Deadlift",
+  "Tempo Squat","Tempo Bench Press","Tempo Deadlift","Eccentric Squat",
+  "Box Squat","Low Box Squat","High Box Squat","Pin Squat","Pin Bench Press",
+  "Spoto Press","Slingshot Bench Press","Raw Bench Press","Touch and Go Bench Press",
+  "Sumo Deadlift High Pull","Snatch Grip Deadlift","Deficit Sumo Deadlift",
+  "Glute Ham Developer","GHD Back Extension","GHD Hip Extension","GHD Sit-Up",
+  "Good Morning (Wide Stance)","Cambered Bar Squat","Safety Bar Squat","Buffalo Bar Squat",
+  "Yoke Walk","Duck Walk","Keg Carry","Stone Load","Axle Press","Log Press",
 ];
+
+// User-added exercises are stored in state.customExerciseLibrary (array of {name, category, notes})
+// The library modal can browse/filter by category and add new entries.
 
 function getAllKnownExerciseNames(){
   let pool = new Map();
@@ -434,6 +1002,7 @@ let state = {
   cardioLog: {},
   knownExerciseNames: [],
   knownWorkoutNames: [],
+  customExercises: [],
   settings: {
     useRestTimer: true,
     timerMerged: false,
@@ -578,6 +1147,7 @@ function applyLoadedData(parsed) {
   if (!state.bw[1]) state.bw[1] = {};
   if (!state.knownExerciseNames) state.knownExerciseNames = [];
   if (!state.knownWorkoutNames) state.knownWorkoutNames = [];
+  if (!state.customExercises) state.customExercises = [];
   if (!state.userMetrics) state.userMetrics = {1:{height:'',age:''}};
   state.profile = 1;
   state.sw = {1:{running:false,start:0,elapsed:0,interval:null,laps:[]}};
@@ -3127,31 +3697,85 @@ function ageStandardsMultiplier(age) {
 
 function calcFitnessLevel(metrics, bw){
   let height = parseFloat(metrics.height);
-  let waist = parseFloat((metrics.measurements||{}).waist);
+  let m = metrics.measurements || {};
+  let waist = parseFloat(m.waist);
+  let chest = parseFloat(m.chest);
+  let shoulders = parseFloat(m.shoulders);
+  let leftArm = parseFloat(m.leftArm);
+  let rightArm = parseFloat(m.rightArm);
+  let avgArm = (leftArm && rightArm) ? (leftArm + rightArm) / 2 : (leftArm || rightArm || null);
   let fatPct = parseFloat(metrics.fatPct);
   let age = parseFloat(metrics.age);
   let weight = parseFloat(bw);
   let detail = [];
 
-  /* ── Pillar 1: Body composition (0-100) ──
-     WHtR and body-fat % both proxy the same thing (leanness), so they're
-     averaged together rather than summed — filling in both shouldn't be
-     worth "more" than filling in one well. BMI only kicks in as a weak
-     fallback when neither is available, since BMI alone misclassifies
-     muscular or very lean people. */
+  /* ── Pillar 1: Body composition (0-100) — Frame-Aware ──
+     Standard WHtR penalises muscular people with large waists even if
+     they have wide shoulders, big chest and thick arms. We correct for
+     this with three refinements:
+
+     (a) Shoulder-to-Waist ratio (SWR): a wide shoulder spread relative
+         to waist is a positive signal of athletic build — wide shoulders
+         with a narrower waist is the V-taper ideal; only a truly large
+         waist relative to *even* wide shoulders is a negative signal.
+
+     (b) Chest-to-Waist ratio (CWR): same idea — a full chest relative
+         to waist shows muscle mass, not just fat.
+
+     (c) Arm size bonus: large arms (>40 cm) are a direct proxy for
+         muscle mass and are awarded a modest bonus to counterbalance
+         the WHtR penalty they otherwise can't offset.
+
+     The blended comp score averages whatever signals are present:
+     body fat % (if entered) is weighted most heavily; SWR and CWR
+     override a bare WHtR reading; BMI is last-resort fallback only.
+  */
   let compScore = null;
   let compParts = [];
-  if (waist && height) {
-    let whr = waist / height;
-    detail.push('Waist-to-Height: ' + whr.toFixed(3));
-    let s = whr < 0.43 ? 100 : whr < 0.48 ? 90 : whr < 0.53 ? 75 : whr < 0.58 ? 55 : whr < 0.63 ? 30 : 10;
-    compParts.push(s);
-  }
+
+  // Body fat % — most direct signal, weight it 2x
   if (fatPct) {
     detail.push('Body fat: ' + fatPct + '%');
     let s = fatPct < 10 ? 100 : fatPct < 14 ? 92 : fatPct < 18 ? 80 : fatPct < 22 ? 65 : fatPct < 26 ? 48 : fatPct < 32 ? 28 : 10;
-    compParts.push(s);
+    compParts.push(s); compParts.push(s); // double weight
   }
+
+  // WHtR — but adjusted by frame signals
+  if (waist && height) {
+    let whr = waist / height;
+    detail.push('Waist-to-Height: ' + whr.toFixed(3));
+    let baseWHtR = whr < 0.43 ? 100 : whr < 0.48 ? 90 : whr < 0.53 ? 75 : whr < 0.58 ? 55 : whr < 0.63 ? 30 : 10;
+
+    // Shoulder-to-Waist ratio bonus/penalty: SWR > 1.35 = V-taper, nudge up
+    if (shoulders && waist) {
+      let swr = shoulders / waist;
+      detail.push('Shoulder-to-Waist: ' + swr.toFixed(2));
+      if (swr >= 1.45) baseWHtR = Math.min(100, baseWHtR + 15); // elite V-taper
+      else if (swr >= 1.35) baseWHtR = Math.min(100, baseWHtR + 8);
+      else if (swr >= 1.25) baseWHtR = Math.min(100, baseWHtR + 3);
+    }
+
+    // Chest-to-Waist bonus: chest > waist by >10% = muscle, not fat
+    if (chest && waist) {
+      let cwr = chest / waist;
+      detail.push('Chest-to-Waist: ' + cwr.toFixed(2));
+      if (cwr >= 1.15) baseWHtR = Math.min(100, baseWHtR + 8);
+      else if (cwr >= 1.08) baseWHtR = Math.min(100, baseWHtR + 4);
+    }
+
+    compParts.push(baseWHtR);
+  }
+
+  // Arm size bonus — large arms are muscle, not fat
+  if (avgArm) {
+    let armBonus = avgArm >= 44 ? 12 : avgArm >= 42 ? 8 : avgArm >= 40 ? 5 : avgArm >= 38 ? 2 : 0;
+    if (armBonus > 0) {
+      detail.push(`Avg arm: ${avgArm.toFixed(1)} cm → +${armBonus} frame bonus`);
+      // Apply as a direct nudge to each comp part already collected
+      compParts = compParts.map(s => Math.min(100, s + armBonus));
+    }
+  }
+
   if (compParts.length) {
     compScore = compParts.reduce((a, b) => a + b, 0) / compParts.length;
   } else if (weight && height) {
@@ -3204,12 +3828,7 @@ function calcFitnessLevel(metrics, bw){
     }
   }
 
-  /* ── Pillar 4: Cardio (0-100, minimal weight) ──
-     Kept deliberately simple — just session frequency + total minutes
-     in the trailing 30 days, capped at modest targets (8 sessions /
-     120 min for a full score, roughly 2x/week). This is a small input
-     into overall fitness, not a substitute for strength or composition,
-     so it carries the lowest weight of the four pillars. */
+  /* ── Pillar 4: Cardio (0-100, minimal weight) ── */
   let cardioScore = null;
   if (state.cardioLog) {
     let todayKey = dateKey(state.date);
@@ -3233,16 +3852,7 @@ function calcFitnessLevel(metrics, bw){
 
   /* ── Combine pillars ──
      Fixed weights: Strength 38, Composition 32, Consistency 20, Cardio 10.
-     Cardio is intentionally minor — it nudges the score, it never drives
-     it. Unlike the other three pillars, cardio is NOT included in the
-     "renormalize to whatever's present" pool: if it were, someone who
-     only logged cardio (and nothing else) would renormalize it to 100%
-     weight and get a misleadingly high score from cardio alone — exactly
-     the partial-data inflation bug being fixed here. So cardio only ever
-     applies as a capped nudge on top of at least one real pillar below.
-     A small age-context note is folded into the label only (not the
-     score — age already adjusts the strength standards above, so a
-     second flat age bonus would double-count it). */
+     Cardio is a small nudge, never the primary driver. */
   let pillars = [];
   if (strengthScore !== null)    pillars.push({ s: strengthScore,    w: 38 });
   if (compScore !== null)        pillars.push({ s: compScore,        w: 32 });
@@ -3253,12 +3863,9 @@ function calcFitnessLevel(metrics, bw){
   let totalW = pillars.reduce((a, p) => a + p.w, 0);
   let basePct = pillars.reduce((a, p) => a + p.s * p.w, 0) / totalW;
 
-  // Cardio nudge: a flat, capped +4 / -2 point adjustment regardless of
-  // which other pillars are present — small enough that it can't rescue
-  // a low score or meaningfully inflate a high one on its own.
   let pct = basePct;
   if (cardioScore !== null) {
-    let nudge = ((cardioScore - 50) / 50) * 4; // -4..+4, biased slightly positive at full cardio
+    let nudge = ((cardioScore - 50) / 50) * 4;
     pct = basePct + Math.max(-2, Math.min(4, nudge));
   }
   pct = Math.round(Math.max(0, Math.min(100, pct)));
@@ -3271,7 +3878,7 @@ function calcFitnessLevel(metrics, bw){
   else { label = 'Below Avg'; color = '#ff2741'; }
 
   if (pillars.length < 2) {
-    detail.push('Add more data (waist, body fat %, or log a few heavy sets) for a fuller picture.');
+    detail.push('Add more data (waist, shoulder, chest measurements or log heavy sets) for a fuller picture.');
   }
 
   return { label, color, pct, detail };
@@ -3557,6 +4164,46 @@ function renderProfilePage() {
             <div class="profile-measure-label">R Thigh (cm)</div>
             <input type="number" class="profile-measure-input" placeholder="e.g. 58" value="${m.rightThigh || ''}"
               onchange="saveMeasurement('rightThigh', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">Shoulders (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 120" value="${m.shoulders || ''}"
+              onchange="saveMeasurement('shoulders', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">Neck (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 38" value="${m.neck || ''}"
+              onchange="saveMeasurement('neck', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">Waist @ Navel (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 86" value="${m.waistNavel || ''}"
+              onchange="saveMeasurement('waistNavel', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">L Calf (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 38" value="${m.leftCalf || ''}"
+              onchange="saveMeasurement('leftCalf', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">R Calf (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 38" value="${m.rightCalf || ''}"
+              onchange="saveMeasurement('rightCalf', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">L Forearm (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 32" value="${m.leftForearm || ''}"
+              onchange="saveMeasurement('leftForearm', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">R Forearm (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 32" value="${m.rightForearm || ''}"
+              onchange="saveMeasurement('rightForearm', this.value ? parseFloat(this.value) : '')">
+          </div>
+          <div class="profile-measure-field">
+            <div class="profile-measure-label">Wrist (cm)</div>
+            <input type="number" class="profile-measure-input" placeholder="e.g. 18" value="${m.wrist || ''}"
+              onchange="saveMeasurement('wrist', this.value ? parseFloat(this.value) : '')">
           </div>
         </div>
       </div>
@@ -4725,7 +5372,7 @@ function toggleProfileCollapse(key) {
   let isCurrentlyOpen = profileExpandedCard === key;
   profileExpandedCard = isCurrentlyOpen ? null : key;
 
-  ['bw', 'water', 'pr', 'hist'].forEach(k => {
+  ['bw', 'water', 'pr', 'hist', 'cardio-hist'].forEach(k => {
     let chevron = document.getElementById('chevron-' + k);
     let body = document.getElementById('collapse-body-' + k);
     if (!chevron || !body) return;

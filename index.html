@@ -31,7 +31,7 @@
       <span id="gh-title">D O D</span>
     </div>
     <div id="global-header-right" style="position:relative;display:flex;align-items:center;">
-      <div id="gh-version-pill" class="gh-date-pill gh-version-pill">v1.0.4</div>
+      <div id="gh-version-pill" class="gh-date-pill gh-version-pill">v1.0.5</div>
       <button type="button" id="install-pwa-btn" onclick="installPWA()" style="display:none;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>Install</span>
@@ -122,25 +122,49 @@
 
   <!-- SPLITS PAGE -->
   <div class="page" id="page-split">
-    <header class="splits-header">
-      <div id="splits-selected-name" class="splits-active-display"></div>
-      <p class="splits-unlock-hint">To add or edit splits, go to Settings and disable Lock UI</p>
-    </header>
 
-    <div class="split-toolbar">
-      <div class="split-toolbar-actions">
-        <button type="button" id="reorder-toggle-split" class="chip-btn" onclick="toggleReorderMode('split')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
-          REORDER
-        </button>
-        <button type="button" class="icon-chip" id="edit-split-btn" onclick="renameActiveSplit()" aria-label="Rename split">&#9998;</button>
-        <button type="button" class="icon-chip" id="add-split-btn" onclick="openAddSplit()" aria-label="Add split">+</button>
-      </div>
+    <!-- Top-level sub-tab switcher: Workout Splits | Exercise Library -->
+    <div class="splits-subnav" id="splits-subnav">
+      <button type="button" class="splits-subnav-btn active" id="subnav-splits" onclick="switchSplitsSubtab('splits')">Workout Splits</button>
+      <button type="button" class="splits-subnav-btn" id="subnav-library" onclick="switchSplitsSubtab('library')">Exercise Library</button>
     </div>
 
-    <div id="split-selector" class="split-selector"></div>
-    <div class="split-tabs" id="split-day-tabs"></div>
-    <div id="split-day-content" class="split-day-content"></div>
+    <!-- WORKOUT SPLITS panel -->
+    <div id="splits-panel-splits">
+      <header class="splits-header">
+        <div id="splits-selected-name" class="splits-active-display"></div>
+        <p class="splits-unlock-hint">To add or edit splits, go to Settings and disable Lock UI</p>
+      </header>
+
+      <div class="split-toolbar">
+        <div class="split-toolbar-actions">
+          <button type="button" id="reorder-toggle-split" class="chip-btn" onclick="toggleReorderMode('split')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+            REORDER
+          </button>
+          <button type="button" class="icon-chip" id="edit-split-btn" onclick="renameActiveSplit()" aria-label="Rename split">&#9998;</button>
+          <button type="button" class="icon-chip" id="add-split-btn" onclick="openAddSplit()" aria-label="Add split">+</button>
+        </div>
+      </div>
+
+      <div id="split-selector" class="split-selector"></div>
+      <div class="split-tabs" id="split-day-tabs"></div>
+      <div id="split-day-content" class="split-day-content"></div>
+    </div>
+
+    <!-- EXERCISE LIBRARY panel -->
+    <div id="splits-panel-library" style="display:none;">
+      <div class="exlib-search-block">
+        <span class="section-kicker">SEARCH DATABASE</span>
+        <div class="exlib-search-wrap">
+          <svg class="exlib-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          <input type="text" id="exlib-search-input" class="exlib-search-input" placeholder="Search exercises..." oninput="renderExLibrary()" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div class="exlib-filter-row" id="exlib-filter-row"></div>
+      </div>
+      <div id="exlib-list" class="exlib-list"></div>
+    </div>
+
   </div>
 
   <!-- PROFILE / SETTINGS PAGE -->
