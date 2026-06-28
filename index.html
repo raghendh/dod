@@ -31,7 +31,7 @@
       <span id="gh-title">D O D</span>
     </div>
     <div id="global-header-right" style="position:relative;display:flex;align-items:center;">
-      <div id="gh-version-pill" class="gh-date-pill gh-version-pill">v1.0.3</div>
+      <div id="gh-version-pill" class="gh-date-pill gh-version-pill">v1.0.4</div>
       <button type="button" id="install-pwa-btn" onclick="installPWA()" style="display:none;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>Install</span>
@@ -47,13 +47,13 @@
   <!-- CHRONO BAR — compact stopwatch/timer utility. Lives outside the
        page sections so it sticks beneath the header + marquee and
        stays visible no matter which tab (Train/Cardio/Splits/Profile)
-       is active. Swipe left/right to loop between Timer and Stopwatch —
-       no buttons needed, it just keeps cycling either direction. -->
+       is active. Swipe left/right between Timer and Stopwatch —
+       no buttons needed. Stops at each end (no infinite loop). -->
   <div class="chrono-bar" id="chrono-bar">
     <div class="chrono-loop" id="chrono-loop">
       <div class="chrono-track" id="chrono-track">
 
-        <!-- 0: Timer (loop clone, precedes real Stopwatch) -->
+        <!-- 0: Timer (default visible slide) -->
         <div class="chrono-mode-row" data-mode="rest">
           <div class="chrono-stepper">
             <button type="button" class="chrono-step-btn" onclick="stepRestPreset(30)" aria-label="Add 30 seconds">+</button>
@@ -67,34 +67,7 @@
           </button>
         </div>
 
-        <!-- 1: Stopwatch (real) -->
-        <div class="chrono-mode-row" data-mode="stopwatch">
-          <button type="button" class="chrono-icon-btn" onclick="lapStopwatch(1)" title="Lap" aria-label="Record lap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          </button>
-          <div class="chrono-display js-sw-card" onclick="toggleSW(1)" role="button" aria-label="Start or pause stopwatch">
-            <span class="chrono-num timer-font js-sw-time">00<span class="chrono-colon">:</span>00<span class="sw-ms">.00</span></span>
-          </div>
-          <button type="button" class="chrono-icon-btn" onclick="resetStopwatch(1)" title="Reset" aria-label="Reset stopwatch">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.65 6.35A8 8 0 1 0 19.9 14"/><polyline points="20 4 20 10 14 10"/></svg>
-          </button>
-        </div>
-
-        <!-- 2: Timer (real — default visible slide) -->
-        <div class="chrono-mode-row" data-mode="rest">
-          <div class="chrono-stepper">
-            <button type="button" class="chrono-step-btn" onclick="stepRestPreset(30)" aria-label="Add 30 seconds">+</button>
-            <button type="button" class="chrono-step-btn" onclick="stepRestPreset(-30)" aria-label="Subtract 30 seconds">&minus;</button>
-          </div>
-          <div class="chrono-display js-rest-card" onclick="toggleRestFromModule()" role="button" aria-label="Start or pause rest timer">
-            <span class="chrono-num timer-font js-rest-time">01<span class="chrono-colon">:</span>30<span class="sw-ms">.00</span></span>
-          </div>
-          <button type="button" class="chrono-icon-btn" onclick="resetRestFromModule()" title="Reset" aria-label="Reset rest timer">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.65 6.35A8 8 0 1 0 19.9 14"/><polyline points="20 4 20 10 14 10"/></svg>
-          </button>
-        </div>
-
-        <!-- 3: Stopwatch (loop clone, follows real Timer) -->
+        <!-- 1: Stopwatch -->
         <div class="chrono-mode-row" data-mode="stopwatch">
           <button type="button" class="chrono-icon-btn" onclick="lapStopwatch(1)" title="Lap" aria-label="Record lap">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -367,6 +340,6 @@
   <div id="float-panel-body"></div>
 </div>
 
-<script src="script.js?v=20260627e"></script>
+<script src="script.js?v=20260627f"></script>
 </body>
 </html>
