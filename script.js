@@ -498,6 +498,7 @@ function renderExLibrary() {
           <div class="day-ex-field"><div class="day-ex-field-label">Rest</div><div class="day-ex-field-val">${ex.rest||'—'}</div></div>
         </div>
         ${ex.notes ? `<div class="day-ex-note"><div class="day-ex-field-label" style="color:var(--txt);">Key Note</div><div class="day-ex-field-val">${ex.notes}</div></div>` : ''}
+        ${ex1RMBoxHTML(ex.name)}
         <div class="exlib-muscles">
           <div class="day-ex-field-label" style="color:var(--txt);">Target Muscles</div>
           <div class="exlib-muscle-pills">
@@ -2197,10 +2198,59 @@ function savePR(name, valueOverride = null){
 
   if(!valueOverride) {
     closeModal();
-    renderExerciseList();
+    if (state.page === 'split') {
+      // Came from a Library or Split-day card, not an active workout —
+      // update just that card's 1RM box in place so the accordion stays
+      // open (a full re-render here would collapse it).
+      refreshEx1RMBoxes(name);
+    } else {
+      renderExerciseList();
+    }
     saveState();
-    
+
   }
+}
+
+// Generic "set/update 1RM" modal for an exercise that hasn't necessarily
+// been logged yet (Library card, or a Split day's planned exercise).
+// Reuses the same state.prData store + savePR() as the in-workout PR
+// flow, so a 1RM set here is immediately available to warm-up
+// generation and the Strength fitness score once the lift is logged.
+function openSetPRModal(name) {
+  let pr = getPR(name, state.profile);
+  let safeName = name.replace(/'/g,"\\'");
+  document.getElementById('modal-title').textContent = (pr ? 'Update' : 'Set') + ' 1RM: ' + name;
+  document.getElementById('modal-body').innerHTML = `
+    <input id="new-pr-val" class="add-ex-input u3" type="number" placeholder="1RM weight (kg)" step="0.5" value="${pr || ''}" inputmode="decimal">
+    <div style="font-size:12px;color:var(--txt-muted);margin-top:10px;line-height:1.5;">Powers warm-up set suggestions and your Strength fitness score for this lift. Update it any time you hit a new max.</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-confirm-p${state.profile}" onclick="savePR('${safeName}')">Save 1RM</button>
+    </div>`;
+  openModal();
+}
+
+// HTML for the 1RM box shown inside an expanded Library or Split-day
+// exercise card — current value (if any) for the active profile, plus
+// a button to set/update it.
+function ex1RMBoxHTML(name) {
+  let pr = getPR(name, state.profile);
+  let safeName = name.replace(/'/g,"\\'");
+  return `<div class="ex1rm-box" data-ex-name="${name.replace(/"/g,'&quot;')}">
+    <div class="ex1rm-box-info">
+      <div class="day-ex-field-label">1RM</div>
+      <div class="ex1rm-box-val${pr ? '' : ' unset'}">${pr ? pr+' kg' : 'Not set yet'}</div>
+    </div>
+    <button type="button" class="ex1rm-btn" onclick="event.stopPropagation();openSetPRModal('${safeName}')">${pr ? 'Update' : '+ Set 1RM'}</button>
+  </div>`;
+}
+
+// Surgical update — re-renders just the matching 1RM box(es) in place so
+// setting a 1RM from a Library/Split card doesn't collapse the card.
+function refreshEx1RMBoxes(name) {
+  document.querySelectorAll('.ex1rm-box').forEach(box => {
+    if (box.dataset.exName === name) box.outerHTML = ex1RMBoxHTML(name);
+  });
 }
 
 const PR_BURST_QUOTES=["NEW PR UNLOCKED! 🏆","LIMITS SHATTERED!","BEAST MODE: CONFIRMED","STRONGER THAN YESTERDAY!","THE IRON NEVER LIES!","YOU ARE THE PR!","HISTORY MADE. RIGHT NOW."];
@@ -2680,6 +2730,7 @@ function renderSplitPage(){
             <div class="day-ex-field"><div class="day-ex-field-label">Rest</div><div class="day-ex-field-val">${ex.rest||'—'}</div></div>
           </div>
           ${ex.notes?`<div class="day-ex-note"><div class="day-ex-field-label" style="color:${day.color};">Key Note</div><div class="day-ex-field-val">${ex.notes}</div></div>`:''}
+          ${ex1RMBoxHTML(ex.name)}
         </div>
       </div>`;
     });

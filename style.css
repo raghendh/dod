@@ -1648,6 +1648,39 @@ body.pitch-black #onboarding-screen { background: #000; }
   cursor: pointer;
 }
 
+/* ── 1RM box — shown inside an expanded Library or Split exercise card.
+   Lets the user set/update a one-rep max for that lift before it's ever
+   been logged, so warm-up suggestions and the Strength fitness score
+   have something to work from right away. ── */
+.ex1rm-box {
+  margin-top: 10px;
+  background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ex1rm-box-info { min-width: 0; }
+.ex1rm-box-val { font-size: 18px; font-weight: 800; color: var(--txt); margin-top: 2px; }
+.ex1rm-box-val.unset { color: var(--txt3); font-weight: 600; font-size: 13px; }
+.ex1rm-btn {
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: var(--radius);
+  color: var(--txt);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: inherit;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* Info panel label/value pairs (Method / Tempo / Rest / Key Note) */
 .u4 {
   display: inline-block;
