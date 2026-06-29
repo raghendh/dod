@@ -3136,19 +3136,26 @@ body[data-theme="cyberpunk"] #nav {
   background-repeat: no-repeat;
 }
 body[data-theme="cyberpunk"] .nav-btn {
-  clip-path: var(--clip-sm);
   position: relative;
+  transition: transform 0.12s ease-out;
+}
+body[data-theme="cyberpunk"] .nav-btn:active {
+  transform: scale(0.88);
 }
 body[data-theme="cyberpunk"] .nav-btn.active {
-  animation: cp-flicker 4s linear infinite;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 1px var(--accent-2), 0 0 14px rgba(0,243,255,0.3);
+  animation: cp-glow-pulse 2.8s ease-in-out infinite;
 }
 body[data-theme="cyberpunk"] .nav-btn.active::after {
   content: '';
   position: absolute;
-  bottom: 2px; left: 18%; right: 18%;
+  bottom: -1px; left: 16%; right: 16%;
   height: 2px;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: 0 0 10px var(--accent-2);
+  animation: cp-flicker 3.6s linear infinite;
 }
 
 /* Cards & surfaces — notched corners + a slow ambient glow, with a
@@ -3309,17 +3316,25 @@ body[data-theme="valorant"] #nav {
   background-repeat: no-repeat;
 }
 body[data-theme="valorant"] .nav-btn {
-  clip-path: var(--clip-sm);
   position: relative;
+  transition: transform 0.12s ease-out;
+}
+body[data-theme="valorant"] .nav-btn:active {
+  transform: scale(0.88);
+}
+body[data-theme="valorant"] .nav-btn.active {
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 12px rgba(255,70,85,0.3);
+  animation: vl-pulse 2.8s ease-in-out infinite;
 }
 body[data-theme="valorant"] .nav-btn.active::after {
   content: '';
   position: absolute;
-  bottom: 2px; left: 18%; right: 18%;
+  bottom: -1px; left: 16%; right: 16%;
   height: 2px;
   background: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
-  animation: vl-pulse 2.4s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent);
 }
 
 /* Cards & surfaces — single-notch corner, slow red ambient pulse */
@@ -3381,7 +3396,6 @@ body[data-theme="valorant"] textarea:focus {
 body[data-theme="cyberpunk"] .gh-date-pill,
 body[data-theme="cyberpunk"] .chrono-bar,
 body[data-theme="cyberpunk"] .chrono-step-btn,
-body[data-theme="cyberpunk"] .nav-btn,
 body[data-theme="cyberpunk"] input[type="text"],
 body[data-theme="cyberpunk"] input[type="number"],
 body[data-theme="cyberpunk"] input[type="date"],
@@ -3406,7 +3420,6 @@ body[data-theme="cyberpunk"] button:not(.chrono-icon-btn):not(.set-num-btn):not(
 body[data-theme="valorant"] .gh-date-pill,
 body[data-theme="valorant"] .chrono-bar,
 body[data-theme="valorant"] .chrono-step-btn,
-body[data-theme="valorant"] .nav-btn,
 body[data-theme="valorant"] input[type="text"],
 body[data-theme="valorant"] input[type="number"],
 body[data-theme="valorant"] input[type="date"],
