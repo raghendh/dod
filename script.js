@@ -450,7 +450,7 @@ function renderExLibraryFilters() {
   let html = cats.map(c =>
     `<button type="button" class="exlib-filter-chip ${exLibFilter===c?'active':''}" onclick="setExLibFilter('${c}')">${c}</button>`
   ).join('');
-  html += `<button type="button" class="exlib-filter-chip" onclick="openAddCustomExerciseModal()" style="background:rgba(0,243,255,0.12);color:var(--secondary);border-color:rgba(0,243,255,0.3);">+ Add New</button>`;
+  html += `<button type="button" class="exlib-filter-chip" onclick="openAddCustomExerciseModal()" style="background:rgba(0,243,255,0.12);color:var(--txt);border-color:rgba(0,243,255,0.3);">+ Add New</button>`;
   document.getElementById('exlib-filter-row').innerHTML = html;
 }
 
@@ -487,7 +487,7 @@ function renderExLibrary() {
       <div class="exlib-row">
         <div class="exlib-num">${abbr}</div>
         <div class="exlib-name">${ex.name}</div>
-        <span class="day-ex-tag" style="background:var(--accent-soft);color:var(--accent);border:1px solid rgba(193,95,60,0.3);flex-shrink:0;">${ex.equipment}</span>
+        <span class="day-ex-tag" style="background:var(--accent-soft);color:var(--txt);border:1px solid rgba(193,95,60,0.3);flex-shrink:0;">${ex.equipment}</span>
       </div>
       <div class="exlib-detail" id="exlib-detail-${i}">
         <div class="exlib-detail-grid">
@@ -497,9 +497,9 @@ function renderExLibrary() {
           <div class="day-ex-field"><div class="day-ex-field-label">Tempo</div><div class="day-ex-field-val">${ex.tempo||'—'}</div></div>
           <div class="day-ex-field"><div class="day-ex-field-label">Rest</div><div class="day-ex-field-val">${ex.rest||'—'}</div></div>
         </div>
-        ${ex.notes ? `<div class="day-ex-note"><div class="day-ex-field-label" style="color:var(--accent);">Key Note</div><div class="day-ex-field-val">${ex.notes}</div></div>` : ''}
+        ${ex.notes ? `<div class="day-ex-note"><div class="day-ex-field-label" style="color:var(--txt);">Key Note</div><div class="day-ex-field-val">${ex.notes}</div></div>` : ''}
         <div class="exlib-muscles">
-          <div class="day-ex-field-label" style="color:var(--accent);">Target Muscles</div>
+          <div class="day-ex-field-label" style="color:var(--txt);">Target Muscles</div>
           <div class="exlib-muscle-pills">
             ${primMuscles}${secMuscles}
           </div>
@@ -644,12 +644,13 @@ const CBUM_DEFAULT_USERS = ["nandhu", "dev", "test"];
 // add one entry here.
 const THEMES = {
   ember:     { name: "Ember",      swatch: "#C15F3C" },
-  cyberpunk: { name: "Cyberpunk",  swatch: "#FF2A6D" },
+  cyberpunk: { name: "Cyberpunk",  swatch: "#CCFF00" },
   valorant:  { name: "Valorant",   swatch: "#FF4655" },
   colourpop: { name: "Colour Pop", swatch: "#FF3D81" },
-  hevy:      { name: "Hevy",       swatch: "#4F7FFF" },
+  hevy:      { name: "Blue",       swatch: "#4F7FFF" },
+  light:     { name: "Light",      swatch: "#3A6CF0" },
 };
-const DEFAULT_THEME = "ember";
+const DEFAULT_THEME = "hevy";
 
 // Applies a theme by key, updates the PWA status-bar color to match,
 // and persists the choice. Safe to call with an unknown/missing key —
@@ -1619,7 +1620,7 @@ function getPRCalcHTML(ei, pct = 80) {
     <div class="pr-panel">
       <div style="display:flex; justify-content:space-between; align-items:flex-end;">
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--txt2);">1RM PR: <span style="font-weight:800;font-size:15px;color:${getProfileColor(state.profile)};">${pr}kg</span></div>
+          <div style="font-size:13px;font-weight:600;color:var(--txt-muted);">1RM PR: <span style="font-weight:800;font-size:15px;color:${getProfileColor(state.profile)};">${pr}kg</span></div>
           <div class="pr-weight" id="pr-wt-${ei}" style="font-size:24px; color:var(--txt); margin-top:4px;">${Math.round(pr*pct/100)}kg</div>
         </div>
         <div class="pr-pct" id="pr-pct-${ei}" style="color:${getProfileColor(state.profile)};">${pct}%</div>
@@ -1628,9 +1629,9 @@ function getPRCalcHTML(ei, pct = 80) {
         <input type="range" min="50" max="100" value="${pct}" step="5" id="pr-slider-${ei}" oninput="updatePRCalc(${ei},this.value)" style="flex:1;">
       </div>
       <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-        <button onclick="setNewPR(${ei})" style="flex:1 1 45%; background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:${getProfileColor(state.profile)};cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.03em;">Set new 1RM PR</button>
-        ${state.settings.showPlateMath !== false ? `<button onclick="openPlateCalc(${ei})" style="flex:1 1 45%; background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--txt);cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.03em;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg> Plate Math</button>` : ''}
-        ${state.settings.showWarmupGen !== false ? `<button onclick="generateWarmups(${ei})" style="flex:1 1 100%; background:rgba(255,39,65,0.15);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--o1);cursor:pointer;font-weight:700;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Generate Warm-up Sets</button>` : ''}
+        <button onclick="setNewPR(${ei})" style="flex:1 1 45%; background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:${getProfileColor(state.profile)};cursor:pointer;font-weight:700;font-family:var(--font);text-transform:uppercase;letter-spacing:0.03em;">Set new 1RM PR</button>
+        ${state.settings.showPlateMath !== false ? `<button onclick="openPlateCalc(${ei})" style="flex:1 1 45%; background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--txt);cursor:pointer;font-weight:700;font-family:var(--font);text-transform:uppercase;letter-spacing:0.03em;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg> Plate Math</button>` : ''}
+        ${state.settings.showWarmupGen !== false ? `<button onclick="generateWarmups(${ei})" style="flex:1 1 100%; background:rgba(255,39,65,0.15);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);padding:8px 14px;font-size:12px;color:var(--txt);cursor:pointer;font-weight:700;font-family:var(--font);text-transform:uppercase;letter-spacing:0.04em;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Generate Warm-up Sets</button>` : ''}
       </div>
     </div>`;
 }
@@ -1669,7 +1670,7 @@ function openPlateCalc(ei) {
   document.getElementById('modal-body').innerHTML=`
     <div style="text-align:center;">
       <div class="u15">Target Weight (kg)</div>
-      <input id="plate-target-input" type="number" value="${target}" style="background:var(--bg3);border:2px solid ${getProfileColor(state.profile)};border-radius:var(--radius);padding:12px;color:var(--txt);font-size:24px;font-weight:800;text-align:center;width:120px;margin-bottom:20px;" oninput="calcPlates(this.value)">
+      <input id="plate-target-input" type="number" value="${target}" style="background:var(--input-bg);border:2px solid ${getProfileColor(state.profile)};border-radius:var(--radius);padding:12px;color:var(--txt);font-size:24px;font-weight:800;text-align:center;width:120px;margin-bottom:20px;" oninput="calcPlates(this.value)">
 
       <div class="u15">Assumes ${state.settings.barbellWeight}kg Barbell</div>
       <div id="plate-results" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px;"></div>
@@ -1705,7 +1706,7 @@ function calcPlates(targetStr) {
   }
 
   if(needed.length === 0) {
-    res.innerHTML = `<span style="color:var(--txt2);font-size:14px;font-weight:600;">Just the bar!</span>`;
+    res.innerHTML = `<span style="color:var(--txt-muted);font-size:14px;font-weight:600;">Just the bar!</span>`;
     return;
   }
 
@@ -1719,12 +1720,12 @@ function openSetTypeSelector(ei, si) {
   document.getElementById('modal-body').innerHTML = `
     <div style="display:flex; flex-direction:column; gap:8px;">
       <button class="modal-btn" style="background:var(--bg4);color:var(--txt);" onclick="setSetType(${ei},${si},'normal')">Normal Working Set</button>
-      <button class="modal-btn" style="background:rgba(255,39,65,0.15);color:var(--o1);border:1px solid rgba(255,39,65,0.3);" onclick="setSetType(${ei},${si},'warmup')">Warm-up Set</button>
+      <button class="modal-btn" style="background:rgba(255,39,65,0.15);color:var(--txt);border:1px solid rgba(255,39,65,0.3);" onclick="setSetType(${ei},${si},'warmup')">Warm-up Set</button>
       <button class="modal-btn" style="background:rgba(255,0,255,0.15);color:#ff00ff;border:1px solid rgba(255,0,255,0.3);" onclick="setSetType(${ei},${si},'drop')">Drop Set</button>
       <button class="modal-btn u16" onclick="setSetType(${ei},${si},'failure')">To Failure</button>
       <button class="modal-btn" style="background:rgba(204,255,0,0.15);color:#ccff00;border:1px solid rgba(204,255,0,0.3);" onclick="setSetType(${ei},${si},'pyramid')">Pyramid</button>
       <button class="modal-btn u16" onclick="setSetType(${ei},${si},'timed')">Timed Set</button>
-      <button class="modal-btn" style="background:var(--bg3);color:var(--txt2);margin-top:12px;border:1px solid var(--border2);" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn" style="background:var(--input-bg);color:var(--txt-muted);margin-top:12px;border:1px solid var(--border2);" onclick="closeModal()">Cancel</button>
     </div>
   `;
   openModal();
@@ -1834,7 +1835,7 @@ function renderExerciseList(){
         ${logged ? 'No exercises logged for this profile today.' : 'Add your first exercise to start tracking, or import a split from your library.'}
       </div>
       <button class="import-btn" style="margin-bottom:12px; margin-top:0;" onclick="openAddExerciseModal()">+ Add New Exercise</button>
-      <button class="import-btn" style="background:var(--bg3); color:var(--txt); border:1px solid var(--border2); box-shadow:none; margin-top:0;" onclick="goPage('split')">Browse Splits Library</button>
+      <button class="import-btn" style="background:var(--input-bg); color:var(--txt); border:1px solid var(--border2); box-shadow:none; margin-top:0;" onclick="goPage('split')">Browse Splits Library</button>
     </div>`;
   } else {
     let simpleMode = state.settings.simpleMode !== false;
@@ -1900,7 +1901,7 @@ function renderExerciseList(){
         ${showNotes ? `
         <div id="note-panel-${ei}" style="display:${openPanels.note[ei]?'block':'none'};">
           <textarea id="note-txt-${ei}" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:10px;color:var(--txt);font-size:13px;width:100%;resize:none;height:80px;" placeholder="Notes for this exercise...">${ex.note||''}</textarea>
-          <button onclick="saveNote(${ei})" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;color:var(--txt2);font-weight:700;font-size:12px;cursor:pointer;margin-top:8px;">Save note</button>
+          <button onclick="saveNote(${ei})" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 14px;color:var(--txt-muted);font-weight:700;font-size:12px;cursor:pointer;margin-top:8px;">Save note</button>
           <div style="height:8px;"></div>
         </div>
         ` : ''}
@@ -1958,7 +1959,7 @@ function renderExerciseList(){
   if(reorderMode && reorderMode.workout) {
     setReorderActiveState('workout', true);
     let btn = document.getElementById('reorder-toggle-workout');
-    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--secondary)';btn.style.color='var(--secondary)';}
+    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
   }
 }
 
@@ -2428,7 +2429,7 @@ function renderHistory(exName){
       <span class="ex-history-date">${r.date}</span>
       <span style="color:var(--txt);font-weight:600;">${r.sets.map(s=>{
         let typeInd='';
-        if(s.type==='warmup')typeInd='<span style="color:var(--o1);font-size:10px;margin-left:2px;">W</span>';
+        if(s.type==='warmup')typeInd='<span style="color:var(--txt);font-size:10px;margin-left:2px;">W</span>';
         if(s.type==='drop')typeInd='<span style="color:#ff00ff;font-size:10px;margin-left:2px;">DROP</span>';
         if(s.type==='failure')typeInd='<span style="color:#a78bfa;font-size:10px;margin-left:2px;">FAIL</span>';
         if(s.type==='pyramid')typeInd='<span style="color:#eab308;font-size:10px;margin-left:2px;">PYR</span>';
@@ -2603,7 +2604,7 @@ function renderHistoryPage(){
     let w=data[prof];
     html+=`<div class="hist-profile-col">`;
     let bw=state.bw[prof][date];
-    if(bw)html+=`<div style="font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:8px;">BW: ${bw}kg</div>`;
+    if(bw)html+=`<div style="font-size:11px;font-weight:700;color:var(--txt-muted);margin-bottom:8px;">BW: ${bw}kg</div>`;
     if(w){
       w.exs.forEach(ex=>{
         let doneSets=ex.sets.filter(s=>s.w||s.r);
@@ -2611,12 +2612,12 @@ function renderHistoryPage(){
         html+=`<div class="hist-ex-name">${ex.name}</div>`;
         doneSets.forEach(s=>{
           let typeInd='';
-          if(s.type==='warmup')typeInd='<span style="color:var(--o1);font-size:10px;margin-left:4px;font-weight:800;">W</span>';
+          if(s.type==='warmup')typeInd='<span style="color:var(--txt);font-size:10px;margin-left:4px;font-weight:800;">W</span>';
           if(s.type==='drop')typeInd='<span style="color:#ff00ff;font-size:10px;margin-left:4px;font-weight:800;">DROP</span>';
           if(s.type==='failure')typeInd='<span style="color:#a78bfa;font-size:10px;margin-left:4px;font-weight:800;">FAIL</span>';
           if(s.type==='pyramid')typeInd='<span style="color:#eab308;font-size:10px;margin-left:4px;font-weight:800;">PYR</span>';
           if(s.type==='timed')typeInd='<span style="color:#38bdf8;font-size:10px;margin-left:4px;font-weight:800;">TIME</span>';
-          let uniInd = s.uni ? `<span style="color:var(--secondary);font-size:10px;margin-left:4px;">UNI</span>` : '';
+          let uniInd = s.uni ? `<span style="color:var(--txt);font-size:10px;margin-left:4px;">UNI</span>` : '';
           if(s.w||s.r)html+=`<div class="hist-set-row">${s.w||'?'}kg × ${s.r||'?'}${uniInd}${typeInd}</div>`;
         });
       });
@@ -2629,7 +2630,7 @@ function renderHistoryPage(){
 
 function renderSplitPage(){
   let split=SPLITS[state.activeSplit];
-  if(!split){document.getElementById('split-day-tabs').innerHTML='';document.getElementById('split-day-content').innerHTML='<div style="color:var(--txt2);padding:20px;">No split selected.</div>';return;}
+  if(!split){document.getElementById('split-day-tabs').innerHTML='';document.getElementById('split-day-content').innerHTML='<div style="color:var(--txt-muted);padding:20px;">No split selected.</div>';return;}
 
   let tabHtml='';
   split.days.forEach((d,i)=>{
@@ -2647,7 +2648,7 @@ function renderSplitPage(){
         <div class="day-name serif-title" title="${day.name}">${day.name}</div>
       </div>
       <div class="day-header-actions" style="flex-shrink:0;">
-        <button onclick="showRules()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:6px 10px;color:var(--txt);font-size:11px;font-weight:800;cursor:pointer;margin-right:4px;">RULES</button>
+        <button onclick="showRules()" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:var(--radius);padding:6px 10px;color:var(--txt);font-size:11px;font-weight:800;cursor:pointer;margin-right:4px;">RULES</button>
         ${locked ? '' : `<div class="icon-btn" onclick="renameDay(${state.splitDayView})" aria-label="Rename day">✎</div>
         <div class="icon-btn" onclick="addExToSplit(${state.splitDayView})" aria-label="Add exercise">+</div>`}
       </div>
@@ -2655,7 +2656,7 @@ function renderSplitPage(){
     <div class="day-ex">`;
 
   if(day.rest){
-    html+='<div style="color:var(--txt2);font-size:14px;font-weight:500;padding:14px 0;text-align:center;">Rest day — recovery is part of the program.</div>';
+    html+='<div style="color:var(--txt-muted);font-size:14px;font-weight:500;padding:14px 0;text-align:center;">Rest day — recovery is part of the program.</div>';
   } else if(!day.exs.length) {
     html+='<div style="color:var(--txt3);font-size:14px;padding:14px 0;text-align:center;">No exercises mapped yet. Tap + to add.</div>';
   } else {
@@ -2690,7 +2691,7 @@ function renderSplitPage(){
   if(reorderMode && reorderMode.split) {
     setReorderActiveState('split', true);
     let btn = document.getElementById('reorder-toggle-split');
-    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--secondary)';btn.style.color='var(--secondary)';}
+    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
   }
 }
 
@@ -2839,7 +2840,7 @@ function renameActiveSplit(){
       <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
       <button class="modal-btn modal-confirm-p${state.profile}" onclick="confirmRenameSplit()">Save</button>
     </div>
-    <button onclick="confirmDeleteSplit()" style="width:100%;margin-top:10px;background:rgba(255,39,65,0.1);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);color:#ff2741;font-size:12px;font-weight:700;padding:10px 14px;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;">🗑 Delete "${state.activeSplit}"</button>`;
+    <button onclick="confirmDeleteSplit()" style="width:100%;margin-top:10px;background:rgba(255,39,65,0.1);border:1px solid rgba(255,39,65,0.3);border-radius:var(--radius);color:#ff2741;font-size:12px;font-weight:700;padding:10px 14px;cursor:pointer;font-family:var(--font);text-transform:uppercase;letter-spacing:0.04em;">🗑 Delete "${state.activeSplit}"</button>`;
   openModal();
   attachAutocomplete('rename-split-input', 'rename-split-input-ac', getWorkoutNameSuggestions);
 }
@@ -2887,10 +2888,10 @@ function showRules() {
   document.getElementById('modal-title').textContent='Program Rules';
   let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
   RULES.forEach((r, i) => {
-    html += `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;display:flex;gap:14px;">
-      <div style="width:26px;height:26px;background:rgba(0,243,255,0.12);color:var(--secondary);border:1px solid rgba(0,243,255,0.3);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;font-family:'JetBrains Mono',monospace;">${i+1}</div>
+    html += `<div style="background:var(--input-bg);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;display:flex;gap:14px;">
+      <div style="width:26px;height:26px;background:rgba(0,243,255,0.12);color:var(--txt);border:1px solid rgba(0,243,255,0.3);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;font-family:var(--font);">${i+1}</div>
       <div>
-        <div style="color:var(--primary);font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.08em;font-family:'JetBrains Mono',monospace;">${r.rule}</div>
+        <div style="color:var(--txt);font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.08em;font-family:var(--font);">${r.rule}</div>
         <div style="color:var(--txt);font-size:14px;line-height:1.5;">${r.method}</div>
       </div>
     </div>`;
@@ -3262,7 +3263,7 @@ function renderMuscleAnalytics() {
     }
     html += `<div>
       <div class="muscle-group-row" onclick="toggleMuscleDetail('${g}')">
-        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--txt2);margin-bottom:6px;text-transform:uppercase;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--txt-muted);margin-bottom:6px;text-transform:uppercase;">
           <span>${g} <span style="color:var(--txt3);font-weight:500;font-size:10px;">(tap to expand)</span></span>
           <span>${c.total} sets</span>
         </div>
@@ -4027,7 +4028,7 @@ function buildProfileCardioHistory() {
       if (s.calories) badges += `<span class="cardio-badge cardio-badge-red" style="font-size:10px;padding:2px 6px;">${s.calories}kcal</span>`;
       html += `<div class="hist-ex-name">${s.type || 'Cardio'}</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">${badges}</div>`;
-      if (s.notes) html += `<div class="hist-set-row" style="color:var(--txt2);">${s.notes}</div>`;
+      if (s.notes) html += `<div class="hist-set-row" style="color:var(--txt-muted);">${s.notes}</div>`;
     });
     html += `</div></div></div>`;
   });
@@ -4104,7 +4105,7 @@ function renderProfilePage() {
           histHtml += `<div class="hist-ex-name">${ex.name}</div>`;
           doneSets.forEach(s => {
             let typeInd = '';
-            if (s.type === 'warmup')   typeInd = '<span style="color:var(--accent);font-size:10px;margin-left:4px;font-weight:800;">W</span>';
+            if (s.type === 'warmup')   typeInd = '<span style="color:var(--txt);font-size:10px;margin-left:4px;font-weight:800;">W</span>';
             if (s.type === 'drop')     typeInd = '<span style="color:#c678dd;font-size:10px;margin-left:4px;font-weight:800;">DROP</span>';
             if (s.type === 'failure')  typeInd = '<span style="color:#a78bfa;font-size:10px;margin-left:4px;font-weight:800;">FAIL</span>';
             if (s.type === 'pyramid')  typeInd = '<span style="color:#eab308;font-size:10px;margin-left:4px;font-weight:800;">PYR</span>';
@@ -4296,7 +4297,7 @@ function renderProfilePage() {
             <div class="set-row-setting" style="padding-top:14px;border-top:1px solid var(--border);margin-top:14px;">
               <div><div class="settings-row-label">Remind every</div></div>
               <select id="water-interval-select" onchange="setWaterReminderInterval(this.value)"
-                style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;">
+                style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;font-family:var(--font);">
                 <option value="30" ${waterCfg.intervalMinutes==30?'selected':''}>30 min</option>
                 <option value="45" ${waterCfg.intervalMinutes==45?'selected':''}>45 min</option>
                 <option value="60" ${waterCfg.intervalMinutes==60?'selected':''}>1 hour</option>
@@ -4543,7 +4544,7 @@ function openFloatingPanel(type) {
     body.innerHTML = '<div id="pr-list"></div>';
     renderPRPage();
   } else {
-    title.style.color = 'var(--secondary)';
+    title.style.color = 'var(--accent)';
     title.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Workout History`;
     body.innerHTML = '<div id="history-list"></div>';
     renderHistoryPage();
@@ -4591,10 +4592,10 @@ function refreshFitnessCard(){
   let fitness = calcFitnessLevel(metrics, bw);
   card.style.borderColor = fitness.color + '33';
   card.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;font-family:'JetBrains Mono',monospace;">Fitness Level</div>
+    <div style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;font-family:var(--font);">Fitness Level</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <span class="fitness-level-badge" style="background:${fitness.color}22;color:${fitness.color};border:1px solid ${fitness.color}44;">${fitness.label}</span>
-      <span style="font-size:22px;font-weight:900;color:${fitness.color};font-family:'JetBrains Mono',monospace;">${fitness.pct}%</span>
+      <span style="font-size:22px;font-weight:900;color:${fitness.color};font-family:var(--font);">${fitness.pct}%</span>
     </div>
     <div class="fitness-bar-track">
       <div class="fitness-bar-fill" style="width:${fitness.pct}%;background:${fitness.color};"></div>
@@ -4666,9 +4667,9 @@ function toggleReorderMode(tab) {
   let on = reorderMode[tab];
   let btn = document.getElementById('reorder-toggle-' + tab);
   if(btn) {
-    btn.style.background = on ? 'rgba(0,243,255,0.15)' : 'var(--bg3)';
-    btn.style.borderColor = on ? 'var(--secondary)' : 'var(--border2)';
-    btn.style.color = on ? 'var(--secondary)' : 'var(--txt3)';
+    btn.style.background = on ? 'rgba(0,243,255,0.15)' : 'var(--input-bg)';
+    btn.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
+    btn.style.color = on ? 'var(--accent)' : 'var(--txt3)';
   }
   setReorderActiveState(tab, on);
   if(tab === 'cardio') initCardioDragHandlers();
@@ -4738,11 +4739,11 @@ function renderCardioPage() {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
       <div style="font-size:18px;font-weight:800;">Cardio Log</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <button id="cardio-cal-btn" onclick="openCardioDatePicker()" aria-label="Open calendar" title="Open calendar" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--accent);font-size:10px;font-weight:800;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all 0.2s;">
+        <button id="cardio-cal-btn" onclick="openCardioDatePicker()" aria-label="Open calendar" title="Open calendar" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--txt);font-size:10px;font-weight:800;cursor:pointer;font-family:var(--font);text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all 0.2s;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           <span id="cardio-cal-lbl"></span>
         </button>
-        <button id="reorder-toggle-cardio" onclick="toggleReorderMode('cardio')" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--txt3);font-size:10px;font-weight:800;cursor:pointer;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;transition:all 0.2s;">
+        <button id="reorder-toggle-cardio" onclick="toggleReorderMode('cardio')" style="background:var(--input-bg);border:1px solid var(--border2);border-radius:var(--radius);padding:5px 10px;color:var(--txt3);font-size:10px;font-weight:800;cursor:pointer;font-family:var(--font);text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:5px;transition:all 0.2s;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9h18M3 15h18"/><path d="M8 4L3 9l5 5M16 4l5 5-5 5"/></svg>
           Reorder
         </button>
@@ -4756,28 +4757,28 @@ function renderCardioPage() {
       <div class="section-title" style="margin-bottom:12px;">+ Log Session</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
-          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Type</div>
-          <select id="cardio-type-input" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;width:100%;font-family:'JetBrains Mono',monospace;">
+          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Type</div>
+          <select id="cardio-type-input" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;width:100%;font-family:var(--font);">
             ${CARDIO_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
           </select>
         </div>
         <div>
-          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Duration (min)</div>
+          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Duration (min)</div>
           <input id="cardio-duration-input" type="number" min="1" max="600" placeholder="30" class="set-input" style="width:100%;padding:9px 10px;">
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
         <div>
-          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Distance (km)</div>
+          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Distance (km)</div>
           <input id="cardio-distance-input" type="number" min="0" step="0.1" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
         </div>
         <div>
-          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Calories (kcal)</div>
+          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Calories (kcal)</div>
           <input id="cardio-calories-input" type="number" min="0" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
         </div>
       </div>
       <div style="margin-bottom:10px;">
-        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Notes (optional)</div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Notes (optional)</div>
         <input id="cardio-notes-input" type="text" placeholder="e.g. morning run, zone 2..." class="set-input" style="width:100%;padding:9px 10px;">
       </div>
       <button onclick="logCardioSession()" class="import-btn" style="margin-top:4px;">LOG SESSION</button>
@@ -4798,7 +4799,7 @@ function renderCardioPage() {
   if(reorderMode.cardio) {
     setReorderActiveState('cardio', true);
     let btn = document.getElementById('reorder-toggle-cardio');
-    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--secondary)';btn.style.color='var(--secondary)';}
+    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
   }
 }
 
@@ -4829,28 +4830,28 @@ function editCardioEntry(dateStr, idx) {
   document.getElementById('modal-title').textContent = 'Edit Cardio Session';
   document.getElementById('modal-body').innerHTML = `
     <div style="margin-bottom:10px;">
-      <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Type</div>
-      <select id="edit-cardio-type" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;width:100%;font-family:'JetBrains Mono',monospace;">
+      <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Type</div>
+      <select id="edit-cardio-type" style="background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 10px;color:var(--txt);font-size:13px;font-weight:700;width:100%;font-family:var(--font);">
         ${CARDIO_TYPES.map(t => `<option value="${t}" ${t===s.type?'selected':''}>${t}</option>`).join('')}
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
       <div>
-        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Duration (min)</div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Duration (min)</div>
         <input id="edit-cardio-duration" type="number" min="1" max="600" value="${s.duration||''}" placeholder="30" class="set-input" style="width:100%;padding:9px 10px;">
       </div>
       <div>
-        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Distance (km)</div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Distance (km)</div>
         <input id="edit-cardio-distance" type="number" min="0" step="0.1" value="${s.distance||''}" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
       <div>
-        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Calories (kcal)</div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Calories (kcal)</div>
         <input id="edit-cardio-calories" type="number" min="0" value="${s.calories||''}" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
       </div>
       <div>
-        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">Notes</div>
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Notes</div>
         <input id="edit-cardio-notes" type="text" value="${s.notes||''}" placeholder="optional..." class="set-input" style="width:100%;padding:9px 10px;">
       </div>
     </div>
@@ -4883,9 +4884,9 @@ function buildCardioStats(cardioLog) {
       if(s.distance) totalKm += parseFloat(s.distance)||0;
     });
   });
-  let statStyle = `background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;`;
-  let labelStyle = `font-size:10px;font-weight:800;color:var(--secondary);text-transform:uppercase;letter-spacing:0.08em;font-family:'JetBrains Mono',monospace;`;
-  let valStyle = `font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;margin-top:4px;`;
+  let statStyle = `background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;`;
+  let labelStyle = `font-size:10px;font-weight:800;color:var(--txt);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font);`;
+  let valStyle = `font-size:20px;font-weight:900;font-family:var(--font);margin-top:4px;`;
   return `
     <div style="${statStyle}"><div style="${labelStyle}">Sessions</div><div style="${valStyle}">${totalSessions}</div></div>
     <div style="${statStyle}"><div style="${labelStyle}">Minutes</div><div style="${valStyle}">${totalMinutes}</div></div>
