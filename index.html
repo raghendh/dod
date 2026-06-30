@@ -7,7 +7,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>DOD Workout</title>
-<meta name="theme-color" content="#121212">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,245 +20,6 @@
 </head>
 <body>
 
-<!-- THEME SHADER BACKGROUND — a single fixed canvas, hidden by default.
-     Only Cyberpunk and Valorant run a live shader; every other theme
-     (including Pitch Black) leaves this hidden so it costs nothing.
-     Lives outside #app and before it in the DOM so it paints behind
-     the app shell but is otherwise fully decoupled from script.js —
-     it just watches body's data-theme/class via MutationObserver. -->
-<canvas id="theme-bg-canvas"></canvas>
-<script>
-(function() {
-  var canvas = document.getElementById('theme-bg-canvas');
-  var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-  if (!gl) return;
-
-  function syncSize() {
-    var w = canvas.clientWidth || window.innerWidth || 1280;
-    var h = canvas.clientHeight || window.innerHeight || 720;
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-    }
-  }
-  if (typeof ResizeObserver !== 'undefined') {
-    new ResizeObserver(syncSize).observe(canvas);
-  }
-  window.addEventListener('resize', syncSize);
-  syncSize();
-
-  var VERTEX_SRC = [
-    'attribute vec2 a_position;',
-    'varying vec2 v_texCoord;',
-    'void main() {',
-    '  v_texCoord = a_position * 0.5 + 0.5;',
-    '  gl_Position = vec4(a_position, 0.0, 1.0);',
-    '}'
-  ].join('\n');
-
-  // Cyber-Tactical V2 — lime primary, cyan secondary, magenta used
-  // sparingly for glitch flicker, near-black void background.
-  var CYBERPUNK_FRAG = [
-    'precision highp float;',
-    'uniform float u_time;',
-    'uniform vec2 u_resolution;',
-    '',
-    'float random(vec2 st) {',
-    '    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);',
-    '}',
-    '',
-    'float noise(vec2 st) {',
-    '    vec2 i = floor(st);',
-    '    vec2 f = fract(st);',
-    '    float a = random(i);',
-    '    float b = random(i + vec2(1.0, 0.0));',
-    '    float c = random(i + vec2(0.0, 1.0));',
-    '    float d = random(i + vec2(1.0, 1.0));',
-    '    vec2 u = f * f * (3.0 - 2.0 * f);',
-    '    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;',
-    '}',
-    '',
-    'void main() {',
-    '    vec2 uv = gl_FragCoord.xy / u_resolution.xy;',
-    '    vec3 color = vec3(0.039, 0.039, 0.047);',
-    '',
-    '    vec2 grid = fract(gl_FragCoord.xy / 40.0);',
-    '    float gridLine = step(0.98, grid.x) + step(0.98, grid.y);',
-    '    color += gridLine * vec3(0.2, 0.2, 0.231) * 0.4;',
-    '',
-    '    float scanline = sin(uv.y * 200.0 + u_time * 5.0) * 0.02;',
-    '    color += scanline * vec3(0.0, 0.953, 1.0);',
-    '',
-    '    float n = noise(uv * 3.0 + u_time * 0.2);',
-    '    color += n * vec3(0.8, 1.0, 0.0) * 0.035;',
-    '',
-    '    float beam = pow(1.0 - abs(fract(uv.x * 2.0 - u_time * 0.1) - 0.5) * 2.0, 10.0);',
-    '    color += beam * vec3(0.0, 0.953, 1.0) * 0.05;',
-    '',
-    '    float glitchLine = step(0.996, random(vec2(floor(u_time * 9.0), floor(uv.y * 28.0))));',
-    '    color += glitchLine * vec3(1.0, 0.0, 1.0) * 0.18;',
-    '',
-    '    float vignette = 1.0 - length(uv - 0.5) * 1.2;',
-    '    color *= vignette;',
-    '',
-    '    gl_FragColor = vec4(color, 1.0);',
-    '}'
-  ].join('\n');
-
-  // Tactical Performance System — Dark Slate background, Valorant Red
-  // accent, Surface Bright used for the HUD grid line glow.
-  var VALORANT_FRAG = [
-    'precision highp float;',
-    'uniform float u_time;',
-    'uniform vec2 u_resolution;',
-    'varying vec2 v_texCoord;',
-    '',
-    'float hash(vec2 p) {',
-    '    p = fract(p * vec2(123.34, 456.21));',
-    '    p += dot(p, p + 45.32);',
-    '    return fract(p.x * p.y);',
-    '}',
-    '',
-    'float noise(vec2 p) {',
-    '    vec2 i = floor(p);',
-    '    vec2 f = fract(p);',
-    '    float a = hash(i);',
-    '    float b = hash(i + vec2(1.0, 0.0));',
-    '    float c = hash(i + vec2(0.0, 1.0));',
-    '    float d = hash(i + vec2(1.0, 1.0));',
-    '    vec2 u = f * f * (3.0 - 2.0 * f);',
-    '    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;',
-    '}',
-    '',
-    'float fbm(vec2 p) {',
-    '    float v = 0.0;',
-    '    float a = 0.5;',
-    '    for (int i = 0; i < 4; i++) {',
-    '        v += a * noise(p);',
-    '        p *= 2.0;',
-    '        a *= 0.5;',
-    '    }',
-    '    return v;',
-    '}',
-    '',
-    'void main() {',
-    '    vec2 uv = v_texCoord;',
-    '',
-    '    vec3 color_bg = vec3(0.063, 0.078, 0.090);',
-    '    vec3 color_accent = vec3(1.0, 0.275, 0.333);',
-    '    vec3 color_bright = vec3(0.212, 0.227, 0.239);',
-    '',
-    '    vec2 grid_uv = uv * 40.0;',
-    '    vec2 grid_f = fract(grid_uv);',
-    '    float grid_line = step(0.98, grid_f.x) + step(0.98, grid_f.y);',
-    '',
-    '    float scanline = sin(uv.y * 100.0 - u_time * 5.0) * 0.02;',
-    '',
-    '    float pulse = sin(u_time * 0.5) * 0.5 + 0.5;',
-    '    float vignette = 1.0 - length(uv - 0.5) * 1.5;',
-    '',
-    '    vec3 final_color = color_bg;',
-    '    final_color += color_bright * grid_line * 0.12 * pulse;',
-    '    final_color += color_accent * scanline * vignette;',
-    '',
-    '    float sparks = step(0.999, hash(uv + u_time)) * pulse;',
-    '    final_color += color_accent * sparks;',
-    '',
-    '    float alert = smoothstep(0.8, 1.2, length(uv - vec2(0.0, 1.0))) * 0.05;',
-    '    final_color += color_accent * alert;',
-    '',
-    '    // Drifting Valorant-style smoke — soft fbm clouds rolling slowly',
-    '    // across the scene, lit faintly red near the bottom alert glow.',
-    '    vec2 smoke_uv = uv * 2.2 + vec2(u_time * 0.025, -u_time * 0.015);',
-    '    float smoke = fbm(smoke_uv);',
-    '    vec2 smoke_uv2 = uv * 3.6 - vec2(u_time * 0.04, u_time * 0.008);',
-    '    smoke += fbm(smoke_uv2) * 0.5;',
-    '    smoke = smoothstep(0.4, 1.0, smoke) * 0.34;',
-    '    vec3 smoke_color = mix(vec3(0.62, 0.64, 0.66), color_accent, alert * 2.0);',
-    '    final_color = mix(final_color, smoke_color, smoke * vignette);',
-    '',
-    '    gl_FragColor = vec4(final_color, 1.0);',
-    '}'
-  ].join('\n');
-
-  var SHADERS = { cyberpunk: CYBERPUNK_FRAG, valorant: VALORANT_FRAG };
-
-  function compileShader(type, src) {
-    var s = gl.createShader(type);
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    return s;
-  }
-
-  var quadBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-
-  var programCache = {};
-  function getProgram(key) {
-    if (programCache[key]) return programCache[key];
-    var prog = gl.createProgram();
-    gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, VERTEX_SRC));
-    gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, SHADERS[key]));
-    gl.linkProgram(prog);
-    var info = {
-      program: prog,
-      posLoc: gl.getAttribLocation(prog, 'a_position'),
-      uTime: gl.getUniformLocation(prog, 'u_time'),
-      uRes: gl.getUniformLocation(prog, 'u_resolution')
-    };
-    programCache[key] = info;
-    return info;
-  }
-
-  var loadedKey = null;
-  var active = null;
-  var rafRunning = false;
-
-  function getDesiredKey() {
-    if (document.body.classList.contains('pitch-black')) return null;
-    var theme = document.body.getAttribute('data-theme');
-    return (theme === 'cyberpunk' || theme === 'valorant') ? theme : null;
-  }
-
-  function render(t) {
-    if (!rafRunning || !active) return;
-    syncSize();
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.useProgram(active.program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    gl.enableVertexAttribArray(active.posLoc);
-    gl.vertexAttribPointer(active.posLoc, 2, gl.FLOAT, false, 0, 0);
-    if (active.uTime) gl.uniform1f(active.uTime, t * 0.001);
-    if (active.uRes) gl.uniform2f(active.uRes, canvas.width, canvas.height);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    requestAnimationFrame(render);
-  }
-
-  function applyState() {
-    var key = getDesiredKey();
-    if (!key) {
-      rafRunning = false;
-      canvas.style.display = 'none';
-      return;
-    }
-    canvas.style.display = 'block';
-    if (key !== loadedKey) {
-      active = getProgram(key);
-      loadedKey = key;
-    }
-    if (!rafRunning) {
-      rafRunning = true;
-      requestAnimationFrame(render);
-    }
-  }
-
-  new MutationObserver(applyState).observe(document.body, {
-    attributes: true, attributeFilter: ['data-theme', 'class']
-  });
-  applyState();
-})();
-</script>
 
 <div id="app" class="ready">
 
@@ -271,7 +32,7 @@
       <span id="gh-title">D O D</span>
     </div>
     <div id="global-header-right" style="position:relative;display:flex;align-items:center;">
-      <div id="gh-version-pill" class="gh-date-pill gh-version-pill">v1.0.5</div>
+      <div id="gh-version-pill" class="gh-date-pill gh-version-pill">v1.1.0</div>
       <button type="button" id="install-pwa-btn" onclick="installPWA()" style="display:none;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>Install</span>
@@ -580,10 +341,6 @@
       <h2 class="ob-title">You're ready.</h2>
       <p class="ob-desc">Your data never leaves this device. Train hard.</p>
       <div class="theme-picker-grid" id="ob-theme-picker-grid" style="margin-bottom:14px;"></div>
-      <button type="button" class="ob-theme-btn" id="ob-pitch-black-toggle" onclick="obTogglePitchBlack()" style="width:100%;justify-content:center;">
-        <span class="ob-theme-swatch" id="ob-pitch-black-swatch" style="background:#000;border:2px solid var(--border);"></span>
-        Pitch Black Mode
-      </button>
       <button type="button" class="ob-btn-primary ob-btn-finish" onclick="obSaveTheme()">Start Training</button>
     </div>
 

@@ -637,29 +637,34 @@ const RULES = [
 
 const CBUM_DEFAULT_USERS = ["nandhu", "dev", "test"];
 
-// ====== THEME SYSTEM ======
-// Each theme = one body[data-theme="key"] block in style.css. This
-// registry only needs to know each theme's key, display name, and an
-// accent swatch color so the picker can render it — the actual colors
-// live entirely in CSS. To add a new theme: add the CSS block, then
-// add one entry here.
-const THEMES = {
-  ember:     { name: "Ember",      swatch: "#C15F3C" },
-  cyberpunk: { name: "Cyberpunk",  swatch: "#CCFF00" },
-  valorant:  { name: "Valorant",   swatch: "#FF4655" },
-  colourpop: { name: "Colour Pop", swatch: "#FF3D81" },
-  hevy:      { name: "Blue",       swatch: "#4F7FFF" },
-  light:     { name: "Light",      swatch: "#3A6CF0" },
+// ====== ACCENT SYSTEM ======
+// The app has one fixed black/white look (data-theme="mono"). Users can
+// only swap the accent color, applied via body[data-accent="key"] —
+// the actual colors live entirely in CSS. To add a new accent: add the
+// CSS rule, then add one entry here.
+const ACCENTS = {
+  white:  { name: "Mono",   swatch: "#FFFFFF" },
+  red:    { name: "Red",    swatch: "#E24B4A" },
+  orange: { name: "Orange", swatch: "#E08A3C" },
+  yellow: { name: "Yellow", swatch: "#E8C84D" },
+  green:  { name: "Green",  swatch: "#5FD87A" },
+  blue:   { name: "Blue",   swatch: "#4F8FFF" },
+  purple: { name: "Purple", swatch: "#A78BFA" },
+  pink:   { name: "Pink",   swatch: "#F06BA8" },
 };
-const DEFAULT_THEME = "hevy";
+const DEFAULT_THEME = "mono";
+const DEFAULT_ACCENT = "white";
 
-// Applies a theme by key, updates the PWA status-bar color to match,
+// Applies an accent by key, updates the PWA status-bar color to match,
 // and persists the choice. Safe to call with an unknown/missing key —
-// falls back to the default theme.
+// falls back to the default accent. The base theme is always "mono".
 function applyTheme(key) {
-  if (!THEMES[key]) key = DEFAULT_THEME;
-  document.body.setAttribute('data-theme', key);
-  state.settings.theme = key;
+  document.body.setAttribute('data-theme', DEFAULT_THEME);
+  if (!ACCENTS[key]) key = DEFAULT_ACCENT;
+  if (key === 'white') document.body.removeAttribute('data-accent');
+  else document.body.setAttribute('data-accent', key);
+  state.settings.theme = DEFAULT_THEME;
+  state.settings.accent = key;
   // Sync the mobile status-bar / PWA chrome color to the new theme's
   // app background so it doesn't visually clash with the UI below it.
   let bg = getComputedStyle(document.body).getPropertyValue('--app-bg').trim();
@@ -668,13 +673,13 @@ function applyTheme(key) {
   saveState();
 }
 
-// Renders the swatch-grid markup for picking a theme. Used by both the
-// Settings page and the onboarding flow so they always stay in sync —
-// add a theme to THEMES once and it shows up in both places.
+// Renders the swatch-grid markup for picking an accent color. Used by
+// both the Settings page and the onboarding flow so they always stay
+// in sync — add an accent to ACCENTS once and it shows up in both places.
 function renderThemePickerGrid(onSelectFn) {
-  let current = state.settings.theme || DEFAULT_THEME;
-  return Object.keys(THEMES).map(key => {
-    let t = THEMES[key];
+  let current = state.settings.accent || DEFAULT_ACCENT;
+  return Object.keys(ACCENTS).map(key => {
+    let t = ACCENTS[key];
     let selected = key === current;
     return `
       <button type="button" class="theme-picker-btn ${selected ? 'selected' : ''}" data-theme-key="${key}" onclick="${onSelectFn}('${key}')">
@@ -684,7 +689,7 @@ function renderThemePickerGrid(onSelectFn) {
   }).join('');
 }
 
-// Called from the Settings page theme picker — applies immediately and
+// Called from the Settings page accent picker — applies immediately and
 // updates which swatch shows as selected, without a full settings re-render.
 function selectThemeFromSettings(key) {
   applyTheme(key);
@@ -1203,7 +1208,8 @@ function applyLoadedData(parsed) {
   if (state.settings.lockUI === undefined) state.settings.lockUI = true;
   if (state.settings.singleExpand === undefined) state.settings.singleExpand = true;
   if (state.settings.showQuotesMarquee === undefined) state.settings.showQuotesMarquee = true;
-  if (!state.settings.theme || !THEMES[state.settings.theme]) state.settings.theme = DEFAULT_THEME;
+  if (!state.settings.accent || !ACCENTS[state.settings.accent]) state.settings.accent = DEFAULT_ACCENT;
+  state.settings.theme = DEFAULT_THEME;
   if (state.settings.pitchBlack === undefined) state.settings.pitchBlack = false;
   if (!state.bw) state.bw = {1:{}};
   if (!state.bw[1]) state.bw[1] = {};
@@ -1234,7 +1240,10 @@ async function loadState() {
     state.activeSplit = defaultSplitForUser(null);
   }
   if (state.profileName) displayName = state.profileName;
-  document.body.setAttribute('data-theme', (state.settings.theme && THEMES[state.settings.theme]) ? state.settings.theme : DEFAULT_THEME);
+  document.body.setAttribute('data-theme', DEFAULT_THEME);
+  let accentKey = (state.settings.accent && ACCENTS[state.settings.accent]) ? state.settings.accent : DEFAULT_ACCENT;
+  if (accentKey === 'white') document.body.removeAttribute('data-accent');
+  else document.body.setAttribute('data-accent', accentKey);
   document.body.classList.toggle('pitch-black', !!state.settings.pitchBlack);
   let metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) {
@@ -4470,11 +4479,11 @@ function renderProfilePage() {
       <h3 class="settings-section-title">Appearance</h3>
       <div class="settings-panel">
         <div class="settings-row" style="display:block;">
-          <div style="margin-bottom:12px;"><div class="settings-row-label">Theme</div><div class="settings-row-sub">Changes the app's accent color and surfaces</div></div>
+          <div style="margin-bottom:12px;"><div class="settings-row-label">Accent color</div><div class="settings-row-sub">The app stays black and white — this just colors checkmarks, the active tab, and the timer</div></div>
           <div class="theme-picker-grid" id="theme-picker-grid">${renderThemePickerGrid('selectThemeFromSettings')}</div>
         </div>
         <div class="settings-row">
-          <div><div class="settings-row-label">Pitch Black Mode</div><div class="settings-row-sub">OLED-optimized pure black backgrounds — works with any theme above</div></div>
+          <div><div class="settings-row-label">Pitch Black Mode</div><div class="settings-row-sub">True OLED black backgrounds, for dark rooms and battery saving</div></div>
           <label class="set-toggle"><input type="checkbox" ${s.pitchBlack ? 'checked' : ''} onchange="toggleStitchSetting('pitchBlack', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
         </div>
       </div>
@@ -5109,14 +5118,11 @@ function showObStep(n) {
     if (d) d.classList.toggle('done', i <= n);
   }
   obCurrentStep = n;
-  // The final step's theme grid is built lazily right when it becomes
-  // active, so it always reflects whatever THEMES currently contains.
+  // The final step's accent grid is built lazily right when it becomes
+  // active, so it always reflects whatever ACCENTS currently contains.
   if (OB_STEP_MAP[n] === 'ob-step-3') {
     let grid = document.getElementById('ob-theme-picker-grid');
     if (grid) grid.innerHTML = renderThemePickerGrid('obSelectTheme');
-    let swatch = document.getElementById('ob-pitch-black-swatch');
-    let toggleBtn = document.getElementById('ob-pitch-black-toggle');
-    if (toggleBtn) toggleBtn.classList.toggle('selected', document.body.classList.contains('pitch-black'));
   }
   // Force scroll to top of onboarding screen
   const obScreen = document.getElementById('onboarding-screen');
@@ -5278,17 +5284,10 @@ function obSelectTheme(key) {
   }
 }
 
-function obTogglePitchBlack() {
-  let on = !document.body.classList.contains('pitch-black');
-  document.body.classList.toggle('pitch-black', on);
-  let toggleBtn = document.getElementById('ob-pitch-black-toggle');
-  if (toggleBtn) toggleBtn.classList.toggle('selected', on);
-}
-
 function obSaveTheme() {
   state.settings = state.settings || {};
-  state.settings.theme = state.settings.theme || DEFAULT_THEME;
-  state.settings.pitchBlack = document.body.classList.contains('pitch-black');
+  state.settings.theme = DEFAULT_THEME;
+  state.settings.accent = state.settings.accent || DEFAULT_ACCENT;
   obFinish();
 }
 

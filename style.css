@@ -25,31 +25,31 @@
 
 :root {
   /* ── Backgrounds (themeable) ── */
-  --app-bg:    #1F1F1E;
-  --card-bg:   #262624;
-  --card-bg-2: #2C2C2A;
-  --input-bg:  #2C2C2A;
-  --bg4:       #34332F;
+  --app-bg:    #0D0D0D;
+  --card-bg:   #0D0D0D;
+  --card-bg-2: #161616;
+  --input-bg:  #161616;
+  --bg4:       #1F1F1F;
 
   /* ── Borders (themeable) ── */
-  --border:  #3A3733;
-  --border2: #45413B;
+  --border:  #232323;
+  --border2: #2E2E2E;
 
-  /* ── Core accent (themeable) ── */
-  --accent:      #C15F3C;
-  --accent-soft: rgba(193, 95, 60, 0.15);
-  --accent-2:    #A65F47;
-  --on-accent:   #fff; /* text/icon color placed ON TOP of a solid --accent fill */
+  /* ── Core accent (themeable via body[data-accent]) ── */
+  --accent:      #FFFFFF;
+  --accent-soft: rgba(255, 255, 255, 0.12);
+  --accent-2:    #D8D8D8;
+  --on-accent:   #000; /* text/icon color placed ON TOP of a solid --accent fill */
 
   /* ── Secondary accent (themeable) — used for toggles-on, secondary CTAs ── */
-  --secondary-color: #D4A27F;
+  --secondary-color: #8A8A8A;
 
   /* ── Text (themeable) ── */
   --txt:       #FFFFFF;
-  --txt-muted: #FFFFFF;
-  --txt-dim:   #FFFFFF;
-  --txt3:      #FFFFFF;
-  --gunmetal:  #FFFFFF;
+  --txt-muted: #8A8A8A;
+  --txt-dim:   #8A8A8A;
+  --txt3:      #6B6B6B;
+  --gunmetal:  #8A8A8A;
 
   /* ── Sage green — FIXED, not themeable. Used as a semantic "positive/
      success" color (PRs, completed sets) independent of theme identity,
@@ -97,151 +97,43 @@
   --radius: 10px;
 }
 
-/* ── THEME: Ember (default — the original warm terracotta palette) ── */
-body[data-theme="ember"],
+/* ── THEME: Mono (default, and only base theme) — pure black/white.
+   No card surfaces: --card-bg matches --app-bg so list rows render as
+   flat hairline-separated rows instead of boxes. The only color in the
+   whole app is --accent, controlled independently via body[data-accent]
+   below, so the base look stays clean no matter which accent is picked. ── */
+body[data-theme="mono"],
 body:not([data-theme]) {
-  --app-bg:    #1F1F1E;
-  --card-bg:   #262624;
-  --card-bg-2: #2C2C2A;
-  --input-bg:  #2C2C2A;
-  --bg4:       #34332F;
-  --border:    #3A3733;
-  --border2:   #45413B;
-  --accent:      #C15F3C;
-  --accent-soft: rgba(193, 95, 60, 0.15);
-  --accent-2:    #A65F47;
-  --on-accent:   #fff;
-  --secondary-color: #D4A27F;
+  --app-bg:    #0D0D0D;
+  --card-bg:   #0D0D0D;
+  --card-bg-2: #161616;
+  --input-bg:  #161616;
+  --bg4:       #1F1F1F;
+  --border:    #232323;
+  --border2:   #2E2E2E;
+  --accent:      #FFFFFF;
+  --accent-soft: rgba(255, 255, 255, 0.12);
+  --accent-2:    #D8D8D8;
+  --on-accent:   #000;
+  --secondary-color: #8A8A8A;
   --txt:       #FFFFFF;
-  --txt-muted: #FFFFFF;
-  --txt-dim:   #FFFFFF;
-  --txt3:      #FFFFFF;
-  --gunmetal:  #FFFFFF;
+  --txt-muted: #8A8A8A;
+  --txt-dim:   #8A8A8A;
+  --txt3:      #6B6B6B;
+  --gunmetal:  #8A8A8A;
 }
 
-/* ── THEME: Cyberpunk — Cyber-Tactical V2. Deep near-black void, glass
-   surfaces with backdrop blur, lime as the primary signal, cyan as the
-   secondary wire-frame color, magenta reserved for glitch accents. Runs
-   a live shader behind the UI, so every surface here is translucent. ── */
-body[data-theme="cyberpunk"] {
-  --app-bg:    rgba(10, 10, 12, 0.55);
-  --card-bg:   rgba(20, 20, 25, 0.7);
-  --card-bg-2: rgba(26, 26, 32, 0.72);
-  --input-bg:  rgba(20, 20, 25, 0.7);
-  --bg4:       rgba(33, 33, 39, 0.75);
-  --border:    #33333B;
-  --border2:   #45454F;
-  --accent:      #CCFF00;
-  --accent-soft: rgba(204, 255, 0, 0.15);
-  --accent-2:    #00F3FF;
-  --on-accent:   #0A0A0C;
-  --secondary-color: #00F3FF;
-  --txt:       #FFFFFF;
-  --txt-muted: #FFFFFF;
-  --txt-dim:   #FFFFFF;
-  --txt3:      #FFFFFF;
-  --gunmetal:  #FFFFFF;
-  --surface-blur: blur(18px);
-}
-
-/* ── THEME: Valorant — Tactical Performance System. Deep Dark Slate
-   surface with the signature competitive red as the only loud color,
-   flat and precise, echoing the game's own menu chrome. Runs a live
-   shader behind the UI; the app surface stays mostly solid (Container
-   Low / Surface Bright) for tactical readability, with only a thin
-   translucency on the outer shell so the animation reads through. ── */
-body[data-theme="valorant"] {
-  --app-bg:    rgba(16, 20, 23, 0.78);
-  --card-bg:   #181C1F;
-  --card-bg-2: #1D2226;
-  --input-bg:  #181C1F;
-  --bg4:       #363A3D;
-  --border:    #262B2E;
-  --border2:   #363A3D;
-  --accent:      #FF4655;
-  --accent-soft: rgba(255, 70, 85, 0.15);
-  --accent-2:    #BD3944;
-  --on-accent:   #fff;
-  --secondary-color: #C9CDD1;
-  --txt:       #FFFFFF;
-  --txt-muted: #FFFFFF;
-  --txt-dim:   #FFFFFF;
-  --txt3:      #FFFFFF;
-  --gunmetal:  #FFFFFF;
-}
-
-/* ── THEME: Colour Pop — candy-saturated and playful, the opposite
-   mood from the tactical themes above. Deep violet-black base lets a
-   vivid coral-pink accent and electric violet secondary feel bright
-   without blowing out an OLED screen. ── */
-body[data-theme="colourpop"] {
-  --app-bg:    #1A1625;
-  --card-bg:   #221C30;
-  --card-bg-2: #281F38;
-  --input-bg:  #281F38;
-  --bg4:       #332848;
-  --border:    #3A2D52;
-  --border2:   #4A3A66;
-  --accent:      #FF3D81;
-  --accent-soft: rgba(255, 61, 129, 0.15);
-  --accent-2:    #7C4DFF;
-  --on-accent:   #fff;
-  --secondary-color: #7C4DFF;
-  --txt:       #FFFFFF;
-  --txt-muted: #FFFFFF;
-  --txt-dim:   #FFFFFF;
-  --txt3:      #FFFFFF;
-  --gunmetal:  #FFFFFF;
-}
-
-/* ── THEME: Blue (internally "hevy") — default theme. Clean, minimal,
-   data-forward. A neutral charcoal base (no color cast) with a single
-   confident blue accent, matching the clinical, no-frills feel of a
-   stats-first tracker. Key stays "hevy" so existing saved preferences
-   keep working — only the display name changed to "Blue". ── */
-body[data-theme="hevy"] {
-  --app-bg:    #161618;
-  --card-bg:   #1E1E21;
-  --card-bg-2: #242427;
-  --input-bg:  #242427;
-  --bg4:       #2D2D31;
-  --border:    #333337;
-  --border2:   #3F3F44;
-  --accent:      #4F7FFF;
-  --accent-soft: rgba(79, 127, 255, 0.15);
-  --accent-2:    #3A5FCC;
-  --on-accent:   #fff;
-  --secondary-color: #8A93A6;
-  --txt:       #FFFFFF;
-  --txt-muted: #FFFFFF;
-  --txt-dim:   #FFFFFF;
-  --txt3:      #FFFFFF;
-  --gunmetal:  #FFFFFF;
-}
-
-/* ── THEME: Light — Hevy-inspired, same confident blue accent as Blue,
-   rebuilt for a bright surface. Text stays dark here (white-on-white
-   would be invisible) so this is the one theme that keeps readable
-   ink instead of the all-white text rule used elsewhere. ── */
-body[data-theme="light"] {
-  --app-bg:    #F4F5F7;
-  --card-bg:   #FFFFFF;
-  --card-bg-2: #F8F9FB;
-  --input-bg:  #FFFFFF;
-  --bg4:       #EDEEF1;
-  --border:    #E2E4E8;
-  --border2:   #D2D5DB;
-  --accent:      #3A6CF0;
-  --accent-soft: rgba(58, 108, 240, 0.12);
-  --accent-2:    #2A52C8;
-  --on-accent:   #fff;
-  --secondary-color: #5C6B8A;
-  --txt:       #15171C;
-  --txt-muted: #5B5F6B;
-  --txt-dim:   #5B5F6B;
-  --txt3:      #8A8D96;
-  --gunmetal:  #6E727C;
-}
+/* ── ACCENT — independent of theme. Swaps just the accent color while
+   the black/white base stays fixed. "white" (default, no attribute)
+   keeps the monochrome look with no color at all; every other option
+   lights up checkmarks, the active nav icon, and the timer digits. ── */
+body[data-accent="red"]    { --accent: #E24B4A; --accent-soft: rgba(226,75,74,0.15); --accent-2: #B53938; --on-accent: #fff; }
+body[data-accent="orange"] { --accent: #E08A3C; --accent-soft: rgba(224,138,60,0.15); --accent-2: #B86E2D; --on-accent: #000; }
+body[data-accent="yellow"] { --accent: #E8C84D; --accent-soft: rgba(232,200,77,0.15); --accent-2: #BFA53C; --on-accent: #000; }
+body[data-accent="green"]  { --accent: #5FD87A; --accent-soft: rgba(95,216,122,0.15); --accent-2: #43AD5C; --on-accent: #000; }
+body[data-accent="blue"]   { --accent: #4F8FFF; --accent-soft: rgba(79,143,255,0.15); --accent-2: #3A6FCC; --on-accent: #fff; }
+body[data-accent="purple"] { --accent: #A78BFA; --accent-soft: rgba(167,139,250,0.15); --accent-2: #8268D6; --on-accent: #000; }
+body[data-accent="pink"]   { --accent: #F06BA8; --accent-soft: rgba(240,107,168,0.15); --accent-2: #C24F86; --on-accent: #000; }
 
 html, body {
   height: 100%;
@@ -270,20 +162,6 @@ body::before, body::after { display: none !important; }
   overflow: hidden;
 }
 
-/* ── Theme shader background (Cyberpunk / Valorant) ── */
-#theme-bg-canvas {
-  display: none;          /* toggled by the script that drives it */
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-}
-/* #app sits later in the DOM than the canvas, so it paints on top of
-   it by default. The card/header backgrounds switch to translucent
-   in those two theme blocks above, which is what actually lets the
-   shader read through the UI. */
 
 .hidden { display: none !important; }
 .hidden-legacy { display: none !important; }
@@ -338,9 +216,9 @@ body::before, body::after { display: none !important; }
 
 /* Date card (legacy selectors kept for safety) */
 .date-card {
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: transparent; 
+  border: none;
+  border-radius: 0;
   padding: 16px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -378,9 +256,9 @@ body::before, body::after { display: none !important; }
 
 /* ── Combat-style compact date header ── */
 .dh-card {
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  background: transparent; 
+  border: none;
+  border-radius: 0;
   padding: 6px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -528,7 +406,7 @@ body::before, body::after { display: none !important; }
   width: 100%;
   background: var(--app-bg);
   border-bottom: 1px solid var(--border);
-  padding: 8px 16px;
+  padding: 16px 16px;
   position: relative;
   z-index: 48;
 }
@@ -622,8 +500,8 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: var(--b
 .chrono-display:active { background: var(--accent-soft); }
 .chrono-num {
   font-family: var(--font);
-  font-size: clamp(40px, 14vw, 60px);
-  font-weight: 700;
+  font-size: clamp(56px, 20vw, 84px);
+  font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1;
   color: var(--chrono-timer);
@@ -652,11 +530,11 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: var(--b
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
+  background: var(--app-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 8px;
-  box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.6);
   z-index: 47;
 }
 .chrono-laps-flyout:empty { display: none; padding: 0; border: none; }
@@ -854,21 +732,20 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: var(--b
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 6px 4px;
   color: var(--txt-muted);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.04em;
   cursor: pointer;
   font-family: inherit;
 }
 .chip-btn.active {
-  border-color: var(--accent);
-  color: var(--txt);
-  background: var(--accent-soft);
+  color: var(--accent);
+  background: transparent;
 }
 .cal-chip-btn {
   color: var(--txt);
@@ -876,8 +753,7 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: var(--b
 }
 .cal-chip-btn:hover,
 .cal-chip-btn:active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--accent);
 }
 .icon-chip {
   width: 36px;
@@ -885,9 +761,9 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: var(--b
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--txt-muted);
   font-size: 16px;
   cursor: pointer;
@@ -914,15 +790,18 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: var(--b
 
 .exercise-list { display: flex; flex-direction: column; gap: 0; }
 
-/* ── Exercise cards ── */
+/* ── Exercise rows — flat, separated by a single hairline, no card
+   surface/border/radius. Matches the monochrome "rows not boxes" look. ── */
 .ex-item {
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  overflow: visible;
+  margin-bottom: 0;
   cursor: pointer;
 }
+.ex-item:last-child { border-bottom: none; }
 .ex-header {
   padding: 14px 16px;
   display: grid;
@@ -1031,42 +910,23 @@ body.pitch-black .chrono-bar { background: #000000; border-bottom-color: var(--b
 .settings-import-btn { width: 100%; margin-top: 12px; background: var(--bg4); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); color: var(--txt); }
 .settings-danger { background: rgba(127,29,29,0.15); border-color: rgba(239,68,68,0.25); }
 .settings-danger-btn { width: 100%; margin-top: 12px; background: #fecaca; color: #450a0a; font-weight: 800; }
-/* ─── PITCH BLACK MODE — true OLED black ─── */
+/* ─── PITCH BLACK MODE — true OLED black, opt-in via Settings ───
+   Default mono base sits at a soft near-black (#0D0D0D) so surfaces
+   have a hint of depth. Pitch Black pulls everything to true #000. ── */
 body.pitch-black {
-  /* Pitch Black is relative to whichever theme is active: each surface
-     is pulled toward true black by mixing with the THEME'S OWN --app-bg,
-     rather than being replaced by fixed hex values. This keeps every
-     theme's identity (and its accent/text colors, untouched here)
-     recognizable even in OLED mode — only depth changes, not hue. */
   --app-bg:    #000000;
-  --card-bg:   color-mix(in srgb, var(--app-bg) 55%, black);
-  --card-bg-2: color-mix(in srgb, var(--app-bg) 65%, black);
-  --input-bg:  color-mix(in srgb, var(--app-bg) 65%, black);
-  --bg4:       color-mix(in srgb, var(--app-bg) 75%, black);
-  --border:    color-mix(in srgb, var(--app-bg) 80%, black);
-  --border2:   color-mix(in srgb, var(--app-bg) 88%, black);
+  --card-bg:   #000000;
+  --card-bg-2: #050505;
+  --input-bg:  #050505;
+  --bg4:       #101010;
+  --border:    #1A1A1A;
+  --border2:   #242424;
   background: #000000;
 }
 body.pitch-black #app { background: #000000; }
 body.pitch-black #global-header { background: #000000; border-bottom-color: var(--border); }
 body.pitch-black #nav { background: #000000; border-top-color: var(--border); }
 body.pitch-black .page { background: #000000; }
-body.pitch-black .ex-item,
-body.pitch-black .date-card,
-body.pitch-black .dh-card,
-body.pitch-black .settings-card,
-body.pitch-black .settings-panel,
-body.pitch-black .danger-panel { background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); border-color: var(--border); }
-body.pitch-black #modal-box,
-body.pitch-black #float-panel { background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); }
-body.pitch-black .set-input,
-body.pitch-black .timer-manual-input,
-body.pitch-black .chrono-step-btn,
-body.pitch-black .chrono-icon-btn,
-body.pitch-black .preset-chip,
-body.pitch-black .set-num-btn,
-body.pitch-black .ex-action-btn,
-body.pitch-black .chip-btn { background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); border-color: var(--border); }
 body.pitch-black #onboarding-screen .ob-container { background: #000; }
 body.pitch-black #onboarding-screen { background: #000; }
 .ex-name-wrap { flex: 1; min-width: 0; }
@@ -1484,8 +1344,9 @@ body.pitch-black #onboarding-screen { background: #000; }
 
 /* ── Exercise Library ── */
 .exlib-search-block {
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: 16px;
   margin-bottom: 14px;
@@ -1554,10 +1415,11 @@ body.pitch-black #onboarding-screen { background: #000; }
 .exlib-item {
   display: flex;
   flex-direction: column;
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: var(--radius-lg);
-  padding: 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 14px 4px;
   cursor: pointer;
 }
 .exlib-row {
@@ -1715,9 +1577,9 @@ body.pitch-black #onboarding-screen { background: #000; }
   margin-bottom: 16px;
 }
 .settings-card {
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: transparent; 
+  border: none;
+  border-radius: 0;
   padding: 16px;
   margin-bottom: 24px;
   display: flex;
@@ -1766,9 +1628,9 @@ body.pitch-black #onboarding-screen { background: #000; }
 .set-toggle input:checked + .set-toggle-track { background: var(--accent); }
 .set-toggle input:checked + .set-toggle-track + .set-toggle-thumb { transform: translateX(18px); }
 .settings-panel {
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: transparent; 
+  border: none;
+  border-radius: 0;
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -1958,9 +1820,9 @@ body.pitch-black #onboarding-screen { background: #000; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: var(--card-bg-2);
+  border: none;
+  border-radius: 8px;
   padding: 10px 6px;
   font-size: 13px;
   font-weight: 700;
@@ -1994,9 +1856,9 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 .ac-list {
   display: none;
-  background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: var(--input-bg); 
+  border: none;
+  border-radius: 0;
   margin-top: 6px;
   max-height: 220px;
   overflow-y: auto;
@@ -2040,9 +1902,9 @@ body.pitch-black #onboarding-screen { background: #000; }
   border-bottom: 1px solid var(--border);
 }
 .float-panel-close {
-  background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: transparent; 
+  border: none;
+  border-radius: 0;
   width: 32px;
   height: 32px;
   cursor: pointer;
@@ -2071,11 +1933,11 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 .u17 { height: 12px; }
 .pr-panel { background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); border-radius: 12px; padding: 14px; margin-top: 8px; }
-.metric-card, .section-card { background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 12px; }
+.metric-card, .section-card { background: transparent;  border: none; border-radius: 0; margin-bottom: 12px; }
 .section-header { padding: 12px 14px; border-bottom: 1px solid var(--border); }
 .section-title { font-size: 11px; font-weight: 800; color: var(--txt); text-transform: uppercase; letter-spacing: 0.1em; }
 .section-body { padding: 14px; }
-.hist-card, .pr-list-item { background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; padding: 14px; }
+.hist-card, .pr-list-item { background: transparent;  border: none; border-radius: 0; margin-bottom: 10px; padding: 14px; }
 .pr-list-item { display: flex; align-items: center; justify-content: space-between; }
 .pr-ex-name {
   font-size: 14px;
@@ -2093,7 +1955,7 @@ body.pitch-black #onboarding-screen { background: #000; }
   text-align: right;
 }
 .u23 { text-align: right; }
-.icon-btn { width: 36px; height: 36px; background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--txt-muted); }
+.icon-btn { width: 36px; height: 36px; background: transparent;  border: none; border-radius: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--txt-muted); }
 
 /* History view (Cardio tab) */
 .hist-day { margin-bottom: 18px; }
@@ -2322,29 +2184,29 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 
 .gh-date-pill {
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   font-family: var(--font);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--txt);
-  letter-spacing: 0.06em;
-  min-width: 68px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--txt-muted);
+  letter-spacing: 0.05em;
+  min-width: 0;
   text-align: center;
 }
 
 /* Version pill — identical sizing to the date pill so both header
-   badges read as a matching pair. */
+   labels read as a matching pair. */
 .gh-version-pill {
   flex-shrink: 0;
 }
 
 #gh-title {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--txt);
   font-family: var(--font);
@@ -2450,9 +2312,9 @@ body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: var
    DATE CARD CALENDAR PICK BUTTON
 ───────────────────────────────────────── */
 .date-cal-btn {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--txt);
   padding: 4px 7px;
   cursor: pointer;
@@ -2525,9 +2387,9 @@ body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: var
   justify-content: center;
   gap: 7px;
   padding: 11px 8px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
+  border-radius: 0;
+  border: none;
+  background: transparent; 
   color: var(--txt-muted);
   font-size: 11px;
   font-weight: 800;
@@ -2985,17 +2847,17 @@ body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: var
   align-items: center;
   gap: 8px;
   padding: 12px 8px;
-  background: var(--input-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--txt-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
-  transition: border-color 0.15s, color 0.15s;
+  transition: color 0.15s;
 }
-.theme-picker-btn.selected { border-color: var(--accent); color: var(--txt); }
+.theme-picker-btn.selected { color: var(--txt); }
 .theme-picker-swatch {
   width: 28px;
   height: 28px;
@@ -3006,577 +2868,3 @@ body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: var
 }
 .theme-picker-btn.selected .theme-picker-swatch { border-color: var(--accent); }
 
-/* ════════════════════════════════════════════════════════════════════
-   ROBUST THEME CHROME — CYBERPUNK & VALORANT
-   Beyond color: angular clipped shapes, animated glow/flicker, restyled
-   header/marquee/chrono-bar/nav, and tap feedback. Everything below is
-   scoped under body[data-theme="cyberpunk"/"valorant"] and ADDITIVE on
-   top of the rules above it — no other theme is touched, and nothing
-   here removes the existing background-color / backdrop-filter rules
-   (it only adds background-image, clip-path, box-shadow, animation).
-   ════════════════════════════════════════════════════════════════════ */
-
-/* Shared exclusion lists, written out per-selector below:
-   buttons that are actually round (icon/number circles) keep their
-   border-radius:50% and are skipped: .chrono-icon-btn, .set-num-btn
-   inputs that are native browser chrome are skipped too: checkbox/
-   range/file/hidden. */
-
-/* ──────────────────────────────────────────────────────────────────
-   CYBERPUNK — Cyber-Tactical V2
-   Shape: double diagonal cut (top-right + bottom-left), like a
-   notched HUD panel. Motion: neon flicker + glow pulse + glitch jitter
-   on tap + a vertical scanline sweeping the page.
-   ────────────────────────────────────────────────────────────────── */
-body[data-theme="cyberpunk"] {
-  --clip-lg: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
-  --clip-md: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
-  --clip-sm: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
-}
-
-@keyframes cp-flicker {
-  0%, 100% { opacity: 1; }
-  3% { opacity: 0.35; } 6% { opacity: 1; } 8% { opacity: 0.5; } 9% { opacity: 1; }
-  52% { opacity: 1; } 54% { opacity: 0.4; } 56% { opacity: 1; }
-  93% { opacity: 1; } 95% { opacity: 0.65; } 97% { opacity: 1; }
-}
-@keyframes cp-glow-pulse {
-  0%, 100% { box-shadow: 0 0 0 1.5px var(--accent), 0 0 10px rgba(204,255,0,0.28); }
-  50%      { box-shadow: 0 0 0 1.5px var(--accent-2), 0 0 20px rgba(0,243,255,0.5); }
-}
-@keyframes cp-glow-pulse-strong {
-  0%, 100% { box-shadow: 0 0 0 1.5px var(--accent), 0 0 14px rgba(204,255,0,0.4), 0 0 0 0 rgba(204,255,0,0.4); }
-  50%      { box-shadow: 0 0 0 1.5px var(--accent-2), 0 0 28px rgba(0,243,255,0.65), 0 0 0 5px rgba(0,243,255,0.1); }
-}
-@keyframes cp-jitter {
-  0%, 100% { transform: translate(0,0); }
-  20% { transform: translate(-2px,1px); }
-  40% { transform: translate(2px,-1px); }
-  60% { transform: translate(-1px,1px); }
-  80% { transform: translate(1px,-1px); }
-}
-@keyframes cp-text-glitch {
-  0%, 100%  { transform: translate(0); text-shadow: 0 0 8px var(--accent-soft); }
-  41%       { transform: translate(0); text-shadow: 0 0 8px var(--accent-soft); }
-  42%       { transform: translate(-3px,1px); text-shadow: -2px 0 var(--accent-2), 2px 0 #ff00ff; }
-  43.5%     { transform: translate(3px,-1px); text-shadow: 2px 0 var(--accent-2), -2px 0 #ff00ff; }
-  45%       { transform: translate(-1px,0); text-shadow: -1px 0 var(--accent-2), 1px 0 #ff00ff; }
-  46.5%     { transform: translate(0); text-shadow: 0 0 8px var(--accent-soft); }
-  71%       { transform: translate(0); text-shadow: 0 0 8px var(--accent-soft); }
-  72%       { transform: translate(2px,1px); text-shadow: 2px 0 var(--accent-2), -2px 0 #ff00ff; }
-  73.5%     { transform: translate(-3px,0); text-shadow: -2px 0 var(--accent-2), 2px 0 #ff00ff; }
-  75%       { transform: translate(0); text-shadow: 0 0 8px var(--accent-soft); }
-}
-@keyframes cp-static-flash {
-  0%, 95%, 100% { opacity: 0; }
-  96% { opacity: 0.5; transform: translateX(-3px); }
-  97% { opacity: 0.25; transform: translateX(3px); }
-  98% { opacity: 0.4; transform: translateX(-2px); }
-  99% { opacity: 0; transform: translateX(0); }
-}
-@keyframes cp-scan-sweep {
-  0%   { top: -2px; opacity: 0; }
-  4%   { opacity: 0.6; }
-  46%  { opacity: 0.6; }
-  50%  { top: 100%; opacity: 0; }
-  100% { top: 100%; opacity: 0; }
-}
-@keyframes cp-header-scan {
-  0%   { background-position: 0% 100%; }
-  100% { background-position: 200% 100%; }
-}
-
-/* Vertical scanline sweeping the scrollable area, behind header/nav/modals */
-body[data-theme="cyberpunk"] #app::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
-  pointer-events: none;
-  z-index: 5;
-  mix-blend-mode: screen;
-  animation: cp-scan-sweep 4s linear infinite;
-}
-/* Occasional full-screen interlace "static" flash for extra digital grime */
-body[data-theme="cyberpunk"] #app::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, rgba(204,255,0,0.07) 0px, rgba(204,255,0,0.07) 1px, transparent 1px, transparent 3px);
-  pointer-events: none;
-  z-index: 6;
-  mix-blend-mode: screen;
-  animation: cp-static-flash 6s steps(1) infinite;
-}
-
-/* Header — animated lime/cyan underline instead of a flat border, brand
-   title + date/version pills glitch like corrupted HUD readouts */
-body[data-theme="cyberpunk"] #global-header {
-  border-bottom: 2px solid transparent;
-  background-image: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent));
-  background-size: 200% 2px;
-  background-position: 0 100%;
-  background-repeat: no-repeat;
-  animation: cp-header-scan 2.8s linear infinite;
-}
-body[data-theme="cyberpunk"] #gh-title {
-  display: inline-block;
-  animation: cp-text-glitch 5s infinite;
-}
-body[data-theme="cyberpunk"] .gh-date-pill {
-  clip-path: var(--clip-md);
-  border-radius: 0;
-  animation: cp-text-glitch 6s infinite;
-  animation-delay: 1.1s;
-}
-
-/* Marquee — separators flicker like a HUD readout */
-body[data-theme="cyberpunk"] .quotes-marquee {
-  border-bottom: 1px solid var(--border);
-}
-body[data-theme="cyberpunk"] .qm-sep {
-  animation: cp-flicker 3.4s linear infinite;
-  color: var(--accent);
-}
-
-/* Chrono bar — notched frame, glowing ring on the round icon buttons,
-   clipped stepper buttons, pulsing display while running */
-body[data-theme="cyberpunk"] .chrono-bar {
-  clip-path: var(--clip-lg);
-  border-radius: 0;
-}
-body[data-theme="cyberpunk"] .chrono-step-btn {
-  clip-path: var(--clip-sm);
-  border-radius: 0;
-}
-body[data-theme="cyberpunk"] .chrono-icon-btn {
-  animation: cp-glow-pulse 2.6s ease-in-out infinite;
-}
-body[data-theme="cyberpunk"] .chrono-display.running .chrono-num {
-  animation: cp-flicker 2.2s linear infinite;
-  text-shadow: 0 0 14px var(--accent-soft);
-}
-
-/* Bottom nav — notched top corners, active tab gets a glowing
-   underline + flicker */
-body[data-theme="cyberpunk"] #nav {
-  clip-path: polygon(0 14px, 14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
-  border-top: none;
-  background-image: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
-  background-size: 100% 1px;
-  background-position: 0 0;
-  background-repeat: no-repeat;
-}
-body[data-theme="cyberpunk"] .nav-btn {
-  position: relative;
-  transition: transform 0.12s ease-out;
-}
-body[data-theme="cyberpunk"] .nav-btn:active {
-  transform: scale(0.88);
-}
-body[data-theme="cyberpunk"] .nav-btn.active {
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
-  border-radius: 0 !important;
-  box-shadow: 0 0 0 1px var(--accent-2), 0 0 14px rgba(0,243,255,0.3);
-  animation: cp-glow-pulse 2.8s ease-in-out infinite;
-}
-body[data-theme="cyberpunk"] .nav-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px; left: 16%; right: 16%;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
-  box-shadow: 0 0 10px var(--accent-2);
-  animation: cp-flicker 3.6s linear infinite;
-}
-
-/* Cards & surfaces — notched corners + a slow ambient glow, with a
-   stronger pulse on the cards that matter (exercise / metric / history) */
-body[data-theme="cyberpunk"] .metric-card,
-body[data-theme="cyberpunk"] .section-card,
-body[data-theme="cyberpunk"] .hist-card,
-body[data-theme="cyberpunk"] .pr-list-item,
-body[data-theme="cyberpunk"] .empty-day-box,
-body[data-theme="cyberpunk"] .danger-panel,
-body[data-theme="cyberpunk"] .settings-danger,
-body[data-theme="cyberpunk"] #modal-box {
-  clip-path: var(--clip-lg);
-  border-radius: 0 !important;
-  animation: cp-glow-pulse 4.5s ease-in-out infinite;
-}
-body[data-theme="cyberpunk"] #modal-box {
-  border-top: none;
-  animation: cp-glow-pulse-strong 2.8s ease-in-out infinite;
-}
-
-/* Buttons & inputs — every clipped tap target gets the notch, an
-   ambient glow, and a glitch-jitter on press. Primary CTAs glow harder. */
-body[data-theme="cyberpunk"] button:not(.chrono-icon-btn):not(.set-num-btn):not(.nav-btn) {
-  clip-path: var(--clip-md);
-  border-radius: 0 !important;
-  animation: cp-glow-pulse 3.6s ease-in-out infinite;
-}
-body[data-theme="cyberpunk"] button:not(.chrono-icon-btn):not(.set-num-btn):active {
-  animation: cp-jitter 0.22s steps(2);
-}
-body[data-theme="cyberpunk"] .import-btn,
-body[data-theme="cyberpunk"] .add-exercise-btn,
-body[data-theme="cyberpunk"] .modal-confirm-p1,
-body[data-theme="cyberpunk"] .modal-confirm-p2 {
-  animation: cp-glow-pulse-strong 2s ease-in-out infinite;
-}
-body[data-theme="cyberpunk"] input[type="text"],
-body[data-theme="cyberpunk"] input[type="number"],
-body[data-theme="cyberpunk"] input[type="date"],
-body[data-theme="cyberpunk"] input:not([type]),
-body[data-theme="cyberpunk"] select,
-body[data-theme="cyberpunk"] textarea {
-  clip-path: var(--clip-md);
-  border-radius: 0 !important;
-}
-body[data-theme="cyberpunk"] input[type="text"]:focus,
-body[data-theme="cyberpunk"] input[type="number"]:focus,
-body[data-theme="cyberpunk"] textarea:focus {
-  animation: cp-glow-pulse 1.4s ease-in-out infinite;
-}
-
-/* ──────────────────────────────────────────────────────────────────
-   VALORANT — Tactical Performance System
-   Shape: single diagonal cut (top-left only), flat and disciplined.
-   Motion: a slower red alert-pulse, a deliberate radar sweep, and a
-   sharp "confirm" flash on tap instead of a glitch — reads as tactical
-   rather than digital/broken.
-   ────────────────────────────────────────────────────────────────── */
-body[data-theme="valorant"] {
-  --clip-lg: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
-  --clip-md: polygon(9px 0, 100% 0, 100% 100%, 0 100%, 0 9px);
-  --clip-sm: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px);
-}
-
-@keyframes vl-pulse {
-  0%, 100% { box-shadow: 0 0 0 1.5px var(--accent), 0 0 0 0 rgba(255,70,85,0.4); }
-  50%      { box-shadow: 0 0 0 1.5px var(--accent), 0 0 10px rgba(255,70,85,0.28), 0 0 0 5px rgba(255,70,85,0.12); }
-}
-@keyframes vl-pulse-strong {
-  0%, 100% { box-shadow: 0 0 0 2px var(--accent), 0 0 14px rgba(255,70,85,0.4); }
-  50%      { box-shadow: 0 0 0 2px var(--accent), 0 0 26px rgba(255,70,85,0.65), 0 0 0 6px rgba(255,70,85,0.15); }
-}
-@keyframes vl-tap-flash {
-  0%   { filter: brightness(1.9); }
-  100% { filter: brightness(1); }
-}
-@keyframes vl-text-glitch {
-  0%, 100% { transform: translate(0); opacity: 1; text-shadow: none; }
-  46%      { transform: translate(0); opacity: 1; text-shadow: none; }
-  47%      { transform: translate(2px,0); opacity: 0.55; text-shadow: -1px 0 var(--accent); }
-  48%      { transform: translate(-2px,0); opacity: 1; text-shadow: 1px 0 #fff; }
-  49%      { transform: translate(1px,0); opacity: 0.7; text-shadow: -1px 0 var(--accent); }
-  50%      { transform: translate(0); opacity: 1; text-shadow: none; }
-  87%      { transform: translate(0); opacity: 1; text-shadow: none; }
-  88%      { transform: translate(-2px,0); opacity: 0.5; text-shadow: 1px 0 var(--accent); }
-  89%      { transform: translate(2px,0); opacity: 1; text-shadow: -1px 0 #fff; }
-  90%      { transform: translate(0); opacity: 1; text-shadow: none; }
-}
-@keyframes vl-smoke-drift {
-  0%   { transform: translate(-4%, 0) scale(1); }
-  50%  { transform: translate(4%, -5%) scale(1.18); }
-  100% { transform: translate(-4%, 0) scale(1); }
-}
-@keyframes vl-scan-sweep {
-  0%   { top: -1px; opacity: 0; }
-  4%   { opacity: 0.45; }
-  46%  { opacity: 0.45; }
-  50%  { top: 100%; opacity: 0; }
-  100% { top: 100%; opacity: 0; }
-}
-@keyframes vl-header-scan {
-  0%   { background-position: 0% 100%; }
-  100% { background-position: 200% 100%; }
-}
-@keyframes vl-blip {
-  0%, 80%, 100% { opacity: 1; }
-  90% { opacity: 0.25; }
-}
-
-/* Slower radar-style sweep down the scrollable area */
-body[data-theme="valorant"] #app::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  pointer-events: none;
-  z-index: 5;
-  animation: vl-scan-sweep 7s linear infinite;
-}
-/* Drifting smoke haze — soft grey billows with a faint red undertone,
-   slowly rolling across the whole app shell */
-body[data-theme="valorant"] #app::before {
-  content: '';
-  position: absolute;
-  inset: -12%;
-  background:
-    radial-gradient(circle at 20% 28%, rgba(210,212,215,0.22), transparent 48%),
-    radial-gradient(circle at 78% 58%, rgba(210,212,215,0.18), transparent 52%),
-    radial-gradient(circle at 45% 88%, rgba(255,70,85,0.14), transparent 45%),
-    radial-gradient(circle at 8% 75%, rgba(210,212,215,0.15), transparent 40%);
-  filter: blur(22px);
-  pointer-events: none;
-  z-index: 4;
-  animation: vl-smoke-drift 16s ease-in-out infinite;
-}
-
-/* Header — animated red underline, tactical letter-spacing, brand
-   title + date/version pills get a brief interference glitch rather
-   than a constant flicker — reads as a signal cutting out, not neon */
-body[data-theme="valorant"] #global-header {
-  border-bottom: 2px solid transparent;
-  background-image: linear-gradient(90deg, transparent, var(--accent), transparent);
-  background-size: 200% 2px;
-  background-position: 0 100%;
-  background-repeat: no-repeat;
-  animation: vl-header-scan 4.5s linear infinite;
-}
-body[data-theme="valorant"] #gh-title {
-  display: inline-block;
-  letter-spacing: 0.18em;
-  animation: vl-text-glitch 6s infinite;
-}
-body[data-theme="valorant"] .gh-date-pill {
-  clip-path: var(--clip-md);
-  border-radius: 0;
-  animation: vl-text-glitch 7s infinite;
-  animation-delay: 1.4s;
-  position: relative;
-}
-body[data-theme="valorant"] .gh-date-pill::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 9px; height: 9px;
-  background: var(--accent);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  pointer-events: none;
-}
-
-/* Marquee — diamond separators blip like a tactical readout */
-body[data-theme="valorant"] .quotes-marquee {
-  border-bottom: 1px solid var(--border);
-}
-body[data-theme="valorant"] .qm-sep {
-  color: var(--accent);
-  animation: vl-blip 3s ease-in-out infinite;
-}
-
-/* Chrono bar — single-notch frame, steady red ring on icon buttons,
-   pulsing display while running */
-body[data-theme="valorant"] .chrono-bar {
-  clip-path: var(--clip-lg);
-  border-radius: 0;
-}
-body[data-theme="valorant"] .chrono-step-btn {
-  clip-path: var(--clip-sm);
-  border-radius: 0;
-}
-body[data-theme="valorant"] .chrono-icon-btn {
-  animation: vl-pulse 3s ease-in-out infinite;
-}
-body[data-theme="valorant"] .chrono-display.running .chrono-num {
-  animation: vl-pulse-strong 1.8s ease-in-out infinite;
-}
-
-/* Bottom nav — single-notch top-left corner, thin red top hairline,
-   active tab gets a hard underline + steady glow (no flicker — reads
-   as "selected", not broken) */
-body[data-theme="valorant"] #nav {
-  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
-  border-top: none;
-  background-image: linear-gradient(90deg, transparent, var(--accent), transparent);
-  background-size: 100% 1px;
-  background-position: 0 0;
-  background-repeat: no-repeat;
-}
-body[data-theme="valorant"] .nav-btn {
-  position: relative;
-  transition: transform 0.12s ease-out;
-}
-body[data-theme="valorant"] .nav-btn:active {
-  transform: scale(0.88);
-}
-body[data-theme="valorant"] .nav-btn.active {
-  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
-  border-radius: 0 !important;
-  box-shadow: 0 0 0 1.5px var(--accent), 0 0 14px rgba(255,70,85,0.35);
-  animation: vl-pulse 2.8s ease-in-out infinite;
-}
-body[data-theme="valorant"] .nav-btn.active::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 8px; height: 8px;
-  background: var(--accent);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  pointer-events: none;
-}
-body[data-theme="valorant"] .nav-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px; left: 16%; right: 16%;
-  height: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-}
-
-/* Cards & surfaces — single-notch corner, slow red ambient pulse */
-body[data-theme="valorant"] .metric-card,
-body[data-theme="valorant"] .section-card,
-body[data-theme="valorant"] .hist-card,
-body[data-theme="valorant"] .pr-list-item,
-body[data-theme="valorant"] .empty-day-box,
-body[data-theme="valorant"] .danger-panel,
-body[data-theme="valorant"] .settings-danger,
-body[data-theme="valorant"] #modal-box {
-  clip-path: var(--clip-lg);
-  border-radius: 0 !important;
-  animation: vl-pulse 5s ease-in-out infinite;
-}
-body[data-theme="valorant"] #modal-box {
-  border-top: none;
-  animation: vl-pulse-strong 3.2s ease-in-out infinite;
-}
-
-/* Red corner-flag accent — fills the notch that's cut from the
-   top-left corner with a solid color, like a tactical panel edge.
-   On dark surfaces it's the accent red; on already-red CTA buttons
-   it switches to a dark fill so the cut still reads as a cut. */
-body[data-theme="valorant"] .chrono-bar,
-body[data-theme="valorant"] .metric-card,
-body[data-theme="valorant"] .section-card,
-body[data-theme="valorant"] .hist-card,
-body[data-theme="valorant"] .pr-list-item,
-body[data-theme="valorant"] .empty-day-box,
-body[data-theme="valorant"] .danger-panel,
-body[data-theme="valorant"] .settings-danger,
-body[data-theme="valorant"] #modal-box {
-  position: relative;
-}
-body[data-theme="valorant"] .chrono-bar::before,
-body[data-theme="valorant"] .metric-card::before,
-body[data-theme="valorant"] .section-card::before,
-body[data-theme="valorant"] .hist-card::before,
-body[data-theme="valorant"] .pr-list-item::before,
-body[data-theme="valorant"] .empty-day-box::before,
-body[data-theme="valorant"] .danger-panel::before,
-body[data-theme="valorant"] .settings-danger::before,
-body[data-theme="valorant"] #modal-box::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 14px; height: 14px;
-  background: var(--accent);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  box-shadow: 0 0 8px rgba(255,70,85,0.5);
-  pointer-events: none;
-}
-
-/* Buttons & inputs — notched, steady ring, sharp brightness-flash on
-   tap (a "confirm" click rather than a glitch) */
-body[data-theme="valorant"] button:not(.chrono-icon-btn):not(.set-num-btn):not(.nav-btn) {
-  clip-path: var(--clip-md);
-  border-radius: 0 !important;
-  animation: vl-pulse 4.2s ease-in-out infinite;
-  position: relative;
-}
-body[data-theme="valorant"] button:not(.chrono-icon-btn):not(.set-num-btn):not(.nav-btn)::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 9px; height: 9px;
-  background: var(--accent);
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-  pointer-events: none;
-}
-body[data-theme="valorant"] button:not(.chrono-icon-btn):not(.set-num-btn):active {
-  animation: vl-tap-flash 0.18s ease-out;
-}
-body[data-theme="valorant"] .import-btn,
-body[data-theme="valorant"] .add-exercise-btn,
-body[data-theme="valorant"] .modal-confirm-p1,
-body[data-theme="valorant"] .modal-confirm-p2 {
-  animation: vl-pulse-strong 2.2s ease-in-out infinite;
-}
-body[data-theme="valorant"] .import-btn::before,
-body[data-theme="valorant"] .add-exercise-btn::before,
-body[data-theme="valorant"] .modal-confirm-p1::before,
-body[data-theme="valorant"] .modal-confirm-p2::before {
-  background: var(--card-bg);
-  box-shadow: none;
-}
-body[data-theme="valorant"] input[type="text"],
-body[data-theme="valorant"] input[type="number"],
-body[data-theme="valorant"] input[type="date"],
-body[data-theme="valorant"] input:not([type]),
-body[data-theme="valorant"] select,
-body[data-theme="valorant"] textarea {
-  clip-path: var(--clip-md);
-  border-radius: 0 !important;
-}
-body[data-theme="valorant"] input[type="text"]:focus,
-body[data-theme="valorant"] input[type="number"]:focus,
-body[data-theme="valorant"] textarea:focus {
-  animation: vl-pulse 1.6s ease-in-out infinite;
-}
-
-/* ── Fix: clip-path + a stroked border anti-aliases as a dashed line
-   in some renderers. Every clipped element below drops its border and
-   relies on a box-shadow ring instead (which clips cleanly to the same
-   notched silhouette). Elements that already animate a glow already
-   carry a box-shadow ring at every keyframe, so they just need the
-   border removed; the rest get a static ring in the theme's border
-   color so they keep a visible edge. ── */
-body[data-theme="cyberpunk"] .gh-date-pill,
-body[data-theme="cyberpunk"] .chrono-bar,
-body[data-theme="cyberpunk"] .chrono-step-btn,
-body[data-theme="cyberpunk"] input[type="text"],
-body[data-theme="cyberpunk"] input[type="number"],
-body[data-theme="cyberpunk"] input[type="date"],
-body[data-theme="cyberpunk"] input:not([type]),
-body[data-theme="cyberpunk"] select,
-body[data-theme="cyberpunk"] textarea {
-  border: none !important;
-  box-shadow: 0 0 0 1px var(--border);
-}
-body[data-theme="cyberpunk"] .metric-card,
-body[data-theme="cyberpunk"] .section-card,
-body[data-theme="cyberpunk"] .hist-card,
-body[data-theme="cyberpunk"] .pr-list-item,
-body[data-theme="cyberpunk"] .empty-day-box,
-body[data-theme="cyberpunk"] .danger-panel,
-body[data-theme="cyberpunk"] .settings-danger,
-body[data-theme="cyberpunk"] #modal-box,
-body[data-theme="cyberpunk"] button:not(.chrono-icon-btn):not(.set-num-btn):not(.nav-btn) {
-  border: none !important;
-}
-
-body[data-theme="valorant"] .gh-date-pill,
-body[data-theme="valorant"] .chrono-bar,
-body[data-theme="valorant"] .chrono-step-btn,
-body[data-theme="valorant"] input[type="text"],
-body[data-theme="valorant"] input[type="number"],
-body[data-theme="valorant"] input[type="date"],
-body[data-theme="valorant"] input:not([type]),
-body[data-theme="valorant"] select,
-body[data-theme="valorant"] textarea {
-  border: none !important;
-  box-shadow: 0 0 0 1px var(--border);
-}
-body[data-theme="valorant"] .metric-card,
-body[data-theme="valorant"] .section-card,
-body[data-theme="valorant"] .hist-card,
-body[data-theme="valorant"] .pr-list-item,
-body[data-theme="valorant"] .empty-day-box,
-body[data-theme="valorant"] .danger-panel,
-body[data-theme="valorant"] .settings-danger,
-body[data-theme="valorant"] #modal-box,
-body[data-theme="valorant"] button:not(.chrono-icon-btn):not(.set-num-btn):not(.nav-btn) {
-  border: none !important;
-}
