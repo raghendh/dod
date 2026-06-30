@@ -450,7 +450,7 @@ function renderExLibraryFilters() {
   let html = cats.map(c =>
     `<button type="button" class="exlib-filter-chip ${exLibFilter===c?'active':''}" onclick="setExLibFilter('${c}')">${c}</button>`
   ).join('');
-  html += `<button type="button" class="exlib-filter-chip" onclick="openAddCustomExerciseModal()" style="background:rgba(0,243,255,0.12);color:var(--txt);border-color:rgba(0,243,255,0.3);">+ Add New</button>`;
+  html += `<button type="button" class="exlib-filter-chip" onclick="openAddCustomExerciseModal()" style="background:var(--accent);color:var(--on-accent);border-color:var(--accent);">+ Add New</button>`;
   document.getElementById('exlib-filter-row').innerHTML = html;
 }
 
@@ -487,7 +487,7 @@ function renderExLibrary() {
       <div class="exlib-row">
         <div class="exlib-num">${abbr}</div>
         <div class="exlib-name">${ex.name}</div>
-        <span class="day-ex-tag" style="background:var(--accent-soft);color:var(--txt);border:1px solid rgba(193,95,60,0.3);flex-shrink:0;">${ex.equipment}</span>
+        <span class="day-ex-tag" style="background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);flex-shrink:0;">${ex.equipment}</span>
       </div>
       <div class="exlib-detail" id="exlib-detail-${i}">
         <div class="exlib-detail-grid">
@@ -651,6 +651,12 @@ const ACCENTS = {
   blue:   { name: "Blue",   swatch: "#4F8FFF" },
   purple: { name: "Purple", swatch: "#A78BFA" },
   pink:   { name: "Pink",   swatch: "#F06BA8" },
+  gold:   { name: "Gold",   swatch: "#D4AF37" },
+  teal:   { name: "Teal",   swatch: "#2DD4BF" },
+  indigo: { name: "Indigo", swatch: "#6366F1" },
+  rose:   { name: "Rose",   swatch: "#FB7185" },
+  brown:  { name: "Brown",  swatch: "#A9744F" },
+  slate:  { name: "Slate",  swatch: "#94A3B8" },
 };
 const DEFAULT_THEME = "mono";
 const DEFAULT_ACCENT = "white";
@@ -1211,6 +1217,7 @@ function applyLoadedData(parsed) {
   if (!state.settings.accent || !ACCENTS[state.settings.accent]) state.settings.accent = DEFAULT_ACCENT;
   state.settings.theme = DEFAULT_THEME;
   if (state.settings.pitchBlack === undefined) state.settings.pitchBlack = false;
+  if (state.settings.compactNav === undefined) state.settings.compactNav = false;
   if (!state.bw) state.bw = {1:{}};
   if (!state.bw[1]) state.bw[1] = {};
   if (!state.knownExerciseNames) state.knownExerciseNames = [];
@@ -1245,6 +1252,7 @@ async function loadState() {
   if (accentKey === 'white') document.body.removeAttribute('data-accent');
   else document.body.setAttribute('data-accent', accentKey);
   document.body.classList.toggle('pitch-black', !!state.settings.pitchBlack);
+  document.body.classList.toggle('compact-nav', !!state.settings.compactNav);
   let metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) {
     let bg = getComputedStyle(document.body).getPropertyValue('--app-bg').trim();
@@ -1969,7 +1977,7 @@ function renderExerciseList(){
   if(reorderMode && reorderMode.workout) {
     setReorderActiveState('workout', true);
     let btn = document.getElementById('reorder-toggle-workout');
-    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
+    if(btn){btn.style.background='var(--accent)';btn.style.borderColor='var(--accent)';btn.style.color='var(--on-accent)';}
   }
 }
 
@@ -2751,7 +2759,7 @@ function renderSplitPage(){
   if(reorderMode && reorderMode.split) {
     setReorderActiveState('split', true);
     let btn = document.getElementById('reorder-toggle-split');
-    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
+    if(btn){btn.style.background='var(--accent)';btn.style.borderColor='var(--accent)';btn.style.color='var(--on-accent)';}
   }
 }
 
@@ -2949,7 +2957,7 @@ function showRules() {
   let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
   RULES.forEach((r, i) => {
     html += `<div style="background:var(--input-bg);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;display:flex;gap:14px;">
-      <div style="width:26px;height:26px;background:rgba(0,243,255,0.12);color:var(--txt);border:1px solid rgba(0,243,255,0.3);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;font-family:var(--font);">${i+1}</div>
+      <div style="width:26px;height:26px;background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;font-family:var(--font);">${i+1}</div>
       <div>
         <div style="color:var(--txt);font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:6px;letter-spacing:0.08em;font-family:var(--font);">${r.rule}</div>
         <div style="color:var(--txt);font-size:14px;line-height:1.5;">${r.method}</div>
@@ -4038,6 +4046,10 @@ function toggleStitchSetting(key, el) {
       if (bg) metaTheme.setAttribute('content', bg);
     }
   }
+  else if (key === 'compactNav') {
+    state.settings.compactNav = on;
+    document.body.classList.toggle('compact-nav', on);
+  }
   saveState();
   applyWakeLock();
   applyButtonSizing();
@@ -4486,6 +4498,10 @@ function renderProfilePage() {
           <div><div class="settings-row-label">Pitch Black Mode</div><div class="settings-row-sub">True OLED black backgrounds, for dark rooms and battery saving</div></div>
           <label class="set-toggle"><input type="checkbox" ${s.pitchBlack ? 'checked' : ''} onchange="toggleStitchSetting('pitchBlack', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
         </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Compact Tab Bar</div><div class="settings-row-sub">Shorter bottom bar showing just Train / Cardio / Splits / Profile names, no icons</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.compactNav ? 'checked' : ''} onchange="toggleStitchSetting('compactNav', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
       </div>
 
       <h3 class="settings-section-title">Display</h3>
@@ -4588,6 +4604,7 @@ function renderProfilePage() {
 
   document.getElementById('profile-content').innerHTML = html;
   document.body.classList.toggle('pitch-black', !!s.pitchBlack);
+  document.body.classList.toggle('compact-nav', !!s.compactNav);
 }
 
 function openFloatingPanel(type) {
@@ -4727,7 +4744,8 @@ function toggleReorderMode(tab) {
   let on = reorderMode[tab];
   let btn = document.getElementById('reorder-toggle-' + tab);
   if(btn) {
-    btn.style.background = on ? 'rgba(0,243,255,0.15)' : 'var(--input-bg)';
+    btn.style.background = on ? 'var(--accent)' : 'var(--input-bg)';
+    btn.style.color = on ? 'var(--on-accent)' : 'var(--txt)';
     btn.style.borderColor = on ? 'var(--accent)' : 'var(--border2)';
     btn.style.color = on ? 'var(--accent)' : 'var(--txt3)';
   }
@@ -5111,7 +5129,7 @@ function renderCardioPage() {
   if(reorderMode.cardio) {
     setReorderActiveState('cardio', true);
     let btn = document.getElementById('reorder-toggle-cardio');
-    if(btn){btn.style.background='rgba(0,243,255,0.15)';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';}
+    if(btn){btn.style.background='var(--accent)';btn.style.borderColor='var(--accent)';btn.style.color='var(--on-accent)';}
   }
 }
 
