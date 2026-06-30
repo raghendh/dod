@@ -4765,6 +4765,7 @@ function buildCardioEntriesHtml(dayKey, sessions) {
     if (s.duration) badgesHtml += `<span class="cardio-badge cardio-badge-cyan">${s.duration} min</span>`;
     if (s.distance) badgesHtml += `<span class="cardio-badge cardio-badge-green">${s.distance} km</span>`;
     if (s.calories) badgesHtml += `<span class="cardio-badge cardio-badge-red">${s.calories} kcal</span>`;
+    if (s.steps) badgesHtml += `<span class="cardio-badge cardio-badge-cyan">${s.steps} steps</span>`;
 
     html += `<div class="section-card cardio-session-card" data-date="${dayKey}" data-idx="${si}" style="margin-bottom:8px;">
       <div class="cardio-card-header" onclick="toggleCardioExpand('${dayKey}',${si})">
@@ -4786,6 +4787,218 @@ function buildCardioEntriesHtml(dayKey, sessions) {
     </div>`;
   });
   return html;
+}
+
+// ─────────────────────────────────────────
+// LIVE TRACKER — real-time step counter (device accelerometer),
+// distance (GPS, falls back to stride estimate from steps), and
+// an auto calorie estimate (MET formula when GPS distance is
+// available, step-based estimate otherwise). Everything runs in
+// the browser; nothing is sent anywhere.
+// ─────────────────────────────────────────
+let liveTracker = {
+  active: false,
+  paused: false,
+  steps: 0,
+  distanceKm: 0,
+  startTime: null,
+  elapsedMs: 0,
+  pausedAt: null,
+  watchId: null,
+  lastPos: null,
+  usingGps: false,
+  tickInterval: null,
+  // step-detection internals
+  lastAccelMag: 0,
+  lastStepTime: 0,
+  accelFiltered: 0
+};
+
+function getCurrentWeightKg() {
+  let p = state.profile;
+  let bwMap = (state.bw && state.bw[p]) || {};
+  let dates = Object.keys(bwMap).sort();
+  if (dates.length) return parseFloat(bwMap[dates[dates.length - 1]]) || 70;
+  return 70; // sensible default if no bodyweight logged yet
+}
+
+function getStrideMeters() {
+  // Rough stride length from height if known, else a generic average.
+  let h = state.userMetrics && state.userMetrics[state.profile] && state.userMetrics[state.profile].height;
+  if (h) return +(h * 0.414 / 100).toFixed(3); // classic stride ≈ 41.4% of height
+  return 0.74;
+}
+
+function fmtClock(ms) {
+  let totalSec = Math.floor(ms / 1000);
+  let m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+  let s = (totalSec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function lt_haversineKm(lat1, lon1, lat2, lon2) {
+  let R = 6371;
+  let dLat = (lat2 - lat1) * Math.PI / 180;
+  let dLon = (lon2 - lon1) * Math.PI / 180;
+  let a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function lt_handleMotion(e) {
+  if (!liveTracker.active || liveTracker.paused) return;
+  let a = e.accelerationIncludingGravity || e.acceleration;
+  if (!a || a.x === null) return;
+  let mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+  // low-pass filter to smooth noise, then peak-detect against the
+  // filtered baseline to register a step (simple, dependency-free pedometer)
+  liveTracker.accelFiltered = liveTracker.accelFiltered * 0.85 + mag * 0.15;
+  let delta = mag - liveTracker.accelFiltered;
+  let now = Date.now();
+  if (delta > 2.2 && (now - liveTracker.lastStepTime) > 280) {
+    liveTracker.lastStepTime = now;
+    liveTracker.steps++;
+    if (!liveTracker.usingGps) {
+      liveTracker.distanceKm += getStrideMeters() / 1000;
+    }
+  }
+}
+
+function lt_handleGps(pos) {
+  let { latitude, longitude, accuracy } = pos.coords;
+  if (accuracy && accuracy > 30) return; // ignore noisy fixes
+  liveTracker.usingGps = true;
+  let note = document.getElementById('lt-gps-note');
+  if (note) note.style.display = 'none';
+  if (liveTracker.lastPos) {
+    let d = lt_haversineKm(liveTracker.lastPos.lat, liveTracker.lastPos.lon, latitude, longitude);
+    if (d > 0.001 && d < 0.2) liveTracker.distanceKm += d; // filter GPS jitter/jumps
+  }
+  liveTracker.lastPos = { lat: latitude, lon: longitude };
+}
+
+function lt_gpsError() {
+  liveTracker.usingGps = false;
+  let note = document.getElementById('lt-gps-note');
+  if (note) note.style.display = 'block';
+}
+
+function lt_estimateCalories() {
+  let weight = getCurrentWeightKg();
+  let hours = liveTracker.elapsedMs / 3600000;
+  if (hours <= 0) return 0;
+  if (liveTracker.usingGps && liveTracker.distanceKm > 0) {
+    let paceKmh = liveTracker.distanceKm / hours;
+    let met = 2.8;
+    if (paceKmh >= 11.3) met = 11.5;
+    else if (paceKmh >= 9.7) met = 9.8;
+    else if (paceKmh >= 8) met = 8.3;
+    else if (paceKmh >= 6.4) met = 5;
+    else if (paceKmh >= 4) met = 3.5;
+    return Math.round(met * weight * hours);
+  }
+  // fallback: step-based estimate (~0.0005 kcal per step per kg bodyweight)
+  return Math.round(liveTracker.steps * weight * 0.0005);
+}
+
+function lt_updateUI() {
+  if (!liveTracker.paused && liveTracker.active) {
+    liveTracker.elapsedMs = Date.now() - liveTracker.startTime;
+  }
+  let stepsEl = document.getElementById('lt-steps');
+  let distEl = document.getElementById('lt-distance');
+  let calEl = document.getElementById('lt-calories');
+  let timeEl = document.getElementById('lt-time');
+  if (stepsEl) stepsEl.textContent = liveTracker.steps;
+  if (distEl) distEl.innerHTML = `${liveTracker.distanceKm.toFixed(2)}<span style="font-size:10px;">km</span>`;
+  if (calEl) calEl.textContent = lt_estimateCalories();
+  if (timeEl) timeEl.textContent = fmtClock(liveTracker.elapsedMs);
+}
+
+async function startLiveTracking() {
+  // iOS 13+ requires an explicit permission prompt triggered by a user gesture
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    try {
+      let res = await DeviceMotionEvent.requestPermission();
+      if (res !== 'granted') { alert('Motion access denied — step counting needs it to work.'); return; }
+    } catch (err) { alert('Could not get motion permission: ' + err.message); return; }
+  }
+  liveTracker.active = true;
+  liveTracker.paused = false;
+  liveTracker.steps = 0;
+  liveTracker.distanceKm = 0;
+  liveTracker.startTime = Date.now();
+  liveTracker.elapsedMs = 0;
+  liveTracker.lastPos = null;
+  liveTracker.usingGps = false;
+  liveTracker.accelFiltered = 0;
+  liveTracker.lastStepTime = 0;
+
+  window.addEventListener('devicemotion', lt_handleMotion);
+
+  if (navigator.geolocation) {
+    liveTracker.watchId = navigator.geolocation.watchPosition(lt_handleGps, lt_gpsError, {
+      enableHighAccuracy: true, maximumAge: 1000, timeout: 8000
+    });
+  } else {
+    lt_gpsError();
+  }
+
+  liveTracker.tickInterval = setInterval(lt_updateUI, 1000);
+
+  document.getElementById('lt-btn-start').style.display = 'none';
+  document.getElementById('lt-btn-pause').style.display = 'block';
+  document.getElementById('lt-btn-stop').style.display = 'block';
+  document.getElementById('lt-status-pill').textContent = 'Tracking';
+  document.getElementById('lt-status-pill').style.color = 'var(--accent)';
+}
+
+function pauseLiveTracking() {
+  liveTracker.paused = true;
+  liveTracker.pausedAt = Date.now();
+  document.getElementById('lt-btn-pause').style.display = 'none';
+  document.getElementById('lt-btn-resume').style.display = 'block';
+  document.getElementById('lt-status-pill').textContent = 'Paused';
+}
+
+function resumeLiveTracking() {
+  let pausedDuration = Date.now() - liveTracker.pausedAt;
+  liveTracker.startTime += pausedDuration;
+  liveTracker.paused = false;
+  document.getElementById('lt-btn-resume').style.display = 'none';
+  document.getElementById('lt-btn-pause').style.display = 'block';
+  document.getElementById('lt-status-pill').textContent = 'Tracking';
+}
+
+function stopLiveTracking() {
+  liveTracker.active = false;
+  window.removeEventListener('devicemotion', lt_handleMotion);
+  if (liveTracker.watchId !== null && navigator.geolocation) {
+    navigator.geolocation.clearWatch(liveTracker.watchId);
+    liveTracker.watchId = null;
+  }
+  if (liveTracker.tickInterval) { clearInterval(liveTracker.tickInterval); liveTracker.tickInterval = null; }
+  lt_updateUI();
+
+  // auto-fill the log session form below
+  let durMin = Math.max(1, Math.round(liveTracker.elapsedMs / 60000));
+  let durEl = document.getElementById('cardio-duration-input');
+  let distEl = document.getElementById('cardio-distance-input');
+  let calEl = document.getElementById('cardio-calories-input');
+  let stepsEl = document.getElementById('cardio-steps-input');
+  if (durEl) durEl.value = durMin;
+  if (distEl) distEl.value = liveTracker.distanceKm.toFixed(2);
+  if (calEl) calEl.value = lt_estimateCalories();
+  if (stepsEl) stepsEl.value = liveTracker.steps;
+
+  document.getElementById('lt-btn-pause').style.display = 'none';
+  document.getElementById('lt-btn-resume').style.display = 'none';
+  document.getElementById('lt-btn-stop').style.display = 'none';
+  document.getElementById('lt-btn-start').style.display = 'block';
+  document.getElementById('lt-status-pill').textContent = 'Synced ↓';
+  document.getElementById('lt-status-pill').style.color = 'var(--txt3)';
+
+  let formCard = document.getElementById('cardio-duration-input');
+  if (formCard) formCard.closest('.section-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function renderCardioPage() {
@@ -4812,6 +5025,39 @@ function renderCardioPage() {
 
     <input type="date" id="cardio-hidden-date-picker" onchange="applyCardioDateDirect(this.value)" style="position:absolute;opacity:0;pointer-events:none;">
 
+    <!-- Live Tracker: step counter + distance (GPS) + auto calorie estimate -->
+    <div class="section-card" id="live-tracker-card" style="padding:14px;margin-bottom:16px;border-color:var(--accent);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="section-title" style="margin:0;">Live Tracker</div>
+        <span id="lt-status-pill" style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border-radius:20px;background:var(--bg4);color:var(--txt3);font-family:var(--font);">Idle</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;">
+        <div style="background:var(--bg4);border-radius:var(--radius);padding:10px 4px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font);">Steps</div>
+          <div id="lt-steps" style="font-size:18px;font-weight:900;font-family:var(--font);margin-top:2px;">0</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:var(--radius);padding:10px 4px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font);">Distance</div>
+          <div id="lt-distance" style="font-size:18px;font-weight:900;font-family:var(--font);margin-top:2px;">0.00<span style="font-size:10px;">km</span></div>
+        </div>
+        <div style="background:var(--bg4);border-radius:var(--radius);padding:10px 4px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font);">Calories</div>
+          <div id="lt-calories" style="font-size:18px;font-weight:900;font-family:var(--font);margin-top:2px;">0</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:var(--radius);padding:10px 4px;text-align:center;">
+          <div style="font-size:9px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font);">Time</div>
+          <div id="lt-time" style="font-size:18px;font-weight:900;font-family:var(--font);margin-top:2px;">00:00</div>
+        </div>
+      </div>
+      <div id="lt-gps-note" style="font-size:10px;color:var(--txt3);margin-bottom:10px;display:none;font-family:var(--font);">GPS unavailable — distance estimated from your steps.</div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="lt-btn-start" class="import-btn" style="margin:0;flex:1;" onclick="startLiveTracking()">START</button>
+        <button type="button" id="lt-btn-pause" class="import-btn" style="margin:0;flex:1;display:none;background:var(--bg4);color:var(--txt);" onclick="pauseLiveTracking()">PAUSE</button>
+        <button type="button" id="lt-btn-resume" class="import-btn" style="margin:0;flex:1;display:none;" onclick="resumeLiveTracking()">RESUME</button>
+        <button type="button" id="lt-btn-stop" class="import-btn" style="margin:0;flex:1;display:none;background:#ff4444;color:#fff;" onclick="stopLiveTracking()">STOP & FILL FORM</button>
+      </div>
+    </div>
+
     <!-- Log new session -->
     <div class="section-card" style="padding:14px;margin-bottom:16px;">
       <div class="section-title" style="margin-bottom:12px;">+ Log Session</div>
@@ -4837,9 +5083,15 @@ function renderCardioPage() {
           <input id="cardio-calories-input" type="number" min="0" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
         </div>
       </div>
-      <div style="margin-bottom:10px;">
-        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Notes (optional)</div>
-        <input id="cardio-notes-input" type="text" placeholder="e.g. morning run, zone 2..." class="set-input" style="width:100%;padding:9px 10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Steps</div>
+          <input id="cardio-steps-input" type="number" min="0" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Notes (optional)</div>
+          <input id="cardio-notes-input" type="text" placeholder="e.g. morning run, zone 2..." class="set-input" style="width:100%;padding:9px 10px;">
+        </div>
       </div>
       <button onclick="logCardioSession()" class="import-btn" style="margin-top:4px;">LOG SESSION</button>
     </div>
@@ -4911,9 +5163,13 @@ function editCardioEntry(dateStr, idx) {
         <input id="edit-cardio-calories" type="number" min="0" value="${s.calories||''}" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
       </div>
       <div>
-        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Notes</div>
-        <input id="edit-cardio-notes" type="text" value="${s.notes||''}" placeholder="optional..." class="set-input" style="width:100%;padding:9px 10px;">
+        <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Steps</div>
+        <input id="edit-cardio-steps" type="number" min="0" value="${s.steps||''}" placeholder="—" class="set-input" style="width:100%;padding:9px 10px;">
       </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:800;color:var(--txt3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;font-family:var(--font);">Notes</div>
+      <input id="edit-cardio-notes" type="text" value="${s.notes||''}" placeholder="optional..." class="set-input" style="width:100%;padding:9px 10px;">
     </div>
     <div class="modal-btn-row">
       <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
@@ -4928,8 +5184,9 @@ function saveCardioEdit(dateStr, idx) {
   let duration = document.getElementById('edit-cardio-duration')?.value || '';
   let distance = document.getElementById('edit-cardio-distance')?.value || '';
   let calories = document.getElementById('edit-cardio-calories')?.value || '';
+  let steps = document.getElementById('edit-cardio-steps')?.value || '';
   let notes = document.getElementById('edit-cardio-notes')?.value || '';
-  state.cardioLog[dateStr][idx] = { type, duration, distance, calories, notes };
+  state.cardioLog[dateStr][idx] = { type, duration, distance, calories, steps, notes };
   saveState();
   closeModal();
   renderCardioPage();
@@ -4959,13 +5216,14 @@ function logCardioSession() {
   let duration = document.getElementById('cardio-duration-input')?.value;
   let distance = document.getElementById('cardio-distance-input')?.value;
   let calories = document.getElementById('cardio-calories-input')?.value;
+  let steps = document.getElementById('cardio-steps-input')?.value;
   let notes = document.getElementById('cardio-notes-input')?.value;
   if(!duration && !distance) { alert('Enter at least duration or distance.'); return; }
   if(!state.cardioLog) state.cardioLog = {};
   let today = dateKey(state.date);
   if(!state.cardioLog[today]) state.cardioLog[today] = [];
   state.cardioLog[today].push({
-    type, duration: duration||'', distance: distance||'', calories: calories||'', notes: notes||''
+    type, duration: duration||'', distance: distance||'', calories: calories||'', steps: steps||'', notes: notes||''
   });
   saveState();
   renderCardioPage();

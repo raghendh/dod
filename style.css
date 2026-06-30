@@ -2204,8 +2204,8 @@ body.pitch-black #onboarding-screen { background: #000; }
 }
 
 #gh-title {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 700;
   letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--txt);
@@ -2253,8 +2253,8 @@ body.pitch-black #onboarding-screen { background: #000; }
 .quotes-marquee {
   flex-shrink: 0;
   width: 100%;
-  height: 28px;
-  background: var(--card-bg); backdrop-filter: var(--surface-blur); -webkit-backdrop-filter: var(--surface-blur);
+  height: 40px;
+  background: var(--accent);
   border-bottom: 1px solid var(--border);
   overflow: hidden;
   position: relative;
@@ -2262,7 +2262,7 @@ body.pitch-black #onboarding-screen { background: #000; }
   display: flex;
   align-items: center;
 }
-body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: var(--border); }
+body.pitch-black .quotes-marquee { background: var(--accent); border-bottom-color: var(--border); }
 .quotes-marquee.hidden { display: none !important; }
 
 .quotes-marquee-track {
@@ -2276,17 +2276,17 @@ body.pitch-black .quotes-marquee { background: #000000; border-bottom-color: var
 
 .quotes-marquee-track .qm-item {
   display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--txt);
+  color: #000000;
   font-family: var(--font);
 }
 
 .quotes-marquee-track .qm-sep {
   display: inline-block;
   margin: 0 18px;
-  color: var(--txt);
+  color: #000000;
   opacity: 0.6;
 }
 
