@@ -657,9 +657,46 @@ const ACCENTS = {
   rose:   { name: "Rose",   swatch: "#FB7185" },
   brown:  { name: "Brown",  swatch: "#A9744F" },
   slate:  { name: "Slate",  swatch: "#94A3B8" },
+  rainbow:{ name: "Rainbow", swatch: "linear-gradient(90deg,#E24B4A,#E8C84D,#5FD87A,#4F8FFF,#A78BFA,#F06BA8,#E24B4A)" },
 };
 const DEFAULT_THEME = "mono";
 const DEFAULT_ACCENT = "white";
+
+// ── RAINBOW ACCENT ──────────────────────────────────────────────────
+// Continuously cycles --accent (and its derived variables) through the
+// full hue wheel using requestAnimationFrame, so the color drift is
+// buttery smooth (no jumps/steps) rather than a CSS keyframe loop,
+// which can't animate custom properties across browsers reliably.
+let rainbowRAF = null;
+const RAINBOW_CYCLE_MS = 16000; // full trip around the color wheel
+
+function rainbowTick(ts) {
+  let hue = (ts % RAINBOW_CYCLE_MS) / RAINBOW_CYCLE_MS * 360;
+  let accent = `hsl(${hue.toFixed(1)}, 85%, 62%)`;
+  let accent2 = `hsl(${hue.toFixed(1)}, 75%, 48%)`;
+  let accentSoft = `hsla(${hue.toFixed(1)}, 85%, 62%, 0.15)`;
+  // Light, saturated hues (yellow/green band) read better with dark
+  // on-accent text; the rest stay white, matching the other accents.
+  let onAccent = (hue > 50 && hue < 165) ? '#000' : '#fff';
+  let root = document.body.style;
+  root.setProperty('--accent', accent);
+  root.setProperty('--accent-2', accent2);
+  root.setProperty('--accent-soft', accentSoft);
+  root.setProperty('--on-accent', onAccent);
+  rainbowRAF = requestAnimationFrame(rainbowTick);
+}
+
+function startRainbowTheme() {
+  if (rainbowRAF) return;
+  rainbowRAF = requestAnimationFrame(rainbowTick);
+}
+
+function stopRainbowTheme() {
+  if (rainbowRAF) { cancelAnimationFrame(rainbowRAF); rainbowRAF = null; }
+  // Clear the inline overrides so the picked/default accent's CSS rules
+  // (set via the data-accent attribute) take back over cleanly.
+  ['--accent','--accent-2','--accent-soft','--on-accent'].forEach(v => document.body.style.removeProperty(v));
+}
 
 // Applies an accent by key, updates the PWA status-bar color to match,
 // and persists the choice. Safe to call with an unknown/missing key —
@@ -669,6 +706,7 @@ function applyTheme(key) {
   if (!ACCENTS[key]) key = DEFAULT_ACCENT;
   if (key === 'white') document.body.removeAttribute('data-accent');
   else document.body.setAttribute('data-accent', key);
+  if (key === 'rainbow') startRainbowTheme(); else stopRainbowTheme();
   state.settings.theme = DEFAULT_THEME;
   state.settings.accent = key;
   // Sync the mobile status-bar / PWA chrome color to the new theme's
@@ -697,6 +735,50 @@ function renderThemePickerGrid(onSelectFn) {
 
 // Called from the Settings page accent picker — applies immediately and
 // updates which swatch shows as selected, without a full settings re-render.
+// ── RAGE MODE ────────────────────────────────────────────────────────
+// A standalone aggressive mode (separate from the accent system) toggled
+// from the round nav button. Persists across reloads via state.settings.
+function applyRageMode(on) {
+  document.body.classList.toggle('rage-mode', !!on);
+  let navBtn = document.getElementById('nav-rage');
+  if (navBtn) {
+    navBtn.style.display = state.settings.rageModeEnabled ? '' : 'none';
+    navBtn.classList.toggle('active', !!on);
+  }
+  let title = document.getElementById('gh-title');
+  if (title) {
+    let useNoMercy = state.settings.rageHeaderText !== false;
+    title.textContent = (on && useNoMercy) ? 'NO MERCY' : 'D O D';
+  }
+}
+
+function applyRageModeEnabled(enabled) {
+  // Show/hide the skull nav button, and kill active rage if feature is turned off
+  let navBtn = document.getElementById('nav-rage');
+  if (navBtn) navBtn.style.display = enabled ? '' : 'none';
+  if (!enabled && state.settings.rageMode) {
+    state.settings.rageMode = false;
+    applyRageMode(false);
+  }
+}
+
+function rageFlash() {
+  if (!state.settings.rageMode || state.settings.rageFlashOnPR === false) return;
+  let flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed;inset:0;background:#FF3B30;opacity:0;pointer-events:none;z-index:9999;transition:opacity 0.08s ease;';
+  document.body.appendChild(flash);
+  requestAnimationFrame(() => { flash.style.opacity = '0.35'; });
+  setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 200); }, 120);
+  if (state.settings.rageVibrationOn !== false && navigator.vibrate) navigator.vibrate([80, 40, 160]);
+}
+
+function toggleRageMode() {
+  if (!state.settings.rageModeEnabled) return;
+  state.settings.rageMode = !state.settings.rageMode;
+  applyRageMode(state.settings.rageMode);
+  saveState();
+}
+
 function selectThemeFromSettings(key) {
   applyTheme(key);
   let grid = document.getElementById('theme-picker-grid');
@@ -1218,6 +1300,9 @@ function applyLoadedData(parsed) {
   state.settings.theme = DEFAULT_THEME;
   if (state.settings.pitchBlack === undefined) state.settings.pitchBlack = false;
   if (state.settings.compactNav === undefined) state.settings.compactNav = false;
+  if (state.settings.rageModeEnabled === undefined) state.settings.rageModeEnabled = false;
+  if (state.settings.rageMode === undefined) state.settings.rageMode = false;
+  if (state.settings.rageAutoMode === undefined) state.settings.rageAutoMode = true;
   if (!state.bw) state.bw = {1:{}};
   if (!state.bw[1]) state.bw[1] = {};
   if (!state.knownExerciseNames) state.knownExerciseNames = [];
@@ -1251,8 +1336,11 @@ async function loadState() {
   let accentKey = (state.settings.accent && ACCENTS[state.settings.accent]) ? state.settings.accent : DEFAULT_ACCENT;
   if (accentKey === 'white') document.body.removeAttribute('data-accent');
   else document.body.setAttribute('data-accent', accentKey);
+  if (accentKey === 'rainbow') startRainbowTheme(); else stopRainbowTheme();
   document.body.classList.toggle('pitch-black', !!state.settings.pitchBlack);
   document.body.classList.toggle('compact-nav', !!state.settings.compactNav);
+  applyRageMode(state.settings.rageMode);
+  applyRageModeEnabled(state.settings.rageModeEnabled);
   let metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) {
     let bg = getComputedStyle(document.body).getPropertyValue('--app-bg').trim();
@@ -1384,6 +1472,27 @@ function syncTimerUI() {
   document.querySelectorAll('.js-rest-card').forEach(card => card.classList.toggle('running', !!isRunning));
 }
 
+function rageTick() {
+  let s = state.settings;
+  if (s.rageSoundOn !== false) {
+    try {
+      let ctx = window._rageAudioCtx || (window._rageAudioCtx = new (window.AudioContext || window.webkitAudioContext)());
+      let osc = ctx.createOscillator();
+      let gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.18;
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 0.12);
+    } catch(e) {}
+  }
+  if (s.rageVibrationOn !== false && navigator.vibrate) navigator.vibrate(120);
+  document.querySelectorAll('.rt-widget, .js-rest-card').forEach(el => {
+    el.classList.add('rage-tick-flash');
+    setTimeout(() => el.classList.remove('rage-tick-flash'), 250);
+  });
+}
+
 function startRestTimer(seconds = 90) {
   if (state.settings.useRestTimer === false) return;
   let p = state.profile;
@@ -1391,6 +1500,7 @@ function startRestTimer(seconds = 90) {
   rt.lastDuration = seconds;
   rt.end = Date.now() + seconds * 1000;
   rt.running = true;
+  rt.lastLoudSec = null;
 
   clearInterval(rt.interval);
   rt.interval = setInterval(() => updateRestTimer(p), 30);
@@ -1407,6 +1517,14 @@ function updateRestTimer(p) {
   let rem = Math.ceil(remMs / 1000);
   let floatText = document.getElementById('rest-timer-text-' + p);
   let topText = document.getElementById('sw' + p + '-rest-time');
+
+  if (document.body.classList.contains('rage-mode') && rem > 0) {
+    let interval = parseInt(state.settings.rageBeepInterval) || 3;
+    if (rem % interval === 0 && rt.lastLoudSec !== rem) {
+      rt.lastLoudSec = rem;
+      rageTick();
+    }
+  }
 
   let displayStr = "";
   let moduleHtml = "";
@@ -1864,7 +1982,7 @@ function renderExerciseList(){
       let tagHtml = ex.tag ? `<span class="day-ex-tag ${tagClass}">${ex.tag}</span>` : '';
       let showPRCalc = state.settings.showPRCalc !== false;
       let showNotes = state.settings.showNotes !== false;
-      let infoBtnHtml = ex.splitInfo && (ex.splitInfo.method || ex.splitInfo.tempo || ex.splitInfo.notes) ? `<button class="ex-action-btn info" onclick="event.stopPropagation();toggleInfoPanel(${ei})">INFO</button>` : '';
+      let infoBtnHtml = ex.splitInfo && (ex.splitInfo.sets || ex.splitInfo.reps || ex.splitInfo.method || ex.splitInfo.tempo || ex.splitInfo.notes) ? `<button class="ex-action-btn info" onclick="event.stopPropagation();toggleInfoPanel(${ei})">INFO</button>` : '';
       let exRestTime = parseRestTime(ex.splitInfo?.rest, 90);
       let timerBtnHtml = state.settings.useRestTimer !== false ? `<button type="button" class="ex-action-btn timer" onclick="event.stopPropagation();startRestTimer(${exRestTime})">&#9201; ${fmtRestBadge(exRestTime)}</button>` : '';
       let prBtnHtml = showPRCalc ? `<button class="ex-action-btn pr" onclick="event.stopPropagation();togglePRPanel(${ei})">PR</button>` : '';
@@ -1895,6 +2013,8 @@ function renderExerciseList(){
         <div id="info-panel-${ei}" style="display:${openPanels.info[ei]?'block':'none'}; margin-bottom:12px;">
           <div class="u10">Program Instructions</div>
           <div style="background:var(--bg4);border-radius:var(--radius);padding:10px 12px;display:flex;flex-direction:column;gap:8px;">
+            ${ex.splitInfo.sets ? `<div><span class="u4">Sets</span><span class="u11">${ex.splitInfo.sets}</span></div>` : ''}
+            ${ex.splitInfo.reps ? `<div><span class="u4">Reps</span><span class="u11">${ex.splitInfo.reps}</span></div>` : ''}
             ${ex.splitInfo.method ? `<div><span class="u4">Method</span><span class="u11">${ex.splitInfo.method}</span></div>` : ''}
             ${ex.splitInfo.tempo ? `<div><span class="u4">Tempo</span><span class="u11">${ex.splitInfo.tempo}</span></div>` : ''}
             ${ex.splitInfo.rest ? `<div><span class="u4">Rest</span><span class="u11">${ex.splitInfo.rest}</span></div>` : ''}
@@ -2080,6 +2200,8 @@ function importSplitToToday() {
       name: e.name,
       tag: e.tag || '',
       splitInfo: {
+        sets: e.sets || '',
+        reps: e.reps || '',
         method: e.weightMethod || '',
         tempo: e.tempo || '',
         rest: e.rest || '',
@@ -2519,6 +2641,21 @@ function updateSet(ei,si,field,val){
      startRestTimer(exRestTime);
   }
 
+  // RAGE MODE TRIGGER — fires the moment a heavier-than-ever weight is
+  // typed into the weight field, independent of reps (don't wait for
+  // the set to be "complete"; the PR weight alone is the trigger).
+  if (field === 'w') {
+    let weight = parseFloat(val);
+    if (!isNaN(weight) && weight > 0 && state.settings.rageModeEnabled && state.settings.rageAutoMode !== false && state.settings.rageAutoTriggerPR !== false) {
+      let exName = w.exs[ei].name;
+      let currentPR = getPR(exName, state.profile);
+      if (currentPR !== null && weight > currentPR && !state.settings.rageMode) {
+        state.settings.rageMode = true;
+        applyRageMode(true);
+      }
+    }
+  }
+
   if (sw && sr) {
     let weight = parseFloat(sw);
     let reps = parseInt(sr);
@@ -2529,6 +2666,7 @@ function updateSet(ei,si,field,val){
         let prLabel = document.getElementById('pr-lbl-'+ei);
         if (prLabel) prLabel.textContent = '· PR: ' + weight + 'kg';
         showPRBurst(w.exs[ei].name, weight);
+        rageFlash();
         if (state.page === 'pr') renderPRPage();
       }
     }
@@ -4020,6 +4158,24 @@ function calcFitnessLevel(metrics, bw){
 }
 
 
+function toggleRageStitchSetting(key, el) {
+  let on = el.type === 'checkbox' ? !!el.checked : parseInt(el.value);
+  state.settings[key] = on;
+  if (key === 'rageModeEnabled') {
+    applyRageModeEnabled(on);
+    // Dim/undim the sub-settings panel
+    let panel = document.getElementById('rage-settings-panel');
+    if (panel) {
+      let rows = panel.querySelectorAll('.settings-row:not(:first-child)');
+      rows.forEach(r => { r.style.opacity = on ? '' : '0.4'; r.style.pointerEvents = on ? '' : 'none'; });
+    }
+  }
+  if (key === 'rageMode') {
+    applyRageMode(on);
+  }
+  saveState();
+}
+
 function toggleStitchSetting(key, el) {
   let on = !!el.checked;
   if (key === 'useRestTimer') state.settings.useRestTimer = on;
@@ -4473,6 +4629,71 @@ function renderProfilePage() {
         <div class="settings-row">
           <div><div class="settings-row-label">Lock UI</div><div class="settings-row-sub">Hides rename, add, and edit controls in the Splits tab to prevent accidental changes</div></div>
           <label class="set-toggle"><input type="checkbox" ${s.lockUI ? 'checked' : ''} onchange="toggleStitchSetting('lockUI', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+      </div>
+
+      <h3 class="settings-section-title" style="display:flex;align-items:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 32 32" fill="#FF3B30" style="flex-shrink:0;">
+          <ellipse cx="16" cy="14" rx="11" ry="12"/>
+          <ellipse cx="6.5" cy="20" rx="4" ry="3"/>
+          <ellipse cx="25.5" cy="20" rx="4" ry="3"/>
+          <rect x="8" y="20" width="16" height="10" rx="3"/>
+          <ellipse cx="11" cy="14" rx="3.8" ry="4.5" fill="var(--app-bg,#111)"/>
+          <ellipse cx="21" cy="14" rx="3.8" ry="4.5" fill="var(--app-bg,#111)"/>
+          <polygon points="6.5,8 13,11.5 6.5,12.5" fill="var(--app-bg,#111)"/>
+          <polygon points="25.5,8 19,11.5 25.5,12.5" fill="var(--app-bg,#111)"/>
+          <ellipse cx="14" cy="20" rx="1.8" ry="1.4" fill="var(--app-bg,#111)"/>
+          <ellipse cx="18" cy="20" rx="1.8" ry="1.4" fill="var(--app-bg,#111)"/>
+          <rect x="9.5" y="23" width="13" height="6" rx="1.5" fill="var(--app-bg,#111)"/>
+          <rect x="10" y="23" width="2.5" height="5.5" rx="1" fill="#FF3B30"/>
+          <rect x="14" y="23" width="2.5" height="6" rx="1" fill="#FF3B30"/>
+          <rect x="18" y="23" width="2.5" height="5.5" rx="1" fill="#FF3B30"/>
+          <rect x="22" y="23" width="2.5" height="5" rx="1" fill="#FF3B30"/>
+        </svg>
+        Rage Mode
+      </h3>
+      <div class="settings-panel" id="rage-settings-panel">
+        <div class="settings-row">
+          <div><div class="settings-row-label" style="color:#FF3B30;font-weight:800;">Enable Rage Mode</div><div class="settings-row-sub">Unlocks the skull button in the nav bar. Does not activate Rage Mode — just enables the feature</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageModeEnabled ? 'checked' : ''} onchange="toggleRageStitchSetting('rageModeEnabled', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row" style="${!s.rageModeEnabled ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label">Rage Sound</div><div class="settings-row-sub">Beep every few seconds of the rest timer while in Rage Mode</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageSoundOn !== false ? 'checked' : ''} onchange="toggleRageStitchSetting('rageSoundOn', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row" style="${!s.rageModeEnabled ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label">Rage Vibration</div><div class="settings-row-sub">Haptic buzz on timer beeps and PR hits</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageVibrationOn !== false ? 'checked' : ''} onchange="toggleRageStitchSetting('rageVibrationOn', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row" style="${!s.rageModeEnabled ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label">Flash on PR</div><div class="settings-row-sub">Screen flashes red when a personal record is broken in Rage Mode</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageFlashOnPR !== false ? 'checked' : ''} onchange="toggleRageStitchSetting('rageFlashOnPR', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row" style="${!s.rageModeEnabled ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label">NO MERCY header</div><div class="settings-row-sub">Replaces the app title with "NO MERCY" while Rage Mode is active</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageHeaderText !== false ? 'checked' : ''} onchange="toggleRageStitchSetting('rageHeaderText', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row" style="${!s.rageModeEnabled ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label">Beep interval</div><div class="settings-row-sub">How often the timer beeps during rest in Rage Mode</div></div>
+          <select class="settings-select" onchange="toggleRageStitchSetting('rageBeepInterval', this)" style="background:var(--bg4);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;">
+            <option value="1" ${s.rageBeepInterval==1?'selected':''}>Every 1s</option>
+            <option value="2" ${s.rageBeepInterval==2?'selected':''}>Every 2s</option>
+            <option value="3" ${(!s.rageBeepInterval||s.rageBeepInterval==3)?'selected':''}>Every 3s</option>
+            <option value="5" ${s.rageBeepInterval==5?'selected':''}>Every 5s</option>
+            <option value="10" ${s.rageBeepInterval==10?'selected':''}>Every 10s</option>
+          </select>
+        </div>
+        <div class="settings-row" style="${!s.rageModeEnabled ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label">Auto Rage Mode</div><div class="settings-row-sub">Automatically activates Rage Mode on certain events — disable to only use the button manually</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageAutoMode !== false ? 'checked' : ''} onchange="toggleRageStitchSetting('rageAutoMode', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row" style="${(!s.rageModeEnabled || s.rageAutoMode === false) ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label" style="padding-left:14px;">↳ Auto-trigger on PR</div><div class="settings-row-sub" style="padding-left:14px;">Fires when a new PR weight is typed into any set</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageAutoTriggerPR !== false ? 'checked' : ''} onchange="toggleRageStitchSetting('rageAutoTriggerPR', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
+        </div>
+        <div class="settings-row" style="border-bottom:none;${(!s.rageModeEnabled || s.rageAutoMode === false) ? 'opacity:0.4;pointer-events:none;' : ''}">
+          <div><div class="settings-row-label" style="padding-left:14px;">↳ Auto-trigger at 3 km</div><div class="settings-row-sub" style="padding-left:14px;">Fires when the live cardio tracker crosses 3 km</div></div>
+          <label class="set-toggle"><input type="checkbox" ${s.rageAutoTriggerKm !== false ? 'checked' : ''} onchange="toggleRageStitchSetting('rageAutoTriggerKm', this)"><span class="set-toggle-track"></span><span class="set-toggle-thumb"></span></label>
         </div>
       </div>
 
@@ -4930,6 +5151,13 @@ function lt_updateUI() {
   if (distEl) distEl.innerHTML = `${liveTracker.distanceKm.toFixed(2)}<span style="font-size:10px;">km</span>`;
   if (calEl) calEl.textContent = lt_estimateCalories();
   if (timeEl) timeEl.textContent = fmtClock(liveTracker.elapsedMs);
+
+  // RAGE MODE TRIGGER — crossing 3km mid-session flips it on automatically.
+  if (liveTracker.distanceKm > 3 && !state.settings.rageMode && state.settings.rageModeEnabled && state.settings.rageAutoMode !== false && state.settings.rageAutoTriggerKm !== false) {
+    state.settings.rageMode = true;
+    applyRageMode(true);
+    saveState();
+  }
 }
 
 async function startLiveTracking() {
